@@ -70,6 +70,18 @@ Use this to interactively update specific fields in an existing world JSON file.
 - **[design_guide.md](references/design_guide.md)**: High-level overview of world sections.
 - **[ai_mechanics.md](references/ai_mechanics.md)**: Technical details on time-tracking and evaluation overrides.
 
+## MCP Tools
+
+- `scaffold_world` — Initialize a new world JSON with safe defaults.
+- `add_instruction_block` — Append an instruction or keyword block.
+- `add_trigger` — Append a trigger event.
+- `compile_draft` — Compile a Markdown draft into world JSON.
+- `decompile_json` — Decompile a world JSON into a Markdown draft.
+- `read_draft_section` / `update_draft_section` — Read or update a specific draft section.
+- `get_diff_summary` — Compare original world JSON with current draft.
+- `confirm_path` — Locate and confirm a file or directory path.
+- `validate_world` — Validate a world JSON file against the Infinite Worlds schema. Returns structured errors, warnings, and info items.
+
 ## Custom Commands
 
 - `/infinite-worlds-architect:draft-world`: Starts an interactive, field-by-field walkthrough using a Markdown draft file to build a new world.
