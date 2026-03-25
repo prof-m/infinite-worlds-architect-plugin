@@ -47,6 +47,28 @@ function normalizeMarkdown(content) {
     return normalized.trim();
 }
 
+function coerceConditionData(type, data) {
+    if (type === 'triggerOnTurn' || type === 'triggerOnRandomChance') {
+        return parseInt(data);
+    }
+    if (type === 'triggerOnStartOfGame') {
+        return Boolean(data);
+    }
+    if (type === 'triggerOnCharacter') {
+        if (typeof data === 'string') {
+            try { return JSON.parse(data); } catch (e) { return [data]; }
+        }
+        return data;
+    }
+    if (type === 'triggerOnTrackedItem') {
+        if (typeof data === 'string') {
+            try { return JSON.parse(data); } catch (e) { return data; }
+        }
+        return data;
+    }
+    return data;
+}
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
@@ -84,18 +106,45 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "add_trigger",
-                description: "Safely append a new Trigger Event to an existing world JSON file.",
+                description: "Append a Trigger Event to a world JSON file. Supports multiple conditions/effects, all condition and effect types, prerequisites, blockers, and repeat-firing control.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         path: { type: "string", description: "Absolute path to the existing world JSON file." },
                         name: { type: "string", description: "Name of the trigger." },
-                        conditionType: { type: "string", description: "e.g., 'triggerOnTurn', 'triggerOnEvent'" },
-                        conditionData: { type: "string", description: "The value matching the condition type" },
-                        effectType: { type: "string", description: "e.g., 'effectShowMessage', 'effectGiveInfo'" },
-                        effectData: { type: "string", description: "The resulting action data" }
+                        conditions: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", description: "Condition type (e.g., triggerOnEvent, triggerOnTurn, triggerOnStartOfGame, triggerOnCharacter, triggerOnTrackedItem, triggerOnRandomChance)." },
+                                    data: { description: "Condition data — type depends on condition type." }
+                                },
+                                required: ["type", "data"]
+                            },
+                            description: "Array of trigger conditions (AND logic — all must be met)."
+                        },
+                        effects: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", description: "Effect type (e.g., scriptedText, giveGuidance, setTrackedItemsValue, endsGame, changeInstructions, etc.)." },
+                                    data: { description: "Effect data — type depends on effect type." }
+                                },
+                                required: ["type", "data"]
+                            },
+                            description: "Array of trigger effects (all execute when conditions are met)."
+                        },
+                        canTriggerMoreThanOnce: { type: "boolean", description: "If true, trigger can fire every eligible turn. Default: false." },
+                        prerequisites: { type: "array", items: { type: "string" }, description: "Trigger IDs that must have fired previously." },
+                        blockers: { type: "array", items: { type: "string" }, description: "Trigger IDs that prevent this trigger from firing." },
+                        conditionType: { type: "string", description: "LEGACY: Single condition type. Use 'conditions' array instead." },
+                        conditionData: { type: "string", description: "LEGACY: Single condition data. Use 'conditions' array instead." },
+                        effectType: { type: "string", description: "LEGACY: Single effect type. Use 'effects' array instead." },
+                        effectData: { type: "string", description: "LEGACY: Single effect data. Use 'effects' array instead." }
                     },
-                    required: ["path", "name", "conditionType", "conditionData", "effectType", "effectData"]
+                    required: ["path", "name"]
                 }
             },
             {
@@ -472,27 +521,86 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const world = await readWorld(worldPath);
         if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
 
+        const VALID_CONDITION_TYPES = ['triggerOnEvent', 'triggerOnTurn', 'triggerOnStartOfGame', 'triggerOnCharacter', 'triggerOnTrackedItem', 'triggerOnRandomChance'];
+        const VALID_EFFECT_TYPES = ['scriptedText', 'giveGuidance', 'addSecretInfo', 'changeAdventureBackground', 'changeInstructions', 'changeInstructionBlock', 'changeAuthorStyle', 'changeDescriptionInstructions', 'changeObjective', 'changeVictoryCondition', 'changeDefeatCondition', 'changeFirstAction', 'changeName', 'changeDescription', 'changeSkill', 'setTrackedItemsValue', 'randomTriggers', 'changeLorebook', 'endsGame'];
+
+        // Build conditions: prefer new array format, fallback to legacy single params
+        const conditions = args.conditions
+            ? args.conditions
+            : (args.conditionType && args.conditionData !== undefined)
+                ? [{ type: args.conditionType, data: args.conditionData }]
+                : [];
+
+        // Build effects: prefer new array format, fallback to legacy single params
+        const effects = args.effects
+            ? args.effects
+            : (args.effectType && args.effectData !== undefined)
+                ? [{ type: args.effectType, data: args.effectData }]
+                : [];
+
+        // Require at least 1 condition and 1 effect
+        if (conditions.length === 0) {
+            throw new Error("At least one condition is required. Provide a 'conditions' array or legacy 'conditionType'/'conditionData' parameters.");
+        }
+        if (effects.length === 0) {
+            throw new Error("At least one effect is required. Provide an 'effects' array or legacy 'effectType'/'effectData' parameters.");
+        }
+
+        // Validate condition types
+        const invalidConditions = conditions.filter(c => !VALID_CONDITION_TYPES.includes(c.type)).map(c => c.type);
+        if (invalidConditions.length > 0) {
+            throw new Error(`Invalid condition type(s): ${invalidConditions.join(', ')}. Valid types: ${VALID_CONDITION_TYPES.join(', ')}`);
+        }
+
+        // Validate effect types
+        const invalidEffects = effects.filter(e => !VALID_EFFECT_TYPES.includes(e.type)).map(e => e.type);
+        if (invalidEffects.length > 0) {
+            throw new Error(`Invalid effect type(s): ${invalidEffects.join(', ')}. Valid types: ${VALID_EFFECT_TYPES.join(', ')}`);
+        }
+
+        // Build the trigger object
         const trigger = {
             id: generateId(),
             name: args.name,
-            triggerConditions: [{
+            triggerConditions: conditions.map(c => ({
                 id: crypto.randomUUID(),
-                type: args.conditionType,
-                data: args.conditionType === 'triggerOnTurn' ? parseInt(args.conditionData) : args.conditionData,
+                type: c.type,
+                data: coerceConditionData(c.type, c.data),
                 category: "condition"
-            }],
-            triggerEffects: [{
+            })),
+            triggerEffects: effects.map(e => ({
                 id: crypto.randomUUID(),
-                type: args.effectType,
-                data: args.effectData
-            }]
+                type: e.type,
+                data: e.data
+            }))
         };
+
+        // Add optional meta-fields
+        if (args.canTriggerMoreThanOnce !== undefined) {
+            trigger.canTriggerMoreThanOnce = args.canTriggerMoreThanOnce;
+        }
+        if (args.prerequisites && args.prerequisites.length > 0) {
+            trigger.prerequisites = args.prerequisites;
+        }
+        if (args.blockers && args.blockers.length > 0) {
+            trigger.blockers = args.blockers;
+        }
 
         world.triggerEvents = world.triggerEvents || [];
         world.triggerEvents.push(trigger);
 
         await writeWorld(worldPath, world);
-        return { content: [{ type: "text", text: `Trigger '${args.name}' added successfully.` }] };
+
+        // Build summary
+        const conditionTypes = conditions.map(c => c.type).join(', ');
+        const effectTypes = effects.map(e => e.type).join(', ');
+        const metaParts = [];
+        if (trigger.canTriggerMoreThanOnce) metaParts.push('repeatable');
+        if (trigger.prerequisites) metaParts.push(`prerequisites: ${trigger.prerequisites.join(', ')}`);
+        if (trigger.blockers) metaParts.push(`blockers: ${trigger.blockers.join(', ')}`);
+        const metaStr = metaParts.length > 0 ? ` | Meta: ${metaParts.join('; ')}` : '';
+
+        return { content: [{ type: "text", text: `Trigger '${args.name}' added successfully. Conditions (${conditions.length}): ${conditionTypes}. Effects (${effects.length}): ${effectTypes}.${metaStr}` }] };
     }
 
     if (name === "compile_draft") {
