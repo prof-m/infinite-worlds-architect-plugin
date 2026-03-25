@@ -20,7 +20,7 @@ Use this when the user wants to carefully construct a new world step-by-step.
     *   *Extra Instruction Blocks*: `## Name`, then `### Content` (inside a ```text block).
     *   *Keyword Instruction Blocks*: `## Name`, then `### Keywords` (comma-separated), `### Content` (inside a ```text block).
     *   *Tracked Items*: `## Name`, then `### Data Type`, `### Visibility`, `### Description`, `### Update Instructions`, `### Initial Value`.
-    *   *Trigger Events*: `## Name`, then `### Conditions` (list: `- type: data`), `### Effects` (list: `- type: data`).
+    *   *Trigger Events*: `## Name`, then `### Conditions` (list: `- type: data`), `### Effects` (list: `- type: data`), and optionally `### Can Trigger More Than Once` (`true`/`false`), `### Prerequisites` (comma-separated trigger IDs), `### Blockers` (comma-separated trigger IDs).
 4.  **JSON Handling**: When the draft is complete, the AI must construct the proper, valid JSON arrays for the complex fields behind the scenes, and pass them directly as arguments to the `compile_draft` MCP tool. **Never present raw JSON to the user** in chat unless explicitly asked.
     *   **Mapping**: Ensure `# Other Characters` are mapped to the `NPCs` key. Ensure `# Keyword Instruction Blocks` (or any blocks with keywords) are mapped to the `loreBookEntries` key, while `# Extra Instruction Blocks` (or blocks without keywords) are mapped to `instructionBlocks`.
 5.  **Compile**: Use the `compile_draft` MCP tool to generate the final world JSON file.

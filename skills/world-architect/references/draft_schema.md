@@ -91,6 +91,9 @@ Non-player characters.
 - **H2**: Trigger Name (`name`)
 - **H3 `Conditions`**: `triggerConditions` (Markdown list where data is on subsequent lines or code blocks: `- type:\n \`\`\`\n data \`\`\``)
 - **H3 `Effects`**: `triggerEffects` (Markdown list where data is on subsequent lines or code blocks: `- type:\n \`\`\`\n data \`\`\``)
+- **H3 `Can Trigger More Than Once`**: `canTriggerMoreThanOnce` (`true` or `false`, default `false`)
+- **H3 `Prerequisites`**: `prerequisites` (comma-separated trigger IDs that must have fired previously)
+- **H3 `Blockers`**: `blockers` (comma-separated trigger IDs that must NOT have fired)
 
 ---
 

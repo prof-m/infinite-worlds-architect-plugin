@@ -36,7 +36,7 @@ The plugin runs an MCP server (`iw-json-tools`) that provides these tools:
 | `update_draft_section` | Surgically update a specific section in a draft file. |
 | `get_diff_summary` | Compare an original world JSON against the current draft and list changes. |
 | `add_instruction_block` | Append an Extra Instruction Block or Keyword Block to a world file. |
-| `add_trigger` | Append a Trigger Event to a world file. |
+| `add_trigger` | Append a Trigger Event with multiple conditions/effects, meta-fields (repeatable, prerequisites, blockers), type validation, and auto-coercion. |
 | `confirm_path` | Resolve and confirm a file or directory path. |
 
 ## Agent Skill
