@@ -36,7 +36,7 @@ An Infinite Worlds "World" is the underlying logic and creative setup that drive
 
 6.  **Other Characters (NPCs)**
     - A library of predefined characters used to populate the character database at game start (`otherCharacters` or updated via Summary AI).
-    - Each character has a description, traits, location, secret info, and comma-separated name variants. The Summary AI updates their records as the game progresses.
+    - Each character has a description, traits, location, secret info, comma-separated name variants, and optional image generation fields (`img_appearance`, `img_clothing`). The Summary AI updates their records as the game progresses.
 
 7.  **Keyword Instruction Blocks (Lore Books)**
     - Conditional instruction blocks that are appended to the main prompt for the next three turns when specific keywords are detected in the player's action or AI's output.

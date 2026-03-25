@@ -33,6 +33,13 @@ Once the target directory and file name are confirmed, check if a `draft_world.m
 # Image Style Character Post
 # Image Style Non Character Pre
 # Image Style Non Character Post
+# Victory Condition
+# Victory Text
+# Defeat Condition
+# Defeat Text
+# Design Notes
+# Player Permissions
+# Enable AI Specific Instruction Blocks
 # Skills
 # Possible Characters
 # Other Characters
