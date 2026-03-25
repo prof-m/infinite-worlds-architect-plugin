@@ -238,6 +238,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     },
                     required: ["draftPath", "sectionName", "newContent"]
                 }
+            },
+            {
+                name: "validate_world",
+                description: "Validate a world JSON file against the Infinite Worlds schema. Returns errors (must fix), warnings (should fix), and info (consider).",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the world JSON file to validate." }
+                    },
+                    required: ["path"]
+                }
             }
         ]
     };
@@ -1096,6 +1107,232 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         await fs.writeFile(draftPath, result.trim() + '\n', "utf-8");
         return { content: [{ type: "text", text: `Successfully updated section '${args.sectionName}' in ${draftPath}` }] };
+    }
+
+    if (name === "validate_world") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read or parse world JSON file at ${worldPath}`);
+
+        const errors = [];
+        const warnings = [];
+        const info = [];
+
+        // --- ERRORS ---
+
+        // Required fields
+        const requiredFields = ["title", "background", "instructions"];
+        for (const field of requiredFields) {
+            if (!world[field] || typeof world[field] !== "string" || world[field].trim() === "") {
+                errors.push(`Required field "${field}" is missing or empty.`);
+            }
+        }
+
+        // Enum validation for tracked items
+        const validDataTypes = ["text", "number", "xml"];
+        const validVisibilities = ["everyone", "ai_only", "player_only", "nobody"];
+        for (const item of (world.trackedItems || [])) {
+            if (item.dataType && !validDataTypes.includes(item.dataType)) {
+                errors.push(`Tracked item "${item.name}": invalid dataType "${item.dataType}". Must be one of: ${validDataTypes.join(", ")}.`);
+            }
+            if (item.visibility && !validVisibilities.includes(item.visibility)) {
+                errors.push(`Tracked item "${item.name}": invalid visibility "${item.visibility}". Must be one of: ${validVisibilities.join(", ")}.`);
+            }
+        }
+
+        // Trigger condition types
+        const validConditionTypes = [
+            "triggerOnEvent", "triggerOnTurn", "triggerOnStartOfGame",
+            "triggerOnCharacter", "triggerOnTrackedItem", "triggerOnRandomChance"
+        ];
+        for (const trigger of (world.triggerEvents || [])) {
+            for (const cond of (trigger.triggerConditions || [])) {
+                if (cond.type && !validConditionTypes.includes(cond.type)) {
+                    errors.push(`Trigger "${trigger.name}": invalid condition type "${cond.type}". Must be one of: ${validConditionTypes.join(", ")}.`);
+                }
+            }
+        }
+
+        // Trigger effect types
+        const validEffectTypes = [
+            "scriptedText", "giveGuidance", "addSecretInfo", "changeAdventureBackground",
+            "changeInstructions", "changeInstructionBlock", "changeAuthorStyle",
+            "changeDescriptionInstructions", "changeObjective", "changeVictoryCondition",
+            "changeDefeatCondition", "changeFirstAction", "changeName", "changeDescription",
+            "changeSkill", "setTrackedItemsValue", "randomTriggers", "changeLorebook", "endsGame"
+        ];
+        for (const trigger of (world.triggerEvents || [])) {
+            for (const eff of (trigger.triggerEffects || [])) {
+                if (eff.type && !validEffectTypes.includes(eff.type)) {
+                    errors.push(`Trigger "${trigger.name}": invalid effect type "${eff.type}". Must be one of: ${validEffectTypes.join(", ")}.`);
+                }
+            }
+        }
+
+        // Skill values (0-5 integer)
+        for (const char of (world.possibleCharacters || [])) {
+            if (char.skills && typeof char.skills === "object") {
+                for (const [skillName, skillValue] of Object.entries(char.skills)) {
+                    if (!Number.isInteger(skillValue) || skillValue < 0 || skillValue > 5) {
+                        errors.push(`Character "${char.name}": skill "${skillName}" has invalid value ${skillValue}. Must be an integer between 0 and 5.`);
+                    }
+                }
+            }
+        }
+
+        // ID uniqueness across all entity arrays
+        const idMap = new Map();
+        const entityArrays = [
+            { key: "triggerEvents", label: "triggerEvents" },
+            { key: "trackedItems", label: "trackedItems" },
+            { key: "instructionBlocks", label: "instructionBlocks" },
+            { key: "loreBookEntries", label: "loreBookEntries" },
+            { key: "NPCs", label: "NPCs" }
+        ];
+        for (const { key, label } of entityArrays) {
+            for (const item of (world[key] || [])) {
+                if (item.id) {
+                    if (idMap.has(item.id)) {
+                        errors.push(`Duplicate id "${item.id}" found in ${label} ("${item.name}") and ${idMap.get(item.id)}.`);
+                    } else {
+                        idMap.set(item.id, `${label} ("${item.name}")`);
+                    }
+                }
+            }
+        }
+
+        // Duplicate characterId across possibleCharacters
+        const charIdMap = new Map();
+        for (const char of (world.possibleCharacters || [])) {
+            if (char.characterId) {
+                if (charIdMap.has(char.characterId)) {
+                    charIdMap.set(char.characterId, [...charIdMap.get(char.characterId), char.name]);
+                } else {
+                    charIdMap.set(char.characterId, [char.name]);
+                }
+            }
+        }
+        for (const [cid, names] of charIdMap) {
+            if (names.length > 1) {
+                errors.push(`Duplicate characterId "${cid}" shared by characters: ${names.join(", ")}.`);
+            }
+        }
+
+        // --- WARNINGS ---
+
+        // Orphaned trigger references in prerequisites and blockers
+        const allTriggerIds = new Set((world.triggerEvents || []).map(t => t.id).filter(Boolean));
+        for (const trigger of (world.triggerEvents || [])) {
+            for (const prereqId of (trigger.prerequisites || [])) {
+                if (!allTriggerIds.has(prereqId)) {
+                    warnings.push(`Trigger "${trigger.name}": prerequisite ID "${prereqId}" does not match any existing trigger.`);
+                }
+            }
+            for (const blockerId of (trigger.blockers || [])) {
+                if (!allTriggerIds.has(blockerId)) {
+                    warnings.push(`Trigger "${trigger.name}": blocker ID "${blockerId}" does not match any existing trigger.`);
+                }
+            }
+        }
+
+        // NPC name consistency
+        for (const npc of (world.NPCs || [])) {
+            if (npc.names && npc.names.length > 0 && npc.name) {
+                if (npc.names[0].toLowerCase() !== npc.name.toLowerCase()) {
+                    warnings.push(`NPC "${npc.name}": first entry in names array ("${npc.names[0]}") does not match name field.`);
+                }
+            }
+        }
+
+        // Empty keyword blocks
+        for (const entry of (world.loreBookEntries || [])) {
+            if (!entry.keywords || entry.keywords.length === 0) {
+                warnings.push(`Keyword block "${entry.name}": keywords array is empty.`);
+            }
+        }
+
+        // Empty instruction blocks
+        for (const block of (world.instructionBlocks || [])) {
+            if (!block.content || block.content.trim() === "") {
+                warnings.push(`Instruction block "${block.name}": content is empty.`);
+            }
+        }
+
+        // Tracked item size
+        for (const item of (world.trackedItems || [])) {
+            if (item.initialValue && item.initialValue.length > 10000) {
+                warnings.push(`Tracked item "${item.name}": initialValue exceeds 10,000 characters (${item.initialValue.length}).`);
+            }
+            if (item.updateInstructions && item.updateInstructions.length > 10000) {
+                warnings.push(`Tracked item "${item.name}": updateInstructions exceeds 10,000 characters (${item.updateInstructions.length}).`);
+            }
+        }
+
+        // Missing description
+        if (!world.description || typeof world.description !== "string" || world.description.trim() === "") {
+            warnings.push(`World has no description or it is empty.`);
+        }
+
+        // --- INFO ---
+
+        // No victory/defeat conditions
+        if ((!world.victoryCondition || world.victoryCondition.trim() === "") && (!world.defeatCondition || world.defeatCondition.trim() === "")) {
+            info.push(`Neither victoryCondition nor defeatCondition are set.`);
+        }
+
+        // No NPCs
+        if (!world.NPCs || world.NPCs.length === 0) {
+            info.push(`No NPCs defined.`);
+        }
+
+        // No tracked items
+        if (!world.trackedItems || world.trackedItems.length === 0) {
+            info.push(`No tracked items defined.`);
+        }
+
+        // No triggers
+        if (!world.triggerEvents || world.triggerEvents.length === 0) {
+            info.push(`No trigger events defined.`);
+        }
+
+        // Large skill count
+        if (world.skills && world.skills.length > 8) {
+            info.push(`${world.skills.length} skills defined (more than 8 may overwhelm the AI).`);
+        }
+
+        // triggerOnEvent count
+        let triggerOnEventCount = 0;
+        for (const trigger of (world.triggerEvents || [])) {
+            for (const cond of (trigger.triggerConditions || [])) {
+                if (cond.type === "triggerOnEvent") triggerOnEventCount++;
+            }
+        }
+        if (triggerOnEventCount > 10) {
+            info.push(`${triggerOnEventCount} triggerOnEvent conditions found across all triggers (platform limit is 10).`);
+        }
+
+        // --- OUTPUT ---
+        const title = world.title || "Untitled World";
+        const status = errors.length === 0 ? "VALID" : "INVALID";
+
+        let report = `# World Validation Report: ${title}\n\n`;
+        report += `## Errors (${errors.length})\n`;
+        if (errors.length === 0) report += `None.\n`;
+        else errors.forEach(e => report += `- [ERROR] ${e}\n`);
+
+        report += `\n## Warnings (${warnings.length})\n`;
+        if (warnings.length === 0) report += `None.\n`;
+        else warnings.forEach(w => report += `- [WARNING] ${w}\n`);
+
+        report += `\n## Info (${info.length})\n`;
+        if (info.length === 0) report += `None.\n`;
+        else info.forEach(i => report += `- [INFO] ${i}\n`);
+
+        report += `\n## Summary\n`;
+        report += `${errors.length} errors, ${warnings.length} warnings, ${info.length} info items\n`;
+        report += `Status: ${status}`;
+
+        return { content: [{ type: "text", text: report }] };
     }
 
     if (name === "audit_world") {

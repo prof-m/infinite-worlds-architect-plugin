@@ -24,6 +24,7 @@ Use this when the user wants to carefully construct a new world step-by-step.
 4.  **JSON Handling**: When the draft is complete, the AI must construct the proper, valid JSON arrays for the complex fields behind the scenes, and pass them directly as arguments to the `compile_draft` MCP tool. **Never present raw JSON to the user** in chat unless explicitly asked.
     *   **Mapping**: Ensure `# Other Characters` are mapped to the `NPCs` key. Ensure `# Keyword Instruction Blocks` (or any blocks with keywords) are mapped to the `loreBookEntries` key, while `# Extra Instruction Blocks` (or blocks without keywords) are mapped to `instructionBlocks`.
 5.  **Compile**: Use the `compile_draft` MCP tool to generate the final world JSON file.
+6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 2. Scaffold from Scratch (Quick)
 Use this when the user wants a world generated instantly from a single prompt.
@@ -32,12 +33,14 @@ Use this when the user wants a world generated instantly from a single prompt.
 3.  **Efficiency Pass**: Audit instructions to move lore into Keyword Blocks (`efficiency_guide.md`).
 4.  **Refinement**: Add Tracked Items (Text/Number/XML) and Triggers.
 5.  **Compilation**: Use `scaffold_world` to produce the final JSON.
+6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 3. Version/Update Existing World
 Use this to iterate on an existing world JSON file.
 1.  **Ingestion**: Read the current world JSON file.
 2.  **Modification**: Apply user changes (e.g., "Add a new NPC", "Change the image style").
 3.  **Incremental IDs**: Ensure new IDs are generated for new entities using the generator script logic.
+4.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 4. World Spinoff (Branching)
 Use this to create a new world based *purely* on an existing world JSON file, without story inputs, using an interactive drafting process.
@@ -46,6 +49,7 @@ Use this to create a new world based *purely* on an existing world JSON file, wi
 3.  **Drafting**: Pre-compile this information into a `draft_world.md` file with H1 sections (`# Title`, `# Description`, `# Background`, `# First Action`, `# Objective`, `# Main Instructions`, `# Author Style`, `# Victory Condition`, `# Victory Text`, `# Defeat Condition`, `# Defeat Text`, `# Design Notes`, `# Player Permissions`, `# Enable AI Specific Instruction Blocks`).
 4.  **Iterate**: Prompt the user strictly **field-by-field** to refine the draft. Present the proposed data for the field and ask how they'd like to modify it. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before introducing the next field. Do not automatically proceed to the next field immediately after applying feedback.
 5.  **Compile**: Once the markdown draft is complete and approved, use the `compile_draft` MCP tool to generate the final spinoff world JSON file.
+6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 5. Story Sequel (Continuation)
 Use this to create a sequel world based on the original world JSON file AND the full context of a story export.
@@ -54,6 +58,7 @@ Use this to create a sequel world based on the original world JSON file AND the 
 3.  **Drafting**: Pre-compile this into a `draft_world.md` file with H1 sections (`# Title`, `# Description`, `# Background`, `# First Action`, `# Objective`, `# Main Instructions`, `# Author Style`, `# Victory Condition`, `# Victory Text`, `# Defeat Condition`, `# Defeat Text`, `# Design Notes`, `# Player Permissions`, `# Enable AI Specific Instruction Blocks`).
 4.  **Iterate**: Prompt the user strictly **field-by-field** to refine the draft. Present the proposed data for the field and ask how they'd like to modify it. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before introducing the next field. Do not automatically proceed to the next field immediately after applying feedback.
 5.  **Compile**: Use the `compile_draft` MCP tool to generate the final sequel world JSON file.
+6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 6. Modify Existing World
 Use this to interactively update specific fields in an existing world JSON file.
@@ -62,6 +67,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 3.  **Iterate**: When a field is selected, present its current value and ask for changes. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before returning to the selection list. Do not automatically proceed immediately after applying feedback.
 4.  **Finalize**: Ask if the user wants to overwrite the original file or save as new.
 5.  **Compile**: Use `compile_draft` with the constructed JSON arrays passed as arguments.
+6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ## Reference Materials
 
@@ -82,6 +88,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `update_draft_section` — Update a specific section in a Markdown draft file.
 - `get_diff_summary` — Compare original world JSON with current draft and return a summary of changes.
 - `confirm_path` — Locate a file or directory and return its absolute path for confirmation.
+- `validate_world` — Validate a world JSON file against the Infinite Worlds schema. Returns structured errors, warnings, and info items.
 
 ## Custom Commands
 
@@ -123,3 +130,4 @@ When asked to extract data from `.json`, `.md`, or `.txt` files (e.g., `world.js
 - **IDs**: Always generate unique 8-character hex IDs for new items.
 - **Token Efficiency**: Always check `efficiency_guide.md`. Minimize `instructions` by offloading to `instructionBlocks` (Keywords). Use `audit_world` to analyze an existing world for optimization opportunities.
 - **Summary**: Remind users that the Summary AI cannot see Tracked Items; important state must be written to `secretInfo` or the main output.
+- **Validation**: Always run `validate_world` on any world JSON file after creation or modification. Address errors before presenting the file as complete.
