@@ -25,6 +25,18 @@ The `world.json` file is the ultimate source of truth for world definitions. Bel
 | `imageStyleCharacterPost` | string | Suffix for character image prompts (contains LoRAs like `IWUpscaleFaceSmooth`). |
 | `imageStyleNonCharacterPre`| string | Prefix for setting image prompts. |
 | `imageStyleNonCharacterPost`| string | Suffix for setting image prompts. |
+| `victoryCondition` | string | Free-text condition for winning. |
+| `victoryText` | string | Display message on victory. |
+| `defeatCondition` | string | Free-text condition for losing. |
+| `defeatText` | string | Display message on defeat. Default: "Your adventure ends here. Game over." |
+| `designNotes` | string | Personal notes field, NOT sent to AI. For author reference only. |
+| `canChangeCharacterName` | boolean | Allow player to change character name. Default: `true`. |
+| `canChangeCharacterDescription` | boolean | Allow player to change character description. Default: `true`. |
+| `canChangeCharacterSkills` | boolean | Allow player to redistribute skill levels (without exceeding original total). Default: `true`. |
+| `canSelectOtherPortraits` | boolean | Allow player to select other portraits. Default: `false`. |
+| `canCreateNewPortrait` | boolean | Allow player to create a new portrait. Default: `true`. |
+| `canChangeTrackedItemsStartingValues` | boolean | Allow player to change tracked items starting values. Default: `false`. |
+| `enableAISpecificInstructionBlocks` | boolean | Allows restricting EIBs to specific AI models. Default: `false`. |
 | `skills` | string[] | Array of skill names (e.g., `["Strength", "Persuasion"]`). |
 | `possibleCharacters` | object[] | Array of character objects (see below). |
 | `NPCs` | object[] | Array of NPC objects (see below). |
@@ -53,6 +65,21 @@ Each object in `NPCs` contains:
 - `location` (string)
 - `secret_info` (string)
 - `names` (string[], Full List of Names)
+- `img_appearance` (string, Image generation appearance text)
+- `img_clothing` (string, Image generation clothing text)
+
+## Player Customization Permissions
+
+These boolean fields control what the player can customize before starting the adventure:
+
+| Key | Default | Description |
+| :--- | :--- | :--- |
+| `canChangeCharacterName` | `true` | Allow player to change character name. |
+| `canChangeCharacterDescription` | `true` | Allow player to change character description. |
+| `canChangeCharacterSkills` | `true` | Allow player to redistribute skill levels without exceeding original total. |
+| `canSelectOtherPortraits` | `false` | Allow player to select other portraits. |
+| `canCreateNewPortrait` | `true` | Allow player to create a new portrait. |
+| `canChangeTrackedItemsStartingValues` | `false` | Allow player to change tracked items starting values. |
 
 ## trackedItems
 
