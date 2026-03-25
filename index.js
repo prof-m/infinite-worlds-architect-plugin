@@ -51,20 +51,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
             {
-                name: "scaffold_world",
-                description: "Initialize a new world JSON file with safe, token-efficient defaults.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        path: { type: "string", description: "Absolute path where the world JSON file should be saved." },
-                        title: { type: "string" },
-                        background: { type: "string" },
-                        instructions: { type: "string" }
-                    },
-                    required: ["path", "title"]
-                }
-            },
-            {
                 name: "add_instruction_block",
                 description: "Safely append an Extra Instruction Block or Keyword Block to an existing world JSON file.",
                 inputSchema: {
@@ -73,8 +59,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         path: { type: "string", description: "Absolute path to the existing world JSON file." },
                         name: { type: "string", description: "Name of the block." },
                         content: { type: "string", description: "The instruction content." },
-                        keywords: { 
-                            type: "array", 
+                        keywords: {
+                            type: "array",
                             items: { type: "string" },
                             description: "Optional array of trigger keywords. If provided, creates a Keyword Block instead of an Extra Instruction Block."
                         }
@@ -130,6 +116,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
+                name: "confirm_path",
+                description: "Programmatically locates a file or directory and returns its absolute path for user confirmation.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        inputPath: { type: "string", description: "The name or partial path provided by the user." },
+                        type: { type: "string", enum: ["file", "directory"], description: "Whether to look for a file or a directory." }
+                    },
+                    required: ["inputPath", "type"]
+                }
+            },
+            {
                 name: "decompile_json",
                 description: "Reads a world JSON file and generates a human-readable Markdown draft file.",
                 inputSchema: {
@@ -139,31 +137,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         outputPath: { type: "string", description: "Absolute path where the draft_world.md file should be saved." }
                     },
                     required: ["inputPath", "outputPath"]
-                }
-            },
-            {
-                name: "read_draft_section",
-                description: "Reads the content of a specific section (e.g., 'Background', 'Title') from a Markdown draft file.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        draftPath: { type: "string", description: "Absolute path to the draft_world.md file." },
-                        sectionName: { type: "string", description: "Name of the header (without the '#' symbol)." }
-                    },
-                    required: ["draftPath", "sectionName"]
-                }
-            },
-            {
-                name: "update_draft_section",
-                description: "Updates the content of a specific section in a Markdown draft file.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        draftPath: { type: "string", description: "Absolute path to the draft_world.md file." },
-                        sectionName: { type: "string", description: "Name of the header (without the '#' symbol)." },
-                        newContent: { type: "string", description: "The new content to place under the header." }
-                    },
-                    required: ["draftPath", "sectionName", "newContent"]
                 }
             },
             {
@@ -179,15 +152,42 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
-                name: "confirm_path",
-                description: "Programmatically locates a file or directory and returns its absolute path for user confirmation.",
+                name: "read_draft_section",
+                description: "Reads the content of a specific section (e.g., 'Background', 'Title') from a Markdown draft file.",
                 inputSchema: {
                     type: "object",
                     properties: {
-                        inputPath: { type: "string", description: "The name or partial path provided by the user." },
-                        type: { type: "string", enum: ["file", "directory"], description: "Whether to look for a file or a directory." }
+                        draftPath: { type: "string", description: "Absolute path to the draft_world.md file." },
+                        sectionName: { type: "string", description: "Name of the header (without the '#' symbol)." }
                     },
-                    required: ["inputPath", "type"]
+                    required: ["draftPath", "sectionName"]
+                }
+            },
+            {
+                name: "scaffold_world",
+                description: "Initialize a new world JSON file with safe, token-efficient defaults.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path where the world JSON file should be saved." },
+                        title: { type: "string" },
+                        background: { type: "string" },
+                        instructions: { type: "string" }
+                    },
+                    required: ["path", "title"]
+                }
+            },
+            {
+                name: "update_draft_section",
+                description: "Updates the content of a specific section in a Markdown draft file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        draftPath: { type: "string", description: "Absolute path to the draft_world.md file." },
+                        sectionName: { type: "string", description: "Name of the header (without the '#' symbol)." },
+                        newContent: { type: "string", description: "The new content to place under the header." }
+                    },
+                    required: ["draftPath", "sectionName", "newContent"]
                 }
             }
         ]
