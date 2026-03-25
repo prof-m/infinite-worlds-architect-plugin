@@ -70,6 +70,19 @@ Use this to interactively update specific fields in an existing world JSON file.
 - **[design_guide.md](references/design_guide.md)**: High-level overview of world sections.
 - **[ai_mechanics.md](references/ai_mechanics.md)**: Technical details on time-tracking and evaluation overrides.
 
+## MCP Tools
+
+- `scaffold_world` — Initialize a new world JSON file with safe, token-efficient defaults.
+- `add_instruction_block` — Append an Extra Instruction Block or Keyword Block to an existing world.
+- `add_trigger` — Append a new Trigger Event to an existing world.
+- `audit_world` — Audit a world JSON file for token efficiency, instruction density, keyword coverage, tracked item efficiency, trigger chain dependencies, NPC redundancy, and image instruction size.
+- `compile_draft` — Compile a Markdown draft file into a valid world JSON file.
+- `decompile_json` — Generate a human-readable Markdown draft from a world JSON file.
+- `read_draft_section` — Read a specific section from a Markdown draft file.
+- `update_draft_section` — Update a specific section in a Markdown draft file.
+- `get_diff_summary` — Compare original world JSON with current draft and return a summary of changes.
+- `confirm_path` — Locate a file or directory and return its absolute path for confirmation.
+
 ## Custom Commands
 
 - `/infinite-worlds-architect:draft-world`: Starts an interactive, field-by-field walkthrough using a Markdown draft file to build a new world.
@@ -108,5 +121,5 @@ When asked to extract data from `.json`, `.md`, or `.txt` files (e.g., `world.js
 
 - **Draft Modification**: When iterating on a `draft_world.md` file, **try using the dedicated MCP tools** `read_draft_section` and `update_draft_section` to surgically read and rewrite specific headers first. Only fall back to other approaches if absolutely necessary to solve an edge case.
 - **IDs**: Always generate unique 8-character hex IDs for new items.
-- **Token Efficiency**: Always check `efficiency_guide.md`. Minimize `instructions` by offloading to `instructionBlocks` (Keywords).
+- **Token Efficiency**: Always check `efficiency_guide.md`. Minimize `instructions` by offloading to `instructionBlocks` (Keywords). Use `audit_world` to analyze an existing world for optimization opportunities.
 - **Summary**: Remind users that the Summary AI cannot see Tracked Items; important state must be written to `secretInfo` or the main output.
