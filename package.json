@@ -1,0 +1,13 @@
+{
+  "name": "infinite-worlds-architect",
+  "version": "1.3.0",
+  "description": "Infinite Worlds extension for World Architects",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
