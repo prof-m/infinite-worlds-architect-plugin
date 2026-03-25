@@ -215,6 +215,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             else if (header === 'image style character post') parsed.imageStyleCharacterPost = content;
             else if (header === 'image style non character pre') parsed.imageStyleNonCharacterPre = content;
             else if (header === 'image style non character post') parsed.imageStyleNonCharacterPost = content;
+            else if (header === 'victory condition') parsed.victoryCondition = content;
+            else if (header === 'victory text') parsed.victoryText = content;
+            else if (header === 'defeat condition') parsed.defeatCondition = content;
+            else if (header === 'defeat text') parsed.defeatText = content;
+            else if (header === 'design notes') parsed.designNotes = content;
+            else if (header === 'player permissions') {
+                const permLines = content.split('\n').filter(l => l.includes(':'));
+                for (const line of permLines) {
+                    const [key, val] = line.split(':').map(s => s.trim());
+                    const boolVal = val.toLowerCase() === 'true';
+                    if (key.toLowerCase() === 'can change name') parsed.canChangeCharacterName = boolVal;
+                    else if (key.toLowerCase() === 'can change description') parsed.canChangeCharacterDescription = boolVal;
+                    else if (key.toLowerCase() === 'can change skills') parsed.canChangeCharacterSkills = boolVal;
+                    else if (key.toLowerCase() === 'can select other portraits') parsed.canSelectOtherPortraits = boolVal;
+                    else if (key.toLowerCase() === 'can create new portrait') parsed.canCreateNewPortrait = boolVal;
+                    else if (key.toLowerCase() === 'can change tracked items starting values') parsed.canChangeTrackedItemsStartingValues = boolVal;
+                }
+            }
+            else if (header === 'enable ai specific instruction blocks') parsed.enableAISpecificInstructionBlocks = content.toLowerCase() === 'true';
             else if (header === 'skills') {
                 parsed.skills = content.split('\n').map(line => {
                     const match = line.match(/^[-*]?\s*(.*)/);
@@ -323,7 +342,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!original) throw new Error("Could not read original world file.");
 
         const changes = [];
-        const fields = ['title', 'description', 'background', 'firstInput', 'objective', 'instructions', 'authorStyle', 'nsfw', 'contentWarnings', 'descriptionRequest', 'summaryRequest', 'imageModel', 'imageStyle', 'imageStyleCharacterPre', 'imageStyleCharacterPost', 'imageStyleNonCharacterPre', 'imageStyleNonCharacterPost'];
+        const fields = ['title', 'description', 'background', 'firstInput', 'objective', 'instructions', 'authorStyle', 'nsfw', 'contentWarnings', 'descriptionRequest', 'summaryRequest', 'imageModel', 'imageStyle', 'imageStyleCharacterPre', 'imageStyleCharacterPost', 'imageStyleNonCharacterPre', 'imageStyleNonCharacterPost', 'victoryCondition', 'victoryText', 'defeatCondition', 'defeatText', 'designNotes', 'canChangeCharacterName', 'canChangeCharacterDescription', 'canChangeCharacterSkills', 'canSelectOtherPortraits', 'canCreateNewPortrait', 'canChangeTrackedItemsStartingValues', 'enableAISpecificInstructionBlocks'];
         
         for (const f of fields) {
             if (JSON.stringify(original[f]) !== JSON.stringify(current[f])) {
@@ -400,6 +419,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             summaryRequest: "",
             imageModel: "manticore",
             imageStyle: "photo_beautiful",
+            victoryCondition: "",
+            victoryText: "",
+            defeatCondition: "",
+            defeatText: "Your adventure ends here. Game over.",
+            designNotes: "",
+            canChangeCharacterName: true,
+            canChangeCharacterDescription: true,
+            canChangeCharacterSkills: true,
+            canSelectOtherPortraits: false,
+            canCreateNewPortrait: true,
+            canChangeTrackedItemsStartingValues: false,
+            enableAISpecificInstructionBlocks: false,
             skills: ["Persuasion", "Observation"],
             possibleCharacters: [],
             NPCs: [],
@@ -500,6 +531,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             if (header === 'image style character post') parsed.imageStyleCharacterPost = content;
             if (header === 'image style non character pre') parsed.imageStyleNonCharacterPre = content;
             if (header === 'image style non character post') parsed.imageStyleNonCharacterPost = content;
+            if (header === 'victory condition') parsed.victoryCondition = content;
+            if (header === 'victory text') parsed.victoryText = content;
+            if (header === 'defeat condition') parsed.defeatCondition = content;
+            if (header === 'defeat text') parsed.defeatText = content;
+            if (header === 'design notes') parsed.designNotes = content;
+            if (header === 'player permissions') {
+                const permLines = content.split('\n').filter(l => l.includes(':'));
+                for (const line of permLines) {
+                    const [key, val] = line.split(':').map(s => s.trim());
+                    const boolVal = val.toLowerCase() === 'true';
+                    if (key.toLowerCase() === 'can change name') parsed.canChangeCharacterName = boolVal;
+                    else if (key.toLowerCase() === 'can change description') parsed.canChangeCharacterDescription = boolVal;
+                    else if (key.toLowerCase() === 'can change skills') parsed.canChangeCharacterSkills = boolVal;
+                    else if (key.toLowerCase() === 'can select other portraits') parsed.canSelectOtherPortraits = boolVal;
+                    else if (key.toLowerCase() === 'can create new portrait') parsed.canCreateNewPortrait = boolVal;
+                    else if (key.toLowerCase() === 'can change tracked items starting values') parsed.canChangeTrackedItemsStartingValues = boolVal;
+                }
+            }
+            if (header === 'enable ai specific instruction blocks') parsed.enableAISpecificInstructionBlocks = content.toLowerCase() === 'true';
             if (header === 'skills') {
                 parsed.skills = content.split('\n').map(line => {
                     const match = line.match(/^[-*]?\s*(.*)/);
@@ -656,6 +706,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             imageStyleCharacterPost: parsed.imageStyleCharacterPost ?? originalData.imageStyleCharacterPost ?? "",
             imageStyleNonCharacterPre: parsed.imageStyleNonCharacterPre ?? originalData.imageStyleNonCharacterPre ?? "",
             imageStyleNonCharacterPost: parsed.imageStyleNonCharacterPost ?? originalData.imageStyleNonCharacterPost ?? "",
+            victoryCondition: parsed.victoryCondition ?? originalData.victoryCondition ?? "",
+            victoryText: parsed.victoryText ?? originalData.victoryText ?? "",
+            defeatCondition: parsed.defeatCondition ?? originalData.defeatCondition ?? "",
+            defeatText: parsed.defeatText ?? originalData.defeatText ?? "Your adventure ends here. Game over.",
+            designNotes: parsed.designNotes ?? originalData.designNotes ?? "",
+            canChangeCharacterName: parsed.canChangeCharacterName !== undefined ? parsed.canChangeCharacterName : (originalData.canChangeCharacterName ?? true),
+            canChangeCharacterDescription: parsed.canChangeCharacterDescription !== undefined ? parsed.canChangeCharacterDescription : (originalData.canChangeCharacterDescription ?? true),
+            canChangeCharacterSkills: parsed.canChangeCharacterSkills !== undefined ? parsed.canChangeCharacterSkills : (originalData.canChangeCharacterSkills ?? true),
+            canSelectOtherPortraits: parsed.canSelectOtherPortraits !== undefined ? parsed.canSelectOtherPortraits : (originalData.canSelectOtherPortraits ?? false),
+            canCreateNewPortrait: parsed.canCreateNewPortrait !== undefined ? parsed.canCreateNewPortrait : (originalData.canCreateNewPortrait ?? true),
+            canChangeTrackedItemsStartingValues: parsed.canChangeTrackedItemsStartingValues !== undefined ? parsed.canChangeTrackedItemsStartingValues : (originalData.canChangeTrackedItemsStartingValues ?? false),
+            enableAISpecificInstructionBlocks: parsed.enableAISpecificInstructionBlocks !== undefined ? parsed.enableAISpecificInstructionBlocks : (originalData.enableAISpecificInstructionBlocks ?? false),
             skills: parsed.skills || args.skills || originalData.skills || ["Persuasion", "Observation"]
         };
 
@@ -744,6 +806,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         md += `- [Image Style Character Post](#image-style-character-post)\n`;
         md += `- [Image Style Non Character Pre](#image-style-non-character-pre)\n`;
         md += `- [Image Style Non Character Post](#image-style-non-character-post)\n`;
+        md += `- [Victory Condition](#victory-condition)\n`;
+        md += `- [Victory Text](#victory-text)\n`;
+        md += `- [Defeat Condition](#defeat-condition)\n`;
+        md += `- [Defeat Text](#defeat-text)\n`;
+        md += `- [Design Notes](#design-notes)\n`;
+        md += `- [Player Permissions](#player-permissions)\n`;
+        md += `- [Enable AI Specific Instruction Blocks](#enable-ai-specific-instruction-blocks)\n`;
         md += `- [Skills](#skills)\n`;
         md += `- [Possible Characters](#possible-characters)\n`;
         md += `- [Other Characters](#other-characters)\n`;
@@ -769,7 +838,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         md += `# Image Style Character Post\n${world.imageStyleCharacterPost || ""}\n\n`;
         md += `# Image Style Non Character Pre\n${world.imageStyleNonCharacterPre || ""}\n\n`;
         md += `# Image Style Non Character Post\n${world.imageStyleNonCharacterPost || ""}\n\n`;
-        
+
+        md += `# Victory Condition\n${world.victoryCondition || ""}\n\n`;
+        md += `# Victory Text\n${world.victoryText || ""}\n\n`;
+        md += `# Defeat Condition\n${world.defeatCondition || ""}\n\n`;
+        md += `# Defeat Text\n${world.defeatText || ""}\n\n`;
+        md += `# Design Notes\n${world.designNotes || ""}\n\n`;
+        md += `# Player Permissions\n`;
+        md += `Can Change Name: ${world.canChangeCharacterName !== undefined ? world.canChangeCharacterName : true}\n`;
+        md += `Can Change Description: ${world.canChangeCharacterDescription !== undefined ? world.canChangeCharacterDescription : true}\n`;
+        md += `Can Change Skills: ${world.canChangeCharacterSkills !== undefined ? world.canChangeCharacterSkills : true}\n`;
+        md += `Can Select Other Portraits: ${world.canSelectOtherPortraits !== undefined ? world.canSelectOtherPortraits : false}\n`;
+        md += `Can Create New Portrait: ${world.canCreateNewPortrait !== undefined ? world.canCreateNewPortrait : true}\n`;
+        md += `Can Change Tracked Items Starting Values: ${world.canChangeTrackedItemsStartingValues !== undefined ? world.canChangeTrackedItemsStartingValues : false}\n\n`;
+        md += `# Enable AI Specific Instruction Blocks\n${world.enableAISpecificInstructionBlocks ? "true" : "false"}\n\n`;
+
         md += `# Skills\n`;
         if (world.skills) world.skills.forEach(s => md += `- ${s}\n`);
         
