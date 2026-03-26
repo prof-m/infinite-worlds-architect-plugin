@@ -58,7 +58,8 @@ Then, enter an interactive modification loop:
 
 3. If I choose "Give a generic instruction":
    - Ask me for the instruction.
-   - Analyze the current `draft_world.md`, identify all relevant sections that need changing based on my instruction, and propose the updates.
+   - For entity-level changes (adding/modifying characters, NPCs, or tracked items), always use the dedicated MCP tools (`add_character`, `add_npc`, `add_tracked_item`, `modify_character`, `modify_npc`, `modify_tracked_item`) whenever one exists to apply changes directly to the world JSON instead of modifying the draft. This is faster and avoids a recompile step.
+   - For other changes, analyze the current `draft_world.md`, identify all relevant sections that need changing based on my instruction, and propose the updates.
    - Present the proposed changes to me clearly.
    - Ask: "Would you like to approve these changes, or make additional modifications?"
    - Once I approve, ask: "What would you like to do next?" with options: "Give another generic instruction", "Select specific fields", "Present a summary of changes", or "Finalize Changes".

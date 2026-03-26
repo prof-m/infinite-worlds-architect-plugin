@@ -47,6 +47,30 @@ function normalizeMarkdown(content) {
     return normalized.trim();
 }
 
+// --- Shared validation helpers ---
+
+function validateSkillValues(skills) {
+    if (skills && typeof skills === "object") {
+        for (const [skillName, skillValue] of Object.entries(skills)) {
+            if (!Number.isInteger(skillValue) || skillValue < 0 || skillValue > 5) {
+                throw new Error(`Skill "${skillName}" has invalid value ${skillValue}. Must be an integer between 0 and 5.`);
+            }
+        }
+    }
+}
+
+const VALID_DATA_TYPES = ["text", "number", "xml"];
+const VALID_VISIBILITIES = ["everyone", "ai_only", "player_only", "nobody"];
+
+function validateTrackedItemEnums(dataType, visibility) {
+    if (dataType && !VALID_DATA_TYPES.includes(dataType)) {
+        throw new Error(`Invalid dataType "${dataType}". Must be one of: ${VALID_DATA_TYPES.join(", ")}.`);
+    }
+    if (visibility && !VALID_VISIBILITIES.includes(visibility)) {
+        throw new Error(`Invalid visibility "${visibility}". Must be one of: ${VALID_VISIBILITIES.join(", ")}.`);
+    }
+}
+
 function coerceConditionData(type, data) {
     if (type === 'triggerOnTurn' || type === 'triggerOnRandomChance') {
         return parseInt(data);
@@ -69,9 +93,28 @@ function coerceConditionData(type, data) {
     return data;
 }
 
+const VALID_CONDITION_TYPES = ['triggerOnEvent', 'triggerOnTurn', 'triggerOnStartOfGame', 'triggerOnCharacter', 'triggerOnTrackedItem', 'triggerOnRandomChance'];
+const VALID_EFFECT_TYPES = ['scriptedText', 'giveGuidance', 'addSecretInfo', 'changeAdventureBackground', 'changeInstructions', 'changeInstructionBlock', 'changeAuthorStyle', 'changeDescriptionInstructions', 'changeObjective', 'changeVictoryCondition', 'changeDefeatCondition', 'changeFirstAction', 'changeName', 'changeDescription', 'changeSkill', 'setTrackedItemsValue', 'randomTriggers', 'changeLorebook', 'endsGame'];
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
+            {
+                name: "add_character",
+                description: "Append a Player Character to an existing world JSON file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        characterId: { type: "string", description: "Optional: existing character ID to preserve. If omitted, a new unique ID is generated." },
+                        name: { type: "string", description: "Name of the character." },
+                        description: { type: "string", description: "Character description." },
+                        portrait: { type: "string", description: "Portrait identifier or URL." },
+                        skills: { type: "object", description: "Object mapping skill names to integer values 0-5 (e.g., {\"Strength\": 3, \"Charisma\": 4})." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
             {
                 name: "add_instruction_block",
                 description: "Safely append an Extra Instruction Block or Keyword Block to an existing world JSON file.",
@@ -88,6 +131,45 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         }
                     },
                     required: ["path", "name", "content"]
+                }
+            },
+            {
+                name: "add_npc",
+                description: "Append an NPC (Other Character) to an existing world JSON file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        id: { type: "string", description: "Optional: existing NPC ID to preserve. If omitted, a new unique ID is generated." },
+                        name: { type: "string", description: "Name of the NPC." },
+                        detail: { type: "string", description: "Detailed character description." },
+                        one_liner: { type: "string", description: "Brief one-line summary of the NPC." },
+                        appearance: { type: "string", description: "Physical appearance description." },
+                        location: { type: "string", description: "Where the NPC can be found." },
+                        secret_info: { type: "string", description: "Hidden information only the AI knows." },
+                        names: { type: "array", items: { type: "string" }, description: "Full list of names/aliases for the NPC." },
+                        img_appearance: { type: "string", description: "Image generation appearance prompt." },
+                        img_clothing: { type: "string", description: "Image generation clothing prompt." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "add_tracked_item",
+                description: "Append a Tracked Item to an existing world JSON file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        id: { type: "string", description: "Optional: existing tracked item ID to preserve. If omitted, a new unique ID is generated." },
+                        name: { type: "string", description: "Name of the tracked item." },
+                        dataType: { type: "string", enum: ["text", "number", "xml"], description: "Data type of the tracked item. Default: \"text\"." },
+                        visibility: { type: "string", enum: ["everyone", "ai_only", "player_only", "nobody"], description: "Visibility of the tracked item. Default: \"everyone\"." },
+                        description: { type: "string", description: "Description of what this item tracks." },
+                        updateInstructions: { type: "string", description: "Instructions for the AI on how to update this item." },
+                        initialValue: { type: "string", description: "Starting value for the tracked item." }
+                    },
+                    required: ["path", "name"]
                 }
             },
             {
@@ -145,6 +227,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
+                name: "compare_worlds",
+                description: "Compare two world JSON files and return a structured diff showing field changes, added/removed/modified entities, and a summary.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        pathA: { type: "string", description: "Absolute path to the first (base) world JSON file." },
+                        pathB: { type: "string", description: "Absolute path to the second (comparison) world JSON file." }
+                    },
+                    required: ["pathA", "pathB"]
+                }
+            },
+            {
                 name: "compile_draft",
                 description: "Compiles a Markdown draft file into a valid world JSON file. Expects standard headers like '# Title', '# Background', etc.",
                 inputSchema: {
@@ -162,18 +256,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         triggerEvents: { type: "array", description: "JSON array of trigger event objects." }
                     },
                     required: ["draftPath", "outputPath"]
-                }
-            },
-            {
-                name: "compare_worlds",
-                description: "Compare two world JSON files and return a structured diff showing field changes, added/removed/modified entities, and a summary.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        pathA: { type: "string", description: "Absolute path to the first (base) world JSON file." },
-                        pathB: { type: "string", description: "Absolute path to the second (comparison) world JSON file." }
-                    },
-                    required: ["pathA", "pathB"]
                 }
             },
             {
@@ -210,6 +292,98 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         draftPath: { type: "string", description: "Path to the current draft_world.md file." }
                     },
                     required: ["originalPath", "draftPath"]
+                }
+            },
+            {
+                name: "modify_character",
+                description: "Modify an existing Player Character in a world JSON file by name. Only provided fields are updated; others are preserved.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        name: { type: "string", description: "Name of the character to find and modify." },
+                        description: { type: "string", description: "New character description." },
+                        portrait: { type: "string", description: "New portrait identifier or URL." },
+                        skills: { type: "object", description: "Object mapping skill names to integer values 0-5. Replaces existing skills entirely." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "modify_npc",
+                description: "Modify an existing NPC (Other Character) in a world JSON file by name. Only provided fields are updated; others are preserved.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        name: { type: "string", description: "Name of the NPC to find and modify." },
+                        detail: { type: "string", description: "New detailed character description." },
+                        one_liner: { type: "string", description: "New brief one-line summary." },
+                        appearance: { type: "string", description: "New physical appearance description." },
+                        location: { type: "string", description: "New location." },
+                        secret_info: { type: "string", description: "New hidden information." },
+                        names: { type: "array", items: { type: "string" }, description: "New full list of names/aliases." },
+                        img_appearance: { type: "string", description: "New image generation appearance prompt." },
+                        img_clothing: { type: "string", description: "New image generation clothing prompt." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "modify_tracked_item",
+                description: "Modify an existing Tracked Item in a world JSON file by name. Only provided fields are updated; others are preserved.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        name: { type: "string", description: "Name of the tracked item to find and modify." },
+                        dataType: { type: "string", enum: ["text", "number", "xml"], description: "New data type." },
+                        visibility: { type: "string", enum: ["everyone", "ai_only", "player_only", "nobody"], description: "New visibility." },
+                        description: { type: "string", description: "New description." },
+                        updateInstructions: { type: "string", description: "New update instructions." },
+                        initialValue: { type: "string", description: "New initial value." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "modify_trigger_event",
+                description: "Modify an existing Trigger Event in a world JSON file by name. Only provided fields are updated.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the world JSON file." },
+                        name: { type: "string", description: "Name of the trigger event to modify." },
+                        newName: { type: "string", description: "Optional: new name for the trigger." },
+                        conditions: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", description: "Condition type." },
+                                    data: { description: "Condition data." }
+                                },
+                                required: ["type", "data"]
+                            },
+                            description: "Optional: replace all trigger conditions."
+                        },
+                        effects: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", description: "Effect type." },
+                                    data: { description: "Effect data." }
+                                },
+                                required: ["type", "data"]
+                            },
+                            description: "Optional: replace all trigger effects."
+                        },
+                        canTriggerMoreThanOnce: { type: "boolean", description: "Optional: update repeat-firing control." },
+                        prerequisites: { type: "array", items: { type: "string" }, description: "Optional: update prerequisite trigger IDs." },
+                        blockers: { type: "array", items: { type: "string" }, description: "Optional: update blocker trigger IDs." }
+                    },
+                    required: ["path", "name"]
                 }
             },
             {
@@ -550,13 +724,210 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: `Instruction block '${args.name}' added successfully.` }] };
     }
 
+    if (name === "add_character") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        validateSkillValues(args.skills);
+
+        const character = {
+            characterId: args.characterId || generateId(),
+            name: args.name
+        };
+        if (args.description !== undefined) character.description = args.description;
+        if (args.portrait !== undefined) character.portrait = args.portrait;
+        if (args.skills !== undefined) character.skills = args.skills;
+
+        world.possibleCharacters = world.possibleCharacters || [];
+        world.possibleCharacters.push(character);
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `Character '${args.name}' (ID: ${character.characterId}) added successfully.` }] };
+    }
+
+    if (name === "add_npc") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        const npc = {
+            id: args.id || generateId(),
+            name: args.name
+        };
+        if (args.detail !== undefined) npc.detail = args.detail;
+        if (args.one_liner !== undefined) npc.one_liner = args.one_liner;
+        if (args.appearance !== undefined) npc.appearance = args.appearance;
+        if (args.location !== undefined) npc.location = args.location;
+        if (args.secret_info !== undefined) npc.secret_info = args.secret_info;
+        if (args.names !== undefined) npc.names = args.names;
+        if (args.img_appearance !== undefined) npc.img_appearance = args.img_appearance;
+        if (args.img_clothing !== undefined) npc.img_clothing = args.img_clothing;
+
+        world.NPCs = world.NPCs || [];
+        world.NPCs.push(npc);
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `NPC '${args.name}' (ID: ${npc.id}) added successfully.` }] };
+    }
+
+    if (name === "add_tracked_item") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        const dataType = args.dataType || "text";
+        const visibility = args.visibility || "everyone";
+
+        validateTrackedItemEnums(dataType, visibility);
+
+        const item = {
+            id: args.id || generateId(),
+            name: args.name,
+            dataType: dataType,
+            visibility: visibility
+        };
+        if (args.description !== undefined) item.description = args.description;
+        if (args.updateInstructions !== undefined) item.updateInstructions = args.updateInstructions;
+        if (args.initialValue !== undefined) item.initialValue = args.initialValue;
+
+        world.trackedItems = world.trackedItems || [];
+        world.trackedItems.push(item);
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `Tracked item '${args.name}' (ID: ${item.id}) added successfully.` }] };
+    }
+
+    if (name === "modify_character") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        world.possibleCharacters = world.possibleCharacters || [];
+        const character = world.possibleCharacters.find(c => c.name === args.name);
+        if (!character) {
+            const available = world.possibleCharacters.map(c => c.name).join(', ') || '(none)';
+            throw new Error(`Character "${args.name}" not found. Available characters: ${available}`);
+        }
+
+        if (args.skills !== undefined) validateSkillValues(args.skills);
+
+        if (args.description !== undefined) character.description = args.description;
+        if (args.portrait !== undefined) character.portrait = args.portrait;
+        if (args.skills !== undefined) character.skills = args.skills;
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `Character '${args.name}' modified successfully.` }] };
+    }
+
+    if (name === "modify_npc") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        world.NPCs = world.NPCs || [];
+        const npc = world.NPCs.find(n => n.name === args.name);
+        if (!npc) {
+            const available = world.NPCs.map(n => n.name).join(', ') || '(none)';
+            throw new Error(`NPC "${args.name}" not found. Available NPCs: ${available}`);
+        }
+
+        if (args.detail !== undefined) npc.detail = args.detail;
+        if (args.one_liner !== undefined) npc.one_liner = args.one_liner;
+        if (args.appearance !== undefined) npc.appearance = args.appearance;
+        if (args.location !== undefined) npc.location = args.location;
+        if (args.secret_info !== undefined) npc.secret_info = args.secret_info;
+        if (args.names !== undefined) npc.names = args.names;
+        if (args.img_appearance !== undefined) npc.img_appearance = args.img_appearance;
+        if (args.img_clothing !== undefined) npc.img_clothing = args.img_clothing;
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `NPC '${args.name}' modified successfully.` }] };
+    }
+
+    if (name === "modify_tracked_item") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        world.trackedItems = world.trackedItems || [];
+        const item = world.trackedItems.find(i => i.name === args.name);
+        if (!item) {
+            const available = world.trackedItems.map(i => i.name).join(', ') || '(none)';
+            throw new Error(`Tracked item "${args.name}" not found. Available tracked items: ${available}`);
+        }
+
+        validateTrackedItemEnums(args.dataType, args.visibility);
+
+        if (args.dataType !== undefined) item.dataType = args.dataType;
+        if (args.visibility !== undefined) item.visibility = args.visibility;
+        if (args.description !== undefined) item.description = args.description;
+        if (args.updateInstructions !== undefined) item.updateInstructions = args.updateInstructions;
+        if (args.initialValue !== undefined) item.initialValue = args.initialValue;
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `Tracked item '${args.name}' modified successfully.` }] };
+    }
+
+    if (name === "modify_trigger_event") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        world.triggerEvents = world.triggerEvents || [];
+        const trigger = world.triggerEvents.find(t => t.name === args.name);
+        if (!trigger) {
+            const available = world.triggerEvents.map(t => t.name).join(', ') || '(none)';
+            throw new Error(`Trigger event "${args.name}" not found. Available trigger events: ${available}`);
+        }
+
+        if (args.newName !== undefined) trigger.name = args.newName;
+
+        if (args.conditions !== undefined) {
+            const invalidConditions = args.conditions.filter(c => !VALID_CONDITION_TYPES.includes(c.type)).map(c => c.type);
+            if (invalidConditions.length > 0) {
+                throw new Error(`Invalid condition type(s): ${invalidConditions.join(', ')}. Valid types: ${VALID_CONDITION_TYPES.join(', ')}`);
+            }
+            trigger.triggerConditions = args.conditions.map(c => ({
+                id: crypto.randomUUID(),
+                type: c.type,
+                data: coerceConditionData(c.type, c.data),
+                category: "condition"
+            }));
+        }
+
+        if (args.effects !== undefined) {
+            const invalidEffects = args.effects.filter(e => !VALID_EFFECT_TYPES.includes(e.type)).map(e => e.type);
+            if (invalidEffects.length > 0) {
+                throw new Error(`Invalid effect type(s): ${invalidEffects.join(', ')}. Valid types: ${VALID_EFFECT_TYPES.join(', ')}`);
+            }
+            trigger.triggerEffects = args.effects.map(e => ({
+                id: crypto.randomUUID(),
+                type: e.type,
+                data: e.data
+            }));
+        }
+
+        if (args.canTriggerMoreThanOnce !== undefined) trigger.canTriggerMoreThanOnce = args.canTriggerMoreThanOnce;
+        if (args.prerequisites !== undefined) trigger.prerequisites = args.prerequisites;
+        if (args.blockers !== undefined) trigger.blockers = args.blockers;
+
+        await writeWorld(worldPath, world);
+        const displayName = args.newName || args.name;
+        return { content: [{ type: "text", text: `Trigger event '${displayName}' modified successfully.` }] };
+    }
+
     if (name === "add_trigger") {
         const worldPath = path.resolve(args.path);
         const world = await readWorld(worldPath);
         if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
-
-        const VALID_CONDITION_TYPES = ['triggerOnEvent', 'triggerOnTurn', 'triggerOnStartOfGame', 'triggerOnCharacter', 'triggerOnTrackedItem', 'triggerOnRandomChance'];
-        const VALID_EFFECT_TYPES = ['scriptedText', 'giveGuidance', 'addSecretInfo', 'changeAdventureBackground', 'changeInstructions', 'changeInstructionBlock', 'changeAuthorStyle', 'changeDescriptionInstructions', 'changeObjective', 'changeVictoryCondition', 'changeDefeatCondition', 'changeFirstAction', 'changeName', 'changeDescription', 'changeSkill', 'setTrackedItemsValue', 'randomTriggers', 'changeLorebook', 'endsGame'];
 
         // Build conditions: prefer new array format, fallback to legacy single params
         const conditions = args.conditions
