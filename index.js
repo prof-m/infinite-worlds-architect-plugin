@@ -165,6 +165,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
+                name: "compare_worlds",
+                description: "Compare two world JSON files and return a structured diff showing field changes, added/removed/modified entities, and a summary.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        pathA: { type: "string", description: "Absolute path to the first (base) world JSON file." },
+                        pathB: { type: "string", description: "Absolute path to the second (comparison) world JSON file." }
+                    },
+                    required: ["pathA", "pathB"]
+                }
+            },
+            {
                 name: "confirm_path",
                 description: "Programmatically locates a file or directory and returns its absolute path for user confirmation.",
                 inputSchema: {
@@ -903,6 +915,139 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // no common entities or unnecessary escapes are present.
         await fs.writeFile(outputPath, json, "utf-8");
         return { content: [{ type: "text", text: `World compiled successfully from draft to ${outputPath}` }] };
+    }
+
+    if (name === "compare_worlds") {
+        const worldA = await readWorld(path.resolve(args.pathA));
+        const worldB = await readWorld(path.resolve(args.pathB));
+        if (!worldA) throw new Error(`Could not read world file at ${args.pathA}`);
+        if (!worldB) throw new Error(`Could not read world file at ${args.pathB}`);
+
+        const rootFields = ['title', 'description', 'background', 'instructions', 'authorStyle',
+            'firstInput', 'objective', 'nsfw', 'contentWarnings', 'descriptionRequest', 'summaryRequest',
+            'imageModel', 'imageStyle', 'imageStyleCharacterPre', 'imageStyleCharacterPost',
+            'imageStyleNonCharacterPre', 'imageStyleNonCharacterPost', 'victoryCondition', 'victoryText',
+            'defeatCondition', 'defeatText', 'designNotes', 'canChangeCharacterName',
+            'canChangeCharacterDescription', 'canChangeCharacterSkills', 'canSelectOtherPortraits',
+            'canCreateNewPortrait', 'canChangeTrackedItemsStartingValues', 'enableAISpecificInstructionBlocks'];
+
+        // Compare root fields
+        const rootChanges = [];
+        let rootUnchanged = 0;
+        for (const field of rootFields) {
+            const valA = worldA[field];
+            const valB = worldB[field];
+            if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    if (valA.length > 60 || valB.length > 60) {
+                        rootChanges.push(`- ${field}: modified (${valA.length} → ${valB.length} chars)`);
+                    } else {
+                        rootChanges.push(`- ${field}: "${valA}" → "${valB}"`);
+                    }
+                } else {
+                    rootChanges.push(`- ${field}: ${JSON.stringify(valA)} → ${JSON.stringify(valB)}`);
+                }
+            } else {
+                rootUnchanged++;
+            }
+        }
+
+        // Skills comparison
+        let skillsLine = "";
+        if (JSON.stringify(worldA.skills) !== JSON.stringify(worldB.skills)) {
+            skillsLine = `- Changed: ${JSON.stringify(worldA.skills || [])} → ${JSON.stringify(worldB.skills || [])}`;
+        }
+
+        // Entity array comparison helper
+        function stripIds(obj) {
+            if (Array.isArray(obj)) return obj.map(stripIds);
+            if (obj && typeof obj === 'object') {
+                const result = {};
+                for (const [key, val] of Object.entries(obj)) {
+                    if (key === 'id' || key === 'characterId') continue;
+                    result[key] = stripIds(val);
+                }
+                return result;
+            }
+            return obj;
+        }
+
+        function compareArrays(arrA, arrB, ignoreKeys) {
+            const listA = arrA || [];
+            const listB = arrB || [];
+            const namesA = new Set(listA.map(i => i.name));
+            const namesB = new Set(listB.map(i => i.name));
+            const added = [...namesB].filter(n => !namesA.has(n));
+            const removed = [...namesA].filter(n => !namesB.has(n));
+            const common = [...namesA].filter(n => namesB.has(n));
+            const modified = [];
+            for (const itemName of common) {
+                const a = listA.find(i => i.name === itemName);
+                const b = listB.find(i => i.name === itemName);
+                const cleanA = stripIds(a);
+                const cleanB = stripIds(b);
+                const changedFields = [];
+                const allKeys = new Set([...Object.keys(cleanA), ...Object.keys(cleanB)]);
+                for (const key of allKeys) {
+                    if (ignoreKeys.includes(key)) continue;
+                    if (JSON.stringify(cleanA[key]) !== JSON.stringify(cleanB[key])) changedFields.push(key);
+                }
+                if (changedFields.length > 0) modified.push({ name: itemName, changedFields });
+            }
+            const unchanged = common.length - modified.length;
+            return { added, removed, modified, unchanged };
+        }
+
+        const ignoreKeys = ['id', 'characterId'];
+        const entityArrays = [
+            { key: 'possibleCharacters', label: 'Possible Characters' },
+            { key: 'NPCs', label: 'NPCs' },
+            { key: 'instructionBlocks', label: 'Instruction Blocks' },
+            { key: 'loreBookEntries', label: 'Keyword Blocks' },
+            { key: 'trackedItems', label: 'Tracked Items' },
+            { key: 'triggerEvents', label: 'Trigger Events' }
+        ];
+
+        const entitySections = [];
+        let totalAdded = 0, totalRemoved = 0, totalModified = 0;
+
+        for (const { key, label } of entityArrays) {
+            const result = compareArrays(worldA[key], worldB[key], ignoreKeys);
+            totalAdded += result.added.length;
+            totalRemoved += result.removed.length;
+            totalModified += result.modified.length;
+
+            const lines = [];
+            for (const n of result.added) lines.push(`- Added: "${n}"`);
+            for (const n of result.removed) lines.push(`- Removed: "${n}"`);
+            for (const m of result.modified) lines.push(`- Modified: "${m.name}" (changed: ${m.changedFields.join(', ')})`);
+            if (lines.length === 0) lines.push('No changes.');
+            entitySections.push({ label, lines, hasChanges: lines[0] !== 'No changes.' });
+        }
+
+        // Build report
+        const titleA = worldA.title || 'Untitled';
+        const titleB = worldB.title || 'Untitled';
+        let report = `# World Comparison: "${titleA}" vs "${titleB}"\n\n`;
+
+        report += `## Root Field Changes (${rootChanges.length})\n`;
+        if (rootChanges.length === 0) report += 'No changes.\n';
+        else report += rootChanges.join('\n') + '\n';
+
+        report += `\n## Skills\n`;
+        report += skillsLine ? skillsLine + '\n' : 'No changes.\n';
+
+        for (const section of entitySections) {
+            report += `\n## ${section.label}\n`;
+            report += section.lines.join('\n') + '\n';
+        }
+
+        report += `\n## Summary\n`;
+        report += `Root fields: ${rootChanges.length} changed, ${rootUnchanged} unchanged\n`;
+        report += `Skills: ${skillsLine ? 'changed' : 'unchanged'}\n`;
+        report += `Entities: ${totalAdded} added, ${totalRemoved} removed, ${totalModified} modified\n`;
+
+        return { content: [{ type: "text", text: report }] };
     }
 
     if (name === "decompile_json") {

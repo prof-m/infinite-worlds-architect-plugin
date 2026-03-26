@@ -82,6 +82,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `add_instruction_block` — Append an Extra Instruction Block or Keyword Block to an existing world.
 - `add_trigger` — Append a new Trigger Event to an existing world.
 - `audit_world` — Audit a world JSON file for token efficiency, instruction density, keyword coverage, tracked item efficiency, trigger chain dependencies, NPC redundancy, and image instruction size.
+- `compare_worlds` — Compare two world JSON files and return a structured diff showing root field changes, entity-level additions/removals/modifications, and a summary.
 - `compile_draft` — Compile a Markdown draft file into a valid world JSON file.
 - `decompile_json` — Generate a human-readable Markdown draft from a world JSON file.
 - `read_draft_section` — Read a specific section from a Markdown draft file.
