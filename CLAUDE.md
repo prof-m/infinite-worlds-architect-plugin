@@ -5,8 +5,8 @@
 - **Cross-Reference**: Always cross-reference your logic in `index.js` against the definitions in the schema files to ensure consistency between the JSON structure and the Markdown draft format.
 
 ## Plugin Structure
-- **Commands** are in `commands/*.md` (Markdown with YAML frontmatter).
-- **Skills** are in `skills/world-architect/SKILL.md` with supporting files in `references/` and `scripts/`.
+- **User-invocable workflows** (commands) are in `skills/<name>/SKILL.md` (Markdown with YAML frontmatter).
+- **Core world-architect skill** is in `skills/world-architect/SKILL.md` with supporting files in `references/` and `scripts/`.
 - **MCP Server** is `index.js` using `@modelcontextprotocol/sdk` with stdio transport.
 - **Manifest** is `.claude-plugin/plugin.json`. MCP server config is in `.mcp.json`.
 - Use `${CLAUDE_PLUGIN_ROOT}` for all intra-plugin path references in `.mcp.json` and hook scripts.
@@ -18,9 +18,9 @@
 - To reload plugin changes, restart your Claude Code session.
 
 ## Conventions
-- Keep command prompts self-contained — they should not reference this file or any other file the end user won't have in context.
+- Keep skill prompts self-contained — they should not reference this file or any other file the end user won't have in context.
 - Runtime behavioral instructions belong in `skills/world-architect/SKILL.md`, not here.
-- When adding new MCP tools, update the SKILL.md "Reference Materials" section and relevant command prompts.
+- When adding new MCP tools, update the SKILL.md "Reference Materials" section and relevant skill prompts.
 - Tool definitions in `ListToolsRequestSchema` must be in **alphabetical order**.
 - All commands that produce world JSON must include a `validate_world` post-step.
 
