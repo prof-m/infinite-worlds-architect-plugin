@@ -77,4 +77,5 @@ Then, enter an interactive modification loop:
 If I choose "Finalize Changes":
 1. Ask me if I want to overwrite the original world JSON file, or save the changes to a new world JSON file (and if new, ask for the new file path/name).
 2. Once I answer, use the `compile_draft` MCP tool to generate the final world JSON file at the chosen location. For the complex fields (Skills, Characters, Triggers, Items, Instruction Blocks), construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
-3. After the world JSON file is generated, run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.
+3. After the world JSON file is generated, use `compare_worlds` to compare the original world JSON with the newly compiled version and present a summary of all changes to the user.
+4. Run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.
