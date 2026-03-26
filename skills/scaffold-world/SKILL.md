@@ -13,6 +13,6 @@ Before we begin, ask me:
 
 **Path Confirmation**: For any file or directory path provided, use the `confirm_path` MCP tool to resolve and confirm the absolute path with the user before proceeding.
 
-Once the target directory and file name are confirmed, ask me for the Title, Genre, and Core Premise. Once I answer, use the scaffold_world MCP tool to create the world JSON file with the requested name in that directory with token-efficient defaults.
+Once the target directory and file name are confirmed, ask me for the Title, Genre, and Core Premise. Once I answer, use the scaffold_world MCP tool to create the world JSON file with the requested name in that directory with token-efficient defaults. Then use `add_character`, `add_npc`, `add_tracked_item`, and `add_trigger` to populate entities directly into the scaffolded world JSON.
 
 After the world JSON file is generated, run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.

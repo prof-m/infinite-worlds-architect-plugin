@@ -36,8 +36,16 @@ The plugin runs an MCP server (`iw-json-tools`) that provides these tools:
 | `update_draft_section` | Surgically update a specific section in a draft file. |
 | `get_diff_summary` | Compare an original world JSON against the current draft and list changes. |
 | `compare_worlds` | Compare two world JSON files and return a structured diff of all changes. |
+| `add_character` | Append a Player Character to a world file (preserves existing IDs if provided). |
+| `add_npc` | Append an NPC (Other Character) to a world file (preserves existing IDs if provided). |
+| `add_tracked_item` | Append a Tracked Item to a world file (preserves existing IDs if provided). |
 | `add_instruction_block` | Append an Extra Instruction Block or Keyword Block to a world file. |
 | `add_trigger` | Append a Trigger Event with multiple conditions/effects, meta-fields (repeatable, prerequisites, blockers), type validation, and auto-coercion. |
+| `modify_character` | Modify an existing Player Character by name — only provided fields are updated. |
+| `modify_npc` | Modify an existing NPC by name — only provided fields are updated. |
+| `modify_tracked_item` | Modify an existing Tracked Item by name — only provided fields are updated. |
+| `audit_world` | Audit a world JSON for token efficiency, instruction density, and design quality. |
+| `validate_world` | Validate a world JSON against the Infinite Worlds schema. |
 | `confirm_path` | Resolve and confirm a file or directory path. |
 
 ## Agent Skill
