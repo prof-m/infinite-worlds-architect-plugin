@@ -53,7 +53,7 @@ Use this to create a new world based *purely* on an existing world JSON file, wi
 
 ### 5. Story Sequel (Continuation)
 Use this to create a sequel world based on the original world JSON file AND the full context of a story export.
-1.  **Extraction**: Read the *entire* story export to understand all turns, character development, and the final state.
+1.  **Extraction**: Use `extract_spinoff.cjs --full` on the story export to get structured JSON with all turns, character evolution, tracked item timelines, and a final-state snapshot. For very large exports, use `--snapshot N-M` to focus on key turn ranges. See [story_data_structure.md](references/story_data_structure.md) for the parsed output format.
 2.  **Synthesis**: Ingest the original world JSON file. Synthesize the new state into a comprehensive new background and instructions.
 3.  **Drafting**: Pre-compile this into a `draft_world.md` file with H1 sections (`# Title`, `# Description`, `# Background`, `# First Action`, `# Objective`, `# Main Instructions`, `# Author Style`, `# Victory Condition`, `# Victory Text`, `# Defeat Condition`, `# Defeat Text`, `# Design Notes`, `# Player Permissions`, `# Enable AI Specific Instruction Blocks`).
 4.  **Iterate**: Prompt the user strictly **field-by-field** to refine the draft. Present the proposed data for the field and ask how they'd like to modify it. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before introducing the next field. Do not automatically proceed to the next field immediately after applying feedback.
@@ -75,6 +75,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - **[draft_schema.md](references/draft_schema.md)**: Human-readable Markdown draft formatting.
 - **[design_guide.md](references/design_guide.md)**: High-level overview of world sections.
 - **[ai_mechanics.md](references/ai_mechanics.md)**: Technical details on time-tracking and evaluation overrides.
+- **[story_data_structure.md](references/story_data_structure.md)**: Story export text format and `extract_spinoff.cjs` parsed output schemas.
 
 ## MCP Tools
 
