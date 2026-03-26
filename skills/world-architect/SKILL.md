@@ -41,7 +41,7 @@ Use this to iterate on an existing world JSON file.
 1.  **Ingestion**: Read the current world JSON file.
 2.  **Modification**: Apply user changes. For entity-level changes, prefer the dedicated tools:
     *   **Adding entities**: Use `add_character`, `add_npc`, `add_tracked_item`, or `add_trigger` to append new entities directly to the world JSON.
-    *   **Modifying entities**: Use `modify_character`, `modify_npc`, or `modify_tracked_item` to update existing entities by name without rewriting the entire file.
+    *   **Modifying entities**: Use `modify_character`, `modify_npc`, `modify_tracked_item`, or `modify_trigger_event` to update existing entities by name without rewriting the entire file.
     *   **Other changes** (root fields like instructions, image style, etc.): Use the draft-based decompile/recompile cycle.
 3.  **Incremental IDs**: Ensure new IDs are generated for new entities using the generator script logic. When re-adding entities that already have IDs, pass the existing ID to preserve it.
 4.  **Review Changes**: Use `compare_worlds` to compare the original and updated world files, confirming the intended changes were applied and no unintended modifications occurred.
@@ -100,6 +100,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `modify_character` — Modify an existing Player Character by name. Only provided fields are updated.
 - `modify_npc` — Modify an existing NPC by name. Only provided fields are updated.
 - `modify_tracked_item` — Modify an existing Tracked Item by name. Only provided fields are updated.
+- `modify_trigger_event` — Modify an existing Trigger Event by name. Only provided fields are updated.
 - `read_draft_section` — Read a specific section from a Markdown draft file.
 - `scaffold_world` — Initialize a new world JSON file with safe, token-efficient defaults.
 - `update_draft_section` — Update a specific section in a Markdown draft file.

@@ -93,6 +93,9 @@ function coerceConditionData(type, data) {
     return data;
 }
 
+const VALID_CONDITION_TYPES = ['triggerOnEvent', 'triggerOnTurn', 'triggerOnStartOfGame', 'triggerOnCharacter', 'triggerOnTrackedItem', 'triggerOnRandomChance'];
+const VALID_EFFECT_TYPES = ['scriptedText', 'giveGuidance', 'addSecretInfo', 'changeAdventureBackground', 'changeInstructions', 'changeInstructionBlock', 'changeAuthorStyle', 'changeDescriptionInstructions', 'changeObjective', 'changeVictoryCondition', 'changeDefeatCondition', 'changeFirstAction', 'changeName', 'changeDescription', 'changeSkill', 'setTrackedItemsValue', 'randomTriggers', 'changeLorebook', 'endsGame'];
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
@@ -339,6 +342,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         description: { type: "string", description: "New description." },
                         updateInstructions: { type: "string", description: "New update instructions." },
                         initialValue: { type: "string", description: "New initial value." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "modify_trigger_event",
+                description: "Modify an existing Trigger Event in a world JSON file by name. Only provided fields are updated.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the world JSON file." },
+                        name: { type: "string", description: "Name of the trigger event to modify." },
+                        newName: { type: "string", description: "Optional: new name for the trigger." },
+                        conditions: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", description: "Condition type." },
+                                    data: { description: "Condition data." }
+                                },
+                                required: ["type", "data"]
+                            },
+                            description: "Optional: replace all trigger conditions."
+                        },
+                        effects: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    type: { type: "string", description: "Effect type." },
+                                    data: { description: "Effect data." }
+                                },
+                                required: ["type", "data"]
+                            },
+                            description: "Optional: replace all trigger effects."
+                        },
+                        canTriggerMoreThanOnce: { type: "boolean", description: "Optional: update repeat-firing control." },
+                        prerequisites: { type: "array", items: { type: "string" }, description: "Optional: update prerequisite trigger IDs." },
+                        blockers: { type: "array", items: { type: "string" }, description: "Optional: update blocker trigger IDs." }
                     },
                     required: ["path", "name"]
                 }
@@ -832,13 +875,59 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: `Tracked item '${args.name}' modified successfully.` }] };
     }
 
+    if (name === "modify_trigger_event") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        world.triggerEvents = world.triggerEvents || [];
+        const trigger = world.triggerEvents.find(t => t.name === args.name);
+        if (!trigger) {
+            const available = world.triggerEvents.map(t => t.name).join(', ') || '(none)';
+            throw new Error(`Trigger event "${args.name}" not found. Available trigger events: ${available}`);
+        }
+
+        if (args.newName !== undefined) trigger.name = args.newName;
+
+        if (args.conditions !== undefined) {
+            const invalidConditions = args.conditions.filter(c => !VALID_CONDITION_TYPES.includes(c.type)).map(c => c.type);
+            if (invalidConditions.length > 0) {
+                throw new Error(`Invalid condition type(s): ${invalidConditions.join(', ')}. Valid types: ${VALID_CONDITION_TYPES.join(', ')}`);
+            }
+            trigger.triggerConditions = args.conditions.map(c => ({
+                id: crypto.randomUUID(),
+                type: c.type,
+                data: coerceConditionData(c.type, c.data),
+                category: "condition"
+            }));
+        }
+
+        if (args.effects !== undefined) {
+            const invalidEffects = args.effects.filter(e => !VALID_EFFECT_TYPES.includes(e.type)).map(e => e.type);
+            if (invalidEffects.length > 0) {
+                throw new Error(`Invalid effect type(s): ${invalidEffects.join(', ')}. Valid types: ${VALID_EFFECT_TYPES.join(', ')}`);
+            }
+            trigger.triggerEffects = args.effects.map(e => ({
+                id: crypto.randomUUID(),
+                type: e.type,
+                data: e.data
+            }));
+        }
+
+        if (args.canTriggerMoreThanOnce !== undefined) trigger.canTriggerMoreThanOnce = args.canTriggerMoreThanOnce;
+        if (args.prerequisites !== undefined) trigger.prerequisites = args.prerequisites;
+        if (args.blockers !== undefined) trigger.blockers = args.blockers;
+
+        await writeWorld(worldPath, world);
+        const displayName = args.newName || args.name;
+        return { content: [{ type: "text", text: `Trigger event '${displayName}' modified successfully.` }] };
+    }
+
     if (name === "add_trigger") {
         const worldPath = path.resolve(args.path);
         const world = await readWorld(worldPath);
         if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
-
-        const VALID_CONDITION_TYPES = ['triggerOnEvent', 'triggerOnTurn', 'triggerOnStartOfGame', 'triggerOnCharacter', 'triggerOnTrackedItem', 'triggerOnRandomChance'];
-        const VALID_EFFECT_TYPES = ['scriptedText', 'giveGuidance', 'addSecretInfo', 'changeAdventureBackground', 'changeInstructions', 'changeInstructionBlock', 'changeAuthorStyle', 'changeDescriptionInstructions', 'changeObjective', 'changeVictoryCondition', 'changeDefeatCondition', 'changeFirstAction', 'changeName', 'changeDescription', 'changeSkill', 'setTrackedItemsValue', 'randomTriggers', 'changeLorebook', 'endsGame'];
 
         // Build conditions: prefer new array format, fallback to legacy single params
         const conditions = args.conditions
