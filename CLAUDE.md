@@ -14,9 +14,18 @@
 ## Testing
 - Test files are in `test-files/` — use these to validate compiler/decompiler changes.
 - After modifying `index.js`, test the MCP server by running `node index.js` and verifying it starts without errors.
+- MCP SDK v1.27.1 uses **newline-delimited JSON** for stdio transport (NOT Content-Length framing). Test harnesses must use `\n`-delimited messages.
 - To reload plugin changes, restart your Claude Code session.
 
 ## Conventions
 - Keep skill prompts self-contained — they should not reference this file or any other file the end user won't have in context.
 - Runtime behavioral instructions belong in `skills/world-architect/SKILL.md`, not here.
 - When adding new MCP tools, update the SKILL.md "Reference Materials" section and relevant skill prompts.
+- Tool definitions in `ListToolsRequestSchema` must be in **alphabetical order**.
+- All commands that produce world JSON must include a `validate_world` post-step.
+
+## Known Issues
+- Git worktree operations on WSL emit "could not write config file: Device or resource busy" — non-blocking, use `rm -rf` + `git worktree prune` as fallback.
+
+## Roadmap
+- See `.claude/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
