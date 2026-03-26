@@ -40,7 +40,8 @@ Use this to iterate on an existing world JSON file.
 1.  **Ingestion**: Read the current world JSON file.
 2.  **Modification**: Apply user changes (e.g., "Add a new NPC", "Change the image style").
 3.  **Incremental IDs**: Ensure new IDs are generated for new entities using the generator script logic.
-4.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
+4.  **Review Changes**: Use `compare_worlds` to compare the original and updated world files, confirming the intended changes were applied and no unintended modifications occurred.
+5.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 4. World Spinoff (Branching)
 Use this to create a new world based *purely* on an existing world JSON file, without story inputs, using an interactive drafting process.
@@ -49,7 +50,8 @@ Use this to create a new world based *purely* on an existing world JSON file, wi
 3.  **Drafting**: Pre-compile this information into a `draft_world.md` file with H1 sections (`# Title`, `# Description`, `# Background`, `# First Action`, `# Objective`, `# Main Instructions`, `# Author Style`, `# Victory Condition`, `# Victory Text`, `# Defeat Condition`, `# Defeat Text`, `# Design Notes`, `# Player Permissions`, `# Enable AI Specific Instruction Blocks`).
 4.  **Iterate**: Prompt the user strictly **field-by-field** to refine the draft. Present the proposed data for the field and ask how they'd like to modify it. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before introducing the next field. Do not automatically proceed to the next field immediately after applying feedback.
 5.  **Compile**: Once the markdown draft is complete and approved, use the `compile_draft` MCP tool to generate the final spinoff world JSON file.
-6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
+6.  **Review Changes**: Use `compare_worlds` to compare the original world with the new spinoff, giving the user a clear summary of what diverged.
+7.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 5. Story Sequel (Continuation)
 Use this to create a sequel world based on the original world JSON file AND the full context of a story export.
@@ -58,7 +60,8 @@ Use this to create a sequel world based on the original world JSON file AND the 
 3.  **Drafting**: Pre-compile this into a `draft_world.md` file with H1 sections (`# Title`, `# Description`, `# Background`, `# First Action`, `# Objective`, `# Main Instructions`, `# Author Style`, `# Victory Condition`, `# Victory Text`, `# Defeat Condition`, `# Defeat Text`, `# Design Notes`, `# Player Permissions`, `# Enable AI Specific Instruction Blocks`).
 4.  **Iterate**: Prompt the user strictly **field-by-field** to refine the draft. Present the proposed data for the field and ask how they'd like to modify it. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before introducing the next field. Do not automatically proceed to the next field immediately after applying feedback.
 5.  **Compile**: Use the `compile_draft` MCP tool to generate the final sequel world JSON file.
-6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
+6.  **Review Changes**: Use `compare_worlds` to compare the original world with the sequel, showing the user exactly what evolved from the source material.
+7.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ### 6. Modify Existing World
 Use this to interactively update specific fields in an existing world JSON file.
@@ -67,7 +70,8 @@ Use this to interactively update specific fields in an existing world JSON file.
 3.  **Iterate**: When a field is selected, present its current value and ask for changes. If the user provides feedback or requests changes, update the markdown, present the revised content, and **STOP**. You must wait for the user to explicitly say "approved", "looks good", or "next" before returning to the selection list. Do not automatically proceed immediately after applying feedback.
 4.  **Finalize**: Ask if the user wants to overwrite the original file or save as new.
 5.  **Compile**: Use `compile_draft` with the constructed JSON arrays passed as arguments.
-6.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
+6.  **Review Changes**: Use `compare_worlds` to compare the original world JSON with the newly compiled version, presenting the user with a clear before/after summary of all modifications.
+7.  **Validate**: Run `validate_world` on the output file. Present errors/warnings to the user and offer to fix any issues before finalizing.
 
 ## Reference Materials
 
@@ -85,6 +89,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `add_tracked_item` — Append a Tracked Item to an existing world.
 - `add_trigger` — Append a new Trigger Event to an existing world.
 - `audit_world` — Audit a world JSON file for token efficiency, instruction density, keyword coverage, tracked item efficiency, trigger chain dependencies, NPC redundancy, and image instruction size.
+- `compare_worlds` — Compare two world JSON files and return a structured diff showing root field changes, entity-level additions/removals/modifications, and a summary.
 - `compile_draft` — Compile a Markdown draft file into a valid world JSON file.
 - `decompile_json` — Generate a human-readable Markdown draft from a world JSON file.
 - `read_draft_section` — Read a specific section from a Markdown draft file.

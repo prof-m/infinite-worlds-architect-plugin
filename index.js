@@ -217,6 +217,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
+                name: "compare_worlds",
+                description: "Compare two world JSON files and return a structured diff showing field changes, added/removed/modified entities, and a summary.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        pathA: { type: "string", description: "Absolute path to the first (base) world JSON file." },
+                        pathB: { type: "string", description: "Absolute path to the second (comparison) world JSON file." }
+                    },
+                    required: ["pathA", "pathB"]
+                }
+            },
+            {
                 name: "confirm_path",
                 description: "Programmatically locates a file or directory and returns its absolute path for user confirmation.",
                 inputSchema: {
@@ -417,10 +429,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                     let data = unwrapCodeBlock(block.substring(colonIdx + 1).trim());
                                     try { data = JSON.parse(data); } catch(e) {}
                                     if (type === 'logic') {
-                                        conds.push({ ...data, id: "0000" }); // Fake ID for diffing
+                                        conds.push({ ...data, id: crypto.randomUUID() });
                                     } else {
                                         if (type === 'triggerOnEvent' && typeof data === 'string') data = normalizeMarkdown(data);
-                                        conds.push({ type, data, id: "0000", category: "condition" });
+                                        conds.push({ type, data, id: crypto.randomUUID(), category: "condition" });
                                     }
                                 }
                             });
@@ -436,7 +448,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                     let data = unwrapCodeBlock(block.substring(colonIdx + 1).trim());
                                     try { data = JSON.parse(data); } catch(e) {}
                                     if (type === 'effectTellAIWhatToDo' && typeof data === 'string') data = normalizeMarkdown(data);
-                                    effs.push({ type, data, id: "0000" });
+                                    effs.push({ type, data, id: crypto.randomUUID() });
                                 }
                             });
                             itemObj.triggerEffects = effs;
@@ -771,182 +783,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === "compile_draft") {
         const draftPath = path.resolve(args.draftPath);
         const outputPath = path.resolve(args.outputPath);
-        
-        let draftContent;
-        try {
-            draftContent = await fs.readFile(draftPath, "utf-8");
-        } catch (e) {
-            throw new Error(`Could not read draft file at ${draftPath}`);
-        }
 
-        const sections = draftContent.split(/^#\s+/m).filter(Boolean);
-        const parsed = {};
-        
-        for (const section of sections) {
-            const lines = section.trim().split('\n');
-            const header = lines[0].trim().toLowerCase();
-            const content = unwrapCodeBlock(lines.slice(1).join('\n').trim());
-            
-            if (header === 'title') parsed.title = content;
-            if (header === 'description') parsed.description = content;
-            if (header === 'background') parsed.background = content;
-            if (header === 'first action') parsed.firstInput = content;
-            if (header === 'objective') parsed.objective = content;
-            if (header === 'main instructions') parsed.instructions = normalizeMarkdown(content);
-            if (header === 'author style') parsed.authorStyle = normalizeMarkdown(content);
-            if (header === 'nsfw') parsed.nsfw = content.toLowerCase() === 'true';
-            if (header === 'content warnings') parsed.contentWarnings = content;
-            if (header === 'description request') parsed.descriptionRequest = normalizeMarkdown(content);
-            if (header === 'summary request') parsed.summaryRequest = normalizeMarkdown(content);
-            if (header === 'image model') parsed.imageModel = content;
-            if (header === 'image style') parsed.imageStyle = content;
-            if (header === 'image style character pre') parsed.imageStyleCharacterPre = content;
-            if (header === 'image style character post') parsed.imageStyleCharacterPost = content;
-            if (header === 'image style non character pre') parsed.imageStyleNonCharacterPre = content;
-            if (header === 'image style non character post') parsed.imageStyleNonCharacterPost = content;
-            if (header === 'victory condition') parsed.victoryCondition = content;
-            if (header === 'victory text') parsed.victoryText = content;
-            if (header === 'defeat condition') parsed.defeatCondition = content;
-            if (header === 'defeat text') parsed.defeatText = content;
-            if (header === 'design notes') parsed.designNotes = content;
-            if (header === 'player permissions') {
-                const permLines = content.split('\n').filter(l => l.includes(':'));
-                for (const line of permLines) {
-                    const [key, val] = line.split(':').map(s => s.trim());
-                    const boolVal = val.toLowerCase() === 'true';
-                    if (key.toLowerCase() === 'can change name') parsed.canChangeCharacterName = boolVal;
-                    else if (key.toLowerCase() === 'can change description') parsed.canChangeCharacterDescription = boolVal;
-                    else if (key.toLowerCase() === 'can change skills') parsed.canChangeCharacterSkills = boolVal;
-                    else if (key.toLowerCase() === 'can select other portraits') parsed.canSelectOtherPortraits = boolVal;
-                    else if (key.toLowerCase() === 'can create new portrait') parsed.canCreateNewPortrait = boolVal;
-                    else if (key.toLowerCase() === 'can change tracked items starting values') parsed.canChangeTrackedItemsStartingValues = boolVal;
-                }
-            }
-            if (header === 'enable ai specific instruction blocks') parsed.enableAISpecificInstructionBlocks = content.toLowerCase() === 'true';
-            if (header === 'skills') {
-                parsed.skills = content.split('\n').map(line => {
-                    const match = line.match(/^[-*]?\s*(.*)/);
-                    return match ? match[1].trim() : line.trim();
-                }).filter(Boolean);
-            }
-            if (header === 'possible characters' || header === 'other characters' || header === 'extra instruction blocks' || header === 'keyword instruction blocks' || header === 'tracked items' || header === 'trigger events') {
-                const items = content.split(/^##\s+/m).filter(Boolean);
-                const parsedItems = [];
-                
-                for (const item of items) {
-                    const itemLines = item.trim().split('\n');
-                    const itemName = itemLines[0].trim();
-                    const itemContent = itemLines.slice(1).join('\n').trim();
-                    
-                    const subFields = {};
-                    if (itemContent.includes('### ')) {
-                        const subSections = itemContent.split(/^###\s+/m).filter(Boolean);
-                        for (const sub of subSections) {
-                            const subLines = sub.trim().split('\n');
-                            const subHeader = subLines[0].trim();
-                            const subContent = unwrapCodeBlock(subLines.slice(1).join('\n').trim());
-                            subFields[subHeader] = subContent;
-                        }
-                    } else {
-                        const regex = /^([\w\s]+):\s*(.*(?:\n(?!(?:[\w\s]+):).*)*)/gm;
-                        let match;
-                        while ((match = regex.exec(itemContent)) !== null) {
-                            subFields[match[1].trim()] = unwrapCodeBlock(match[2].trim());
-                        }
-                    }
-                    
-                    if (header === 'possible characters') {
-                        const itemObj = { name: itemName };
-                        if ('Description' in subFields) itemObj.description = subFields['Description'];
-                        if ('Portrait' in subFields) itemObj.portrait = subFields['Portrait'];
-                        if ('Skills' in subFields) {
-                            const s = {};
-                            subFields['Skills'].split('\n').forEach(line => {
-                                const match = line.match(/^[-*]?\s*(.*?):\s*(\d+)/);
-                                if (match) s[match[1].trim()] = parseInt(match[2].trim(), 10);
-                            });
-                            itemObj.skills = s;
-                        }
-                        parsedItems.push(itemObj);
-                    } else if (header === 'other characters') {
-                        const itemObj = { name: itemName };
-                        if ('Brief Summary' in subFields) itemObj.one_liner = subFields['Brief Summary'];
-                        if ('Character Detail' in subFields) itemObj.detail = subFields['Character Detail'];
-                        if ('Appearance' in subFields) itemObj.appearance = subFields['Appearance'];
-                        if ('Location' in subFields) itemObj.location = subFields['Location'];
-                        if ('Secret Information' in subFields) itemObj.secret_info = subFields['Secret Information'];
-                        if ('Full List of Names' in subFields) itemObj.names = subFields['Full List of Names'].split(',').map(n => n.trim()).filter(Boolean);
-                        if ('Image Appearance' in subFields) itemObj.img_appearance = subFields['Image Appearance'];
-                        if ('Image Clothing' in subFields) itemObj.img_clothing = subFields['Image Clothing'];
-                        parsedItems.push(itemObj);
-                    } else if (header === 'extra instruction blocks' || header === 'keyword instruction blocks') {
-                        const itemObj = { name: itemName };
-                        if ('Content' in subFields) itemObj.content = normalizeMarkdown(unwrapCodeBlock(subFields['Content']));
-                        else itemObj.content = normalizeMarkdown(unwrapCodeBlock(itemContent)); // Fallback
-                        
-                        if (header === 'keyword instruction blocks' || 'Keywords' in subFields) {
-                            itemObj.keywords = subFields['Keywords'] ? subFields['Keywords'].split(',').map(k => k.trim()).filter(Boolean) : [];
-                        }
-                        parsedItems.push(itemObj);
-                    } else if (header === 'tracked items') {
-                        const itemObj = { name: itemName };
-                        if ('Data Type' in subFields) itemObj.dataType = subFields['Data Type'];
-                        if ('Visibility' in subFields) itemObj.visibility = subFields['Visibility'];
-                        if ('Description' in subFields) itemObj.description = subFields['Description'];
-                        if ('Update Instructions' in subFields) itemObj.updateInstructions = normalizeMarkdown(subFields['Update Instructions']);
-                        if ('Initial Value' in subFields) itemObj.initialValue = subFields['Initial Value'];
-                        parsedItems.push(itemObj);
-                    } else if (header === 'trigger events') {
-                        const itemObj = { name: itemName };
-                        if ('Conditions' in subFields) {
-                            const conds = [];
-                            const blocks = subFields['Conditions'].split(/^[-*]\s+/m).filter(Boolean);
-                            blocks.forEach(block => {
-                                const colonIdx = block.indexOf(':');
-                                if (colonIdx !== -1) {
-                                    const type = block.substring(0, colonIdx).trim();
-                                    let data = unwrapCodeBlock(block.substring(colonIdx + 1).trim());
-                                    try { data = JSON.parse(data); } catch(e) {}
-                                    if (type === 'logic') {
-                                        conds.push({ ...data, id: crypto.randomUUID() });
-                                    } else {
-                                        if (type === 'triggerOnEvent' && typeof data === 'string') data = normalizeMarkdown(data);
-                                        conds.push({ type, data, id: crypto.randomUUID(), category: "condition" });
-                                    }
-                                }
-                            });
-                            itemObj.triggerConditions = conds;
-                        }
-                        if ('Effects' in subFields) {
-                            const effs = [];
-                            const blocks = subFields['Effects'].split(/^[-*]\s+/m).filter(Boolean);
-                            blocks.forEach(block => {
-                                const colonIdx = block.indexOf(':');
-                                if (colonIdx !== -1) {
-                                    const type = block.substring(0, colonIdx).trim();
-                                    let data = unwrapCodeBlock(block.substring(colonIdx + 1).trim());
-                                    try { data = JSON.parse(data); } catch(e) {}
-                                    if (type === 'effectTellAIWhatToDo' && typeof data === 'string') data = normalizeMarkdown(data);
-                                    effs.push({ type, data, id: crypto.randomUUID() });
-                                }
-                            });
-                            itemObj.triggerEffects = effs;
-                        }
-                        parsedItems.push(itemObj);
-                    }
-                }
-                if (header === 'possible characters') args.possibleCharacters = parsedItems;
-                if (header === 'other characters') args.NPCs = parsedItems;
-                if (header === 'extra instruction blocks' || header === 'keyword instruction blocks') {
-                    const keywords = parsedItems.filter(b => b.keywords && b.keywords.length > 0);
-                    const extra = parsedItems.filter(b => !b.keywords || b.keywords.length === 0);
-                    args.loreBookEntries = (args.loreBookEntries || []).concat(keywords);
-                    args.instructionBlocks = (args.instructionBlocks || []).concat(extra);
-                }
-                if (header === 'tracked items') args.trackedItems = parsedItems;
-                if (header === 'trigger events') args.triggerEvents = parsedItems;
-            }
-        }
+        // Use shared parser instead of duplicating logic
+        const draftData = await parseDraft(draftPath);
 
         let originalData = {};
         if (args.originalPath) {
@@ -959,39 +798,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const newWorld = { ...originalData };
-        
+
         // Update root fields while preserving original key order
         const rootFields = {
-            title: parsed.title ?? originalData.title ?? "New World",
-            description: parsed.description ?? originalData.description ?? "",
-            background: parsed.background ?? originalData.background ?? "",
-            instructions: parsed.instructions ?? originalData.instructions ?? "",
-            authorStyle: parsed.authorStyle ?? originalData.authorStyle ?? "Concise, highly descriptive narrative.",
-            firstInput: parsed.firstInput ?? originalData.firstInput ?? "",
-            objective: parsed.objective ?? originalData.objective ?? "Explore.",
-            nsfw: parsed.nsfw !== undefined ? parsed.nsfw : (originalData.nsfw ?? false),
-            contentWarnings: parsed.contentWarnings ?? originalData.contentWarnings ?? "",
-            descriptionRequest: parsed.descriptionRequest ?? originalData.descriptionRequest ?? "Always write in first-person point of view, present tense. Write vital state changes into secretInfo.",
-            summaryRequest: parsed.summaryRequest ?? originalData.summaryRequest ?? "",
-            imageModel: parsed.imageModel ?? originalData.imageModel ?? "manticore",
-            imageStyle: parsed.imageStyle ?? originalData.imageStyle ?? "photo_beautiful",
-            imageStyleCharacterPre: parsed.imageStyleCharacterPre ?? originalData.imageStyleCharacterPre ?? "",
-            imageStyleCharacterPost: parsed.imageStyleCharacterPost ?? originalData.imageStyleCharacterPost ?? "",
-            imageStyleNonCharacterPre: parsed.imageStyleNonCharacterPre ?? originalData.imageStyleNonCharacterPre ?? "",
-            imageStyleNonCharacterPost: parsed.imageStyleNonCharacterPost ?? originalData.imageStyleNonCharacterPost ?? "",
-            victoryCondition: parsed.victoryCondition ?? originalData.victoryCondition ?? "",
-            victoryText: parsed.victoryText ?? originalData.victoryText ?? "",
-            defeatCondition: parsed.defeatCondition ?? originalData.defeatCondition ?? "",
-            defeatText: parsed.defeatText ?? originalData.defeatText ?? "Your adventure ends here. Game over.",
-            designNotes: parsed.designNotes ?? originalData.designNotes ?? "",
-            canChangeCharacterName: parsed.canChangeCharacterName !== undefined ? parsed.canChangeCharacterName : (originalData.canChangeCharacterName ?? true),
-            canChangeCharacterDescription: parsed.canChangeCharacterDescription !== undefined ? parsed.canChangeCharacterDescription : (originalData.canChangeCharacterDescription ?? true),
-            canChangeCharacterSkills: parsed.canChangeCharacterSkills !== undefined ? parsed.canChangeCharacterSkills : (originalData.canChangeCharacterSkills ?? true),
-            canSelectOtherPortraits: parsed.canSelectOtherPortraits !== undefined ? parsed.canSelectOtherPortraits : (originalData.canSelectOtherPortraits ?? false),
-            canCreateNewPortrait: parsed.canCreateNewPortrait !== undefined ? parsed.canCreateNewPortrait : (originalData.canCreateNewPortrait ?? true),
-            canChangeTrackedItemsStartingValues: parsed.canChangeTrackedItemsStartingValues !== undefined ? parsed.canChangeTrackedItemsStartingValues : (originalData.canChangeTrackedItemsStartingValues ?? false),
-            enableAISpecificInstructionBlocks: parsed.enableAISpecificInstructionBlocks !== undefined ? parsed.enableAISpecificInstructionBlocks : (originalData.enableAISpecificInstructionBlocks ?? false),
-            skills: parsed.skills || args.skills || originalData.skills || ["Persuasion", "Observation"]
+            title: draftData.title ?? originalData.title ?? "New World",
+            description: draftData.description ?? originalData.description ?? "",
+            background: draftData.background ?? originalData.background ?? "",
+            instructions: draftData.instructions ?? originalData.instructions ?? "",
+            authorStyle: draftData.authorStyle ?? originalData.authorStyle ?? "Concise, highly descriptive narrative.",
+            firstInput: draftData.firstInput ?? originalData.firstInput ?? "",
+            objective: draftData.objective ?? originalData.objective ?? "Explore.",
+            nsfw: draftData.nsfw !== undefined ? draftData.nsfw : (originalData.nsfw ?? false),
+            contentWarnings: draftData.contentWarnings ?? originalData.contentWarnings ?? "",
+            descriptionRequest: draftData.descriptionRequest ?? originalData.descriptionRequest ?? "Always write in first-person point of view, present tense. Write vital state changes into secretInfo.",
+            summaryRequest: draftData.summaryRequest ?? originalData.summaryRequest ?? "",
+            imageModel: draftData.imageModel ?? originalData.imageModel ?? "manticore",
+            imageStyle: draftData.imageStyle ?? originalData.imageStyle ?? "photo_beautiful",
+            imageStyleCharacterPre: draftData.imageStyleCharacterPre ?? originalData.imageStyleCharacterPre ?? "",
+            imageStyleCharacterPost: draftData.imageStyleCharacterPost ?? originalData.imageStyleCharacterPost ?? "",
+            imageStyleNonCharacterPre: draftData.imageStyleNonCharacterPre ?? originalData.imageStyleNonCharacterPre ?? "",
+            imageStyleNonCharacterPost: draftData.imageStyleNonCharacterPost ?? originalData.imageStyleNonCharacterPost ?? "",
+            victoryCondition: draftData.victoryCondition ?? originalData.victoryCondition ?? "",
+            victoryText: draftData.victoryText ?? originalData.victoryText ?? "",
+            defeatCondition: draftData.defeatCondition ?? originalData.defeatCondition ?? "",
+            defeatText: draftData.defeatText ?? originalData.defeatText ?? "Your adventure ends here. Game over.",
+            designNotes: draftData.designNotes ?? originalData.designNotes ?? "",
+            canChangeCharacterName: draftData.canChangeCharacterName !== undefined ? draftData.canChangeCharacterName : (originalData.canChangeCharacterName ?? true),
+            canChangeCharacterDescription: draftData.canChangeCharacterDescription !== undefined ? draftData.canChangeCharacterDescription : (originalData.canChangeCharacterDescription ?? true),
+            canChangeCharacterSkills: draftData.canChangeCharacterSkills !== undefined ? draftData.canChangeCharacterSkills : (originalData.canChangeCharacterSkills ?? true),
+            canSelectOtherPortraits: draftData.canSelectOtherPortraits !== undefined ? draftData.canSelectOtherPortraits : (originalData.canSelectOtherPortraits ?? false),
+            canCreateNewPortrait: draftData.canCreateNewPortrait !== undefined ? draftData.canCreateNewPortrait : (originalData.canCreateNewPortrait ?? true),
+            canChangeTrackedItemsStartingValues: draftData.canChangeTrackedItemsStartingValues !== undefined ? draftData.canChangeTrackedItemsStartingValues : (originalData.canChangeTrackedItemsStartingValues ?? false),
+            enableAISpecificInstructionBlocks: draftData.enableAISpecificInstructionBlocks !== undefined ? draftData.enableAISpecificInstructionBlocks : (originalData.enableAISpecificInstructionBlocks ?? false),
+            skills: draftData.skills || args.skills || originalData.skills || ["Persuasion", "Observation"]
         };
 
         for (const [key, value] of Object.entries(rootFields)) {
@@ -1006,7 +845,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const res = { ...orig, ...item };
                 if (orig[idKey]) res[idKey] = orig[idKey];
                 else if (!res[idKey]) res[idKey] = idKey === 'characterId' ? generateId() : generateId();
-                
+
                 // Deep merge for triggers (conditions and effects)
                 if (key === 'triggerEvents') {
                     if (item.triggerConditions) {
@@ -1032,20 +871,172 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             });
         };
 
-        if (args.possibleCharacters || parsed.possibleCharacters) newWorld.possibleCharacters = mergeArray('possibleCharacters', args.possibleCharacters || [], 'characterId');
-        if (args.NPCs || parsed.NPCs) newWorld.NPCs = mergeArray('NPCs', args.NPCs || []);
-        if (args.trackedItems || parsed.trackedItems) newWorld.trackedItems = mergeArray('trackedItems', args.trackedItems || []);
-        if (args.triggerEvents || parsed.triggerEvents) newWorld.triggerEvents = mergeArray('triggerEvents', args.triggerEvents || []);
-        if (args.instructionBlocks || parsed.instructionBlocks) newWorld.instructionBlocks = mergeArray('instructionBlocks', args.instructionBlocks || []);
-        if (args.loreBookEntries || parsed.loreBookEntries) newWorld.loreBookEntries = mergeArray('loreBookEntries', args.loreBookEntries || []);
+        // Tool args override draft-parsed data for complex arrays
+        const possibleCharacters = args.possibleCharacters || draftData.possibleCharacters || [];
+        const npcs = args.NPCs || draftData.NPCs || [];
+        const trackedItems = args.trackedItems || draftData.trackedItems || [];
+        const triggerEvents = args.triggerEvents || draftData.triggerEvents || [];
+        const instructionBlocks = args.instructionBlocks || draftData.instructionBlocks || [];
+        const loreBookEntries = args.loreBookEntries || draftData.loreBookEntries || [];
+
+        if (possibleCharacters.length) newWorld.possibleCharacters = mergeArray('possibleCharacters', possibleCharacters, 'characterId');
+        if (npcs.length) newWorld.NPCs = mergeArray('NPCs', npcs);
+        if (trackedItems.length) newWorld.trackedItems = mergeArray('trackedItems', trackedItems);
+        if (triggerEvents.length) newWorld.triggerEvents = mergeArray('triggerEvents', triggerEvents);
+        if (instructionBlocks.length) newWorld.instructionBlocks = mergeArray('instructionBlocks', instructionBlocks);
+        if (loreBookEntries.length) newWorld.loreBookEntries = mergeArray('loreBookEntries', loreBookEntries);
 
         // Final write with literal character preservation
         const json = JSON.stringify(newWorld, null, 2);
-        // Ensure only " and \ are escaped, and unicode is literal.
-        // Node stringify already does this for non-ASCII, but we want to ensure 
-        // no common entities or unnecessary escapes are present.
         await fs.writeFile(outputPath, json, "utf-8");
         return { content: [{ type: "text", text: `World compiled successfully from draft to ${outputPath}` }] };
+    }
+
+    if (name === "compare_worlds") {
+        const worldA = await readWorld(path.resolve(args.pathA));
+        const worldB = await readWorld(path.resolve(args.pathB));
+        if (!worldA) throw new Error(`Could not read world file at ${args.pathA}`);
+        if (!worldB) throw new Error(`Could not read world file at ${args.pathB}`);
+
+        const rootFields = ['title', 'description', 'background', 'instructions', 'authorStyle',
+            'firstInput', 'objective', 'nsfw', 'contentWarnings', 'descriptionRequest', 'summaryRequest',
+            'imageModel', 'imageStyle', 'imageStyleCharacterPre', 'imageStyleCharacterPost',
+            'imageStyleNonCharacterPre', 'imageStyleNonCharacterPost', 'victoryCondition', 'victoryText',
+            'defeatCondition', 'defeatText', 'designNotes', 'canChangeCharacterName',
+            'canChangeCharacterDescription', 'canChangeCharacterSkills', 'canSelectOtherPortraits',
+            'canCreateNewPortrait', 'canChangeTrackedItemsStartingValues', 'enableAISpecificInstructionBlocks'];
+
+        // Compare root fields
+        const rootChanges = [];
+        let rootUnchanged = 0;
+        for (const field of rootFields) {
+            const valA = worldA[field];
+            const valB = worldB[field];
+            if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    const truncate = (s, max) => s.length > max ? s.slice(0, max) + '...' : s;
+                    if (valA.length > 80 || valB.length > 80) {
+                        // Find common prefix to show context around the divergence point
+                        let prefixLen = 0;
+                        while (prefixLen < valA.length && prefixLen < valB.length && valA[prefixLen] === valB[prefixLen]) {
+                            prefixLen++;
+                        }
+                        if (prefixLen > 20) {
+                            // Strings share a long common prefix — show around the divergence
+                            const prefix = truncate(valA.slice(0, prefixLen), 30);
+                            const diffA = truncate(valA.slice(prefixLen), 50);
+                            const diffB = truncate(valB.slice(prefixLen), 50);
+                            rootChanges.push(`- ${field}: [${prefix}] "${diffA}" → "${diffB}"`);
+                        } else {
+                            rootChanges.push(`- ${field}: "${truncate(valA, 80)}" → "${truncate(valB, 80)}"`);
+                        }
+                    } else {
+                        rootChanges.push(`- ${field}: "${valA}" → "${valB}"`);
+                    }
+                } else {
+                    rootChanges.push(`- ${field}: ${JSON.stringify(valA)} → ${JSON.stringify(valB)}`);
+                }
+            } else {
+                rootUnchanged++;
+            }
+        }
+
+        // Skills comparison
+        let skillsLine = "";
+        if (JSON.stringify(worldA.skills) !== JSON.stringify(worldB.skills)) {
+            skillsLine = `- Changed: ${JSON.stringify(worldA.skills || [])} → ${JSON.stringify(worldB.skills || [])}`;
+        }
+
+        // Entity array comparison helper
+        function stripIds(obj) {
+            if (Array.isArray(obj)) return obj.map(stripIds);
+            if (obj && typeof obj === 'object') {
+                const result = {};
+                for (const [key, val] of Object.entries(obj)) {
+                    if (key === 'id' || key === 'characterId') continue;
+                    result[key] = stripIds(val);
+                }
+                return result;
+            }
+            return obj;
+        }
+
+        function compareArrays(arrA, arrB, ignoreKeys) {
+            const listA = arrA || [];
+            const listB = arrB || [];
+            const namesA = new Set(listA.map(i => i.name));
+            const namesB = new Set(listB.map(i => i.name));
+            const added = [...namesB].filter(n => !namesA.has(n));
+            const removed = [...namesA].filter(n => !namesB.has(n));
+            const common = [...namesA].filter(n => namesB.has(n));
+            const modified = [];
+            for (const itemName of common) {
+                const a = listA.find(i => i.name === itemName);
+                const b = listB.find(i => i.name === itemName);
+                const cleanA = stripIds(a);
+                const cleanB = stripIds(b);
+                const changedFields = [];
+                const allKeys = new Set([...Object.keys(cleanA), ...Object.keys(cleanB)]);
+                for (const key of allKeys) {
+                    if (ignoreKeys.includes(key)) continue;
+                    if (JSON.stringify(cleanA[key]) !== JSON.stringify(cleanB[key])) changedFields.push(key);
+                }
+                if (changedFields.length > 0) modified.push({ name: itemName, changedFields });
+            }
+            const unchanged = common.length - modified.length;
+            return { added, removed, modified, unchanged };
+        }
+
+        const ignoreKeys = ['id', 'characterId'];
+        const entityArrays = [
+            { key: 'possibleCharacters', label: 'Possible Characters' },
+            { key: 'NPCs', label: 'NPCs' },
+            { key: 'instructionBlocks', label: 'Instruction Blocks' },
+            { key: 'loreBookEntries', label: 'Keyword Blocks' },
+            { key: 'trackedItems', label: 'Tracked Items' },
+            { key: 'triggerEvents', label: 'Trigger Events' }
+        ];
+
+        const entitySections = [];
+        let totalAdded = 0, totalRemoved = 0, totalModified = 0;
+
+        for (const { key, label } of entityArrays) {
+            const result = compareArrays(worldA[key], worldB[key], ignoreKeys);
+            totalAdded += result.added.length;
+            totalRemoved += result.removed.length;
+            totalModified += result.modified.length;
+
+            const lines = [];
+            for (const n of result.added) lines.push(`- Added: "${n}"`);
+            for (const n of result.removed) lines.push(`- Removed: "${n}"`);
+            for (const m of result.modified) lines.push(`- Modified: "${m.name}" (changed: ${m.changedFields.join(', ')})`);
+            if (lines.length === 0) lines.push('No changes.');
+            entitySections.push({ label, lines, hasChanges: lines[0] !== 'No changes.' });
+        }
+
+        // Build report
+        const titleA = worldA.title || 'Untitled';
+        const titleB = worldB.title || 'Untitled';
+        let report = `# World Comparison: "${titleA}" vs "${titleB}"\n\n`;
+
+        report += `## Root Field Changes (${rootChanges.length})\n`;
+        if (rootChanges.length === 0) report += 'No changes.\n';
+        else report += rootChanges.join('\n') + '\n';
+
+        report += `\n## Skills\n`;
+        report += skillsLine ? skillsLine + '\n' : 'No changes.\n';
+
+        for (const section of entitySections) {
+            report += `\n## ${section.label}\n`;
+            report += section.lines.join('\n') + '\n';
+        }
+
+        report += `\n## Summary\n`;
+        report += `Root fields: ${rootChanges.length} changed, ${rootUnchanged} unchanged\n`;
+        report += `Skills: ${skillsLine ? 'changed' : 'unchanged'}\n`;
+        report += `Entities: ${totalAdded} added, ${totalRemoved} removed, ${totalModified} modified\n`;
+
+        return { content: [{ type: "text", text: report }] };
     }
 
     if (name === "decompile_json") {

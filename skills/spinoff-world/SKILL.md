@@ -56,4 +56,4 @@ For complex fields (like Skills, Possible Characters, Other Characters, Instruct
 
 When the draft is completely finished and approved, use the `compile_draft` MCP tool to generate the final spinoff world JSON file using the requested name in the target directory. For the complex fields, construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
 
-After the world JSON file is generated, run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.
+After the world JSON file is generated, use `compare_worlds` to compare the original world JSON with the new spinoff and present a summary of what diverged from the source world. Then run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.

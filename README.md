@@ -35,6 +35,7 @@ The plugin runs an MCP server (`iw-json-tools`) that provides these tools:
 | `read_draft_section` | Read a specific section from a draft file by header name. |
 | `update_draft_section` | Surgically update a specific section in a draft file. |
 | `get_diff_summary` | Compare an original world JSON against the current draft and list changes. |
+| `compare_worlds` | Compare two world JSON files and return a structured diff of all changes. |
 | `add_instruction_block` | Append an Extra Instruction Block or Keyword Block to a world file. |
 | `add_trigger` | Append a Trigger Event with multiple conditions/effects, meta-fields (repeatable, prerequisites, blockers), type validation, and auto-coercion. |
 | `confirm_path` | Resolve and confirm a file or directory path. |
@@ -112,14 +113,19 @@ infinite-worlds-architect-plugin/
   .mcp.json                  # MCP server configuration
   index.js                   # MCP server (compile, decompile, tools)
   package.json
-  commands/
-    draft-world.md           # Interactive drafting command
-    modify-world.md          # Interactive modification command
-    scaffold-world.md        # Quick scaffold command
-    spinoff-world.md         # World branching command
-    sequel-world.md          # Story sequel command
-    inject-logic.md          # Mechanic injection command
   skills/
+    draft-world/
+      SKILL.md               # Interactive drafting command
+    modify-world/
+      SKILL.md               # Interactive modification command
+    scaffold-world/
+      SKILL.md               # Quick scaffold command
+    spinoff-world/
+      SKILL.md               # World branching command
+    sequel-world/
+      SKILL.md               # Story sequel command
+    inject-logic/
+      SKILL.md               # Mechanic injection command
     world-architect/
       SKILL.md               # Core skill definition
       references/
