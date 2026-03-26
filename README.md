@@ -113,14 +113,19 @@ infinite-worlds-architect-plugin/
   .mcp.json                  # MCP server configuration
   index.js                   # MCP server (compile, decompile, tools)
   package.json
-  commands/
-    draft-world.md           # Interactive drafting command
-    modify-world.md          # Interactive modification command
-    scaffold-world.md        # Quick scaffold command
-    spinoff-world.md         # World branching command
-    sequel-world.md          # Story sequel command
-    inject-logic.md          # Mechanic injection command
   skills/
+    draft-world/
+      SKILL.md               # Interactive drafting command
+    modify-world/
+      SKILL.md               # Interactive modification command
+    scaffold-world/
+      SKILL.md               # Quick scaffold command
+    spinoff-world/
+      SKILL.md               # World branching command
+    sequel-world/
+      SKILL.md               # Story sequel command
+    inject-logic/
+      SKILL.md               # Mechanic injection command
     world-architect/
       SKILL.md               # Core skill definition
       references/
