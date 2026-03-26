@@ -28,4 +28,4 @@
 - Git worktree operations on WSL emit "could not write config file: Device or resource busy" — non-blocking, use `rm -rf` + `git worktree prune` as fallback.
 
 ## Roadmap
-- See `.claude/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
+- See `claude-scratchpad/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
