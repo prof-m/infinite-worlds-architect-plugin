@@ -79,7 +79,10 @@ Use this to interactively update specific fields in an existing world JSON file.
 ## MCP Tools
 
 - `scaffold_world` — Initialize a new world JSON file with safe, token-efficient defaults.
+- `add_character` — Append a Player Character to an existing world.
 - `add_instruction_block` — Append an Extra Instruction Block or Keyword Block to an existing world.
+- `add_npc` — Append an NPC (Other Character) to an existing world.
+- `add_tracked_item` — Append a Tracked Item to an existing world.
 - `add_trigger` — Append a new Trigger Event to an existing world.
 - `audit_world` — Audit a world JSON file for token efficiency, instruction density, keyword coverage, tracked item efficiency, trigger chain dependencies, NPC redundancy, and image instruction size.
 - `compile_draft` — Compile a Markdown draft file into a valid world JSON file.

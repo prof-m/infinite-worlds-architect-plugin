@@ -91,6 +91,58 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 }
             },
             {
+                name: "add_character",
+                description: "Append a Player Character to an existing world JSON file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        name: { type: "string", description: "Name of the character." },
+                        description: { type: "string", description: "Character description." },
+                        portrait: { type: "string", description: "Portrait identifier or URL." },
+                        skills: { type: "object", description: "Object mapping skill names to integer values 0-5 (e.g., {\"Strength\": 3, \"Charisma\": 4})." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "add_npc",
+                description: "Append an NPC (Other Character) to an existing world JSON file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        name: { type: "string", description: "Name of the NPC." },
+                        detail: { type: "string", description: "Detailed character description." },
+                        one_liner: { type: "string", description: "Brief one-line summary of the NPC." },
+                        appearance: { type: "string", description: "Physical appearance description." },
+                        location: { type: "string", description: "Where the NPC can be found." },
+                        secret_info: { type: "string", description: "Hidden information only the AI knows." },
+                        names: { type: "array", items: { type: "string" }, description: "Full list of names/aliases for the NPC." },
+                        img_appearance: { type: "string", description: "Image generation appearance prompt." },
+                        img_clothing: { type: "string", description: "Image generation clothing prompt." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
+                name: "add_tracked_item",
+                description: "Append a Tracked Item to an existing world JSON file.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        path: { type: "string", description: "Absolute path to the existing world JSON file." },
+                        name: { type: "string", description: "Name of the tracked item." },
+                        dataType: { type: "string", enum: ["text", "number", "xml"], description: "Data type of the tracked item. Default: \"text\"." },
+                        visibility: { type: "string", enum: ["everyone", "ai_only", "player_only", "nobody"], description: "Visibility of the tracked item. Default: \"everyone\"." },
+                        description: { type: "string", description: "Description of what this item tracks." },
+                        updateInstructions: { type: "string", description: "Instructions for the AI on how to update this item." },
+                        initialValue: { type: "string", description: "Starting value for the tracked item." }
+                    },
+                    required: ["path", "name"]
+                }
+            },
+            {
                 name: "add_trigger",
                 description: "Append a Trigger Event to a world JSON file. Supports multiple conditions/effects, all condition and effect types, prerequisites, blockers, and repeat-firing control.",
                 inputSchema: {
@@ -536,6 +588,97 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         await writeWorld(worldPath, world);
         return { content: [{ type: "text", text: `Instruction block '${args.name}' added successfully.` }] };
+    }
+
+    if (name === "add_character") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        if (args.skills && typeof args.skills === "object") {
+            for (const [skillName, skillValue] of Object.entries(args.skills)) {
+                if (!Number.isInteger(skillValue) || skillValue < 0 || skillValue > 5) {
+                    throw new Error(`Skill "${skillName}" has invalid value ${skillValue}. Must be an integer between 0 and 5.`);
+                }
+            }
+        }
+
+        const character = {
+            characterId: generateId(),
+            name: args.name
+        };
+        if (args.description !== undefined) character.description = args.description;
+        if (args.portrait !== undefined) character.portrait = args.portrait;
+        if (args.skills !== undefined) character.skills = args.skills;
+
+        world.possibleCharacters = world.possibleCharacters || [];
+        world.possibleCharacters.push(character);
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `Character '${args.name}' (ID: ${character.characterId}) added successfully.` }] };
+    }
+
+    if (name === "add_npc") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        const npc = {
+            id: generateId(),
+            name: args.name
+        };
+        if (args.detail !== undefined) npc.detail = args.detail;
+        if (args.one_liner !== undefined) npc.one_liner = args.one_liner;
+        if (args.appearance !== undefined) npc.appearance = args.appearance;
+        if (args.location !== undefined) npc.location = args.location;
+        if (args.secret_info !== undefined) npc.secret_info = args.secret_info;
+        if (args.names !== undefined) npc.names = args.names;
+        if (args.img_appearance !== undefined) npc.img_appearance = args.img_appearance;
+        if (args.img_clothing !== undefined) npc.img_clothing = args.img_clothing;
+
+        world.NPCs = world.NPCs || [];
+        world.NPCs.push(npc);
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `NPC '${args.name}' (ID: ${npc.id}) added successfully.` }] };
+    }
+
+    if (name === "add_tracked_item") {
+        const worldPath = path.resolve(args.path);
+        const world = await readWorld(worldPath);
+        if (!world) throw new Error(`Could not read world JSON file at ${worldPath}`);
+        if (!args.name) throw new Error("Required field 'name' is missing.");
+
+        const validDataTypes = ["text", "number", "xml"];
+        const validVisibilities = ["everyone", "ai_only", "player_only", "nobody"];
+
+        const dataType = args.dataType || "text";
+        const visibility = args.visibility || "everyone";
+
+        if (!validDataTypes.includes(dataType)) {
+            throw new Error(`Invalid dataType "${dataType}". Must be one of: ${validDataTypes.join(", ")}.`);
+        }
+        if (!validVisibilities.includes(visibility)) {
+            throw new Error(`Invalid visibility "${visibility}". Must be one of: ${validVisibilities.join(", ")}.`);
+        }
+
+        const item = {
+            id: generateId(),
+            name: args.name,
+            dataType: dataType,
+            visibility: visibility
+        };
+        if (args.description !== undefined) item.description = args.description;
+        if (args.updateInstructions !== undefined) item.updateInstructions = args.updateInstructions;
+        if (args.initialValue !== undefined) item.initialValue = args.initialValue;
+
+        world.trackedItems = world.trackedItems || [];
+        world.trackedItems.push(item);
+
+        await writeWorld(worldPath, world);
+        return { content: [{ type: "text", text: `Tracked item '${args.name}' (ID: ${item.id}) added successfully.` }] };
     }
 
     if (name === "add_trigger") {
