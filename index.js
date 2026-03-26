@@ -939,8 +939,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             const valB = worldB[field];
             if (JSON.stringify(valA) !== JSON.stringify(valB)) {
                 if (typeof valA === 'string' && typeof valB === 'string') {
-                    if (valA.length > 60 || valB.length > 60) {
-                        rootChanges.push(`- ${field}: modified (${valA.length} → ${valB.length} chars)`);
+                    const truncate = (s, max) => s.length > max ? s.slice(0, max) + '...' : s;
+                    if (valA.length > 80 || valB.length > 80) {
+                        // Find common prefix to show context around the divergence point
+                        let prefixLen = 0;
+                        while (prefixLen < valA.length && prefixLen < valB.length && valA[prefixLen] === valB[prefixLen]) {
+                            prefixLen++;
+                        }
+                        if (prefixLen > 20) {
+                            // Strings share a long common prefix — show around the divergence
+                            const prefix = truncate(valA.slice(0, prefixLen), 30);
+                            const diffA = truncate(valA.slice(prefixLen), 50);
+                            const diffB = truncate(valB.slice(prefixLen), 50);
+                            rootChanges.push(`- ${field}: [${prefix}] "${diffA}" → "${diffB}"`);
+                        } else {
+                            rootChanges.push(`- ${field}: "${truncate(valA, 80)}" → "${truncate(valB, 80)}"`);
+                        }
                     } else {
                         rootChanges.push(`- ${field}: "${valA}" → "${valB}"`);
                     }
