@@ -1,0 +1,37 @@
+{
+  "title": "The Counsellor 2: Cat and Mouse (Remastered)",
+  "story_background": "The university prides itself on excellence: an elite American campus where ambition glows beneath every lecture hall light and students compete with the feverish urgency only prestige institutions can cultivate. Fraternities posture, scholarships tremble, reputations rise and collapse in a single semester — and threading through all of it is a subtle, unsettling pattern. Some undergraduates change too quickly. Some drift into softer, more malleable shapes of themselves. A few simply fade into versions no one remembers them growing toward. It is a busy campus. People reinvent themselves all the time. No one looks very closely.\n\nDr. Adrian Stern arrived two years ago with faultless credentials and the serene confidence of a man who has never once needed to defend himself. His hiring coincided with the abrupt resignation of the prior head counsellor, Maria Morgan, though most recall that transition with dreamlike vagueness, as if the paperwork had smoothed the memory itself. The explanation was banal, the timing convenient, the administrative sigh of relief immediate.\n\nFrom his polished office overlooking the quad, Stern has watched a steady procession of students cross his threshold: the anxious prodigy flirting with burnout, the exhausted varsity star questioning their discipline, the scholarship kid terrified of falling behind. To the university, Stern is a balm — warm, reliable, endlessly patient. He is the man who talks panicked freshmen back into coherence.\n\nAnd indeed, most students leave his office soothed.\nA select few leave… adjusted.\n\nThe alterations begin quietly: a softened edge, a changed laugh, a shift in wardrobe reflecting desires they never voiced. Soon, deeper currents take hold — ambition dissolves, drive slackens, identity loosens into something easier, warmer, more dependent. Former standouts re-emerge as glossy, agreeable versions of themselves, oddly grateful for support they cannot fully recall receiving.\n\nThe Valentini sisters are the most visible whispers: Isabella, once a physics prodigy, and Giorgia, once a relentless athlete. Now they float through campus as cheerful party girls, their former brilliance chalked up to exaggerated nostalgia. Stern never contradicts the stories.\n\nWhat few understand is that he has practiced this craft far longer than the university has known his name. Campuses are fertile ground — transient populations, unstable identities, and a culture steeped in reinvention. Over the years, he has shaped many minds across many institutions, each transformation another refinement in a patient, lifelong pursuit of psychological artistry.\n\nStudents vanish into new selves. Administrators shrug. Faculty mutter about “lost potential.”\nNo one looks at the man behind the reassuring smile.\n\nTo them, Dr. Stern is a counsellor.\nTo himself, he is something finer:\na sculptor of the self, perfecting his art one mind at a time.\n\n\n-- Character --",
+  "objective": null,
+  "character": {
+    "name": "Dr. Adrian Stern",
+    "background": "Adrian Stern embodies the kind of charm institutions love: impeccably dressed, quietly amused, and attentive in a way that makes people feel chosen. Students leave his office convinced they have been understood more deeply than they understood themselves. Faculty trust him implicitly. Administrators depend on him. None of them ever notice the pattern he has been weaving beneath their eyes.\n\nHe speaks gently, listens flawlessly, and dismantles people with the precision of a jeweler removing imperfections from a gem. The mind, to Stern, is not sacred — it is a material. Something to sculpt, refine, soften, or remake entirely. Resistance is the interesting part. Personality is raw stone waiting for the right chisel.\n\nStern is patient. Methodical. Almost tender in his work. A single reframed memory, a question angled at just the right vulnerability, a magnified shame — these are strokes of his craft. When the process succeeds, the transformation feels natural, inevitable, as though the subject had always been meant to become the version he carved. When it fails, they never grasp how close they came.\n\nHe does not view himself as a predator.\nHe views himself as a connoisseur of potential —\na curator of better, simpler selves.\nA craftsman whose medium happens to be human identity.\n\nOver decades, many students have left his office as glossier, emptier, more compliant versions of who they once were. Not dead. Not physically harmed. Just… erased. Each one a study. A small triumph. A refinement of technique.\n\nAnd now another candidate waits in the wings. Not a masterpiece. Not an endpoint.\nSimply the next mind to shape, the next self to re-author, another quiet success in a career built atop invisible ruins.\n\nStern adjusts his tie, feeling the familiar hum of anticipation.\nThe work continues.",
+    "skills": [
+      {
+        "name": "Hypnosis",
+        "rating": 5,
+        "level": "Exceptional"
+      },
+      {
+        "name": "Deception",
+        "rating": 3,
+        "level": "Competent"
+      },
+      {
+        "name": "Persuasion",
+        "rating": 4,
+        "level": "Highly skilled"
+      },
+      {
+        "name": "Observation",
+        "rating": 4,
+        "level": "Highly skilled"
+      },
+      {
+        "name": "Manipulation",
+        "rating": 5,
+        "level": "Exceptional"
+      }
+    ]
+  },
+  "total_turns": 22
+}
