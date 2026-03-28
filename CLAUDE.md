@@ -27,5 +27,78 @@
 ## Known Issues
 - Git worktree operations on WSL emit "could not write config file: Device or resource busy" — non-blocking, use `rm -rf` + `git worktree prune` as fallback.
 
+## Story Data Extraction Tool
+
+**New MCP tools** for parsing story exports programmatically (replaces "read entire export" approach).
+
+### Tools
+
+- **`extract_story_data`** — Parse story export files and write structured JSON output
+  - Input: Array of file paths and output directory
+  - Output: manifest.json, metadata.json, turn_index.json, tracked_state.json (optional)
+  - Returns: success status, turn count, range, tracked items flags, warnings
+
+- **`query_story_data`** — Query previously extracted data by category
+  - Categories: `manifest`, `metadata`, `turn_index`, `tracked_state`, `turn_detail`
+  - Features: "last" alias resolution, turn filtering, source file extraction
+  - Returns: structured data or error message
+
+### Architecture
+
+**Parser phases** (lib/parsers/):
+1. **Phase 1** (phase1-combining.js): Combine files, deduplicate turns by mtime, detect gaps
+2. **Phase 2** (phase2-headers.js): Extract title, story background, character, objective
+3. **Phase 3** (phase3-turns.js): Parse turn sections (action, outcome, secret info, tracked items)
+4. **Phase 4** (phase4-tracked-items.js): Parse tracked items, generate state snapshots
+
+**Handlers** (lib/handlers/):
+- **validation.js**: Input validation for both tools
+- **output-writer.js**: Atomic JSON file writing with proper schemas
+- **extraction.js**: Orchestrates parsing → file writing
+- **query.js**: Loads and filters extracted data
+
+**Integration**:
+- Both tools registered in index.js (ListToolsRequestSchema and toolHandlers)
+- Alphabetical ordering maintained
+- MCP server tested to start without errors
+
+### Schema Files
+
+Output JSON schemas defined in implementation plan (Section 2, Step 8):
+- `manifest.json` — version, source files, total turns, detected gaps, tracked items flags
+- `metadata.json` — title, background, objective, character (name, background, skills), turn count
+- `turn_index.json` — turn array with action/outcome previews (100-char), line ranges, source files
+- `tracked_state.json` — snapshots of tracked/hidden items by turn range (only if items exist)
+
+### Usage Example
+
+```javascript
+// Extract story
+const result = await extractStoryData(
+  ['/path/to/export.txt'],
+  '/tmp/extraction'
+);
+
+// Query extracted data
+const manifest = await queryStoryData(
+  '/tmp/extraction',
+  'manifest',
+  []
+);
+
+const lastTurn = await queryStoryData(
+  '/tmp/extraction',
+  'turn_detail',
+  ['last']
+);
+```
+
+### Testing
+
+- **Unit tests**: 103 tests covering all phases, handlers, and integration
+- **Integration tests**: Real story exports (4, 22, 30 turns)
+- **Manual tests**: Comprehensive end-to-end harness in test-mcp-manual.js
+- **Performance**: 22-turn export parses in < 5ms
+
 ## Roadmap
 - See `claude-scratchpad/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
