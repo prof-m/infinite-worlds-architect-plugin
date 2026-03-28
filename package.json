@@ -9,7 +9,9 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "node --test 'test/**/*.test.js'"
+    "test": "node --test 'test/unit/**/*.test.js'",
+    "test:watch": "watch 'npm test' lib handlers",
+    "test:unit": "node --test 'test/unit/**/*.test.js'"
   },
   "devDependencies": {}
 }
