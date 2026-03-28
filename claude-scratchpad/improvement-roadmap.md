@@ -6,7 +6,7 @@ Analysis by: Claude Opus 4.6 (Principal Plugin Developer review)
 
 ## Executive Summary
 
-After thorough analysis of the plugin code, example worlds/story exports (in `~/personal_project/infinite_worlds_stories`), and the [Infinite Worlds wiki](https://infiniteworlds.mywikis.wiki/wiki/Main_Page), this document captures all identified improvements prioritized by impact and effort. P0 items have been completed. P1a, P1b, and P1d have been completed. P2b, P2d, and P3a have been completed. P1c, P2c, P3b, and P3c remain.
+After thorough analysis of the plugin code, example worlds/story exports (in `~/personal_project/infinite_worlds_stories`), and the [Infinite Worlds wiki](https://infiniteworlds.mywikis.wiki/wiki/Main_Page), this document captures all identified improvements prioritized by impact and effort. P0 items have been completed. P1a, P1b, and P1d have been completed. P2b, P2d, and P3a have been completed. P1c and P2c remain; P3b has been marked "Won't Do".
 
 ---
 
@@ -18,14 +18,14 @@ After thorough analysis of the plugin code, example worlds/story exports (in `~/
 | P0b | P0 | DONE | Add missing world fields to compiler/decompiler/schema |
 | P1a | P1 | DONE | `validate_world` MCP tool |
 | P1b | P1 | DONE | `audit_world` MCP tool |
-| P1c | P1 | PENDING | Pre-built mechanic templates |
+| P1c | P1 | DEFERRED | Pre-built mechanic templates |
 | P1d | P1 | DONE | Enhance `add_trigger` for multi-condition/multi-effect |
 | P2a | P2 | DONE | Dedicated `add_npc`, `add_character`, `add_tracked_item` tools |
 | P2b | P2 | DONE | Fix duplicated parseDraft logic |
 | P2c | P2 | DEFERRED | Improve story export parsing |
 | P2d | P2 | DONE | `compare_worlds` MCP tool |
 | P3a | P3 | DONE | Migrate commands/ to skills/ format |
-| P3b | P3 | PENDING | Add Chub AI Lorebook import tool |
+| P3b | P3 | WON'T DO | Add Chub AI Lorebook import tool |
 | P3c | P3 | DONE | Refactor index.js into multi-file module structure |
 
 ---
