@@ -269,3 +269,108 @@ test('writeOutputFiles - handles preview truncation', async (t) => {
 
   fs.rmSync(tmpDir, { recursive: true });
 });
+
+test('writeOutputFiles - includes files array in manifest.json output', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+
+  const parsedHeader = {
+    title: 'Test Story',
+    storyBackground: 'Background text',
+    objective: 'Find the treasure',
+    character: {
+      name: 'Hero',
+      background: 'A brave adventurer',
+      skills: [],
+    },
+  };
+
+  const parsedTurns = [
+    {
+      number: 1,
+      action: null,
+      outcome: 'You start your journey',
+      secretInfo: null,
+      trackedItems: null,
+      hiddenTrackedItems: null,
+      sourceFile: 'test.txt',
+      lineRange: [1, 10],
+    },
+  ];
+
+  const manifest = {
+    sourceFiles: [{ path: 'test.txt', turns: [1, 1], modified: '2024-01-01' }],
+    headerSourceFile: 'test.txt',
+    files: ['test.txt'],
+  };
+
+  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+
+  const manifestPath = path.join(tmpDir, 'manifest.json');
+  const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+  assert.ok(manifestData.files);
+  assert.strictEqual(Array.isArray(manifestData.files), true);
+  assert.strictEqual(manifestData.files.length, 1);
+  assert.strictEqual(manifestData.files[0], 'test.txt');
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('writeOutputFiles - includes multiple files in manifest.json', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+
+  const parsedHeader = {
+    title: 'Test Story',
+    storyBackground: 'Background text',
+    objective: 'Find the treasure',
+    character: {
+      name: 'Hero',
+      background: 'A brave adventurer',
+      skills: [],
+    },
+  };
+
+  const parsedTurns = [
+    {
+      number: 1,
+      action: null,
+      outcome: 'You start your journey',
+      secretInfo: null,
+      trackedItems: null,
+      hiddenTrackedItems: null,
+      sourceFile: 'file1.txt',
+      lineRange: [1, 10],
+    },
+    {
+      number: 2,
+      action: 'Continue journey',
+      outcome: 'You progress',
+      secretInfo: null,
+      trackedItems: null,
+      hiddenTrackedItems: null,
+      sourceFile: 'file2.txt',
+      lineRange: [1, 15],
+    },
+  ];
+
+  const manifest = {
+    sourceFiles: [
+      { path: 'file1.txt', turns: [1, 1], modified: '2024-01-01' },
+      { path: 'file2.txt', turns: [2, 2], modified: '2024-01-02' },
+    ],
+    headerSourceFile: 'file1.txt',
+    files: ['file1.txt', 'file2.txt'],
+  };
+
+  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+
+  const manifestPath = path.join(tmpDir, 'manifest.json');
+  const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+  assert.ok(manifestData.files);
+  assert.strictEqual(manifestData.files.length, 2);
+  assert.strictEqual(manifestData.files[0], 'file1.txt');
+  assert.strictEqual(manifestData.files[1], 'file2.txt');
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
