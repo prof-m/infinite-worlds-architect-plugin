@@ -265,3 +265,30 @@ Secret Knowledge: Ancient Spell
   // Hidden Tracked Items should be parsed by Phase 4
   assert.ok(result[0].hiddenTrackedItems === null || typeof result[0].hiddenTrackedItems === 'object');
 });
+
+test('parseTurns - Warning on missing turn content', () => {
+  const turnContent = `
+Action
+------
+Do something.
+
+Outcome
+-------
+Something happened.
+`;
+
+  const combinedText = '-- Turn 1 --\nSome other content';
+  const turns = [
+    { number: 7, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
+  ];
+
+  const warnings = [];
+  const result = parseTurns(combinedText, turns, warnings);
+
+  assert.strictEqual(result.length, 1);
+  assert.strictEqual(result[0].lineRange[0], 0);
+  assert.strictEqual(result[0].lineRange[1], 0);
+  assert.strictEqual(warnings.length, 1);
+  assert.ok(warnings[0].includes('Could not locate content for Turn 7'));
+  assert.ok(warnings[0].includes('combined text'));
+});
