@@ -1,0 +1,105 @@
+{
+  "title": "Test Adventure World",
+  "description": "A test world for unit testing",
+  "background": "This is a test background story",
+  "instructions": "These are test instructions for the AI",
+  "authorStyle": "Concise and descriptive",
+  "firstInput": "You find yourself in a mysterious place.",
+  "objective": "Explore and survive.",
+  "nsfw": false,
+  "contentWarnings": "None",
+  "descriptionRequest": "Write in first person",
+  "summaryRequest": "Brief summaries",
+  "imageModel": "manticore",
+  "imageStyle": "photo_beautiful",
+  "imageStyleCharacterPre": "A portrait of",
+  "imageStyleCharacterPost": "in high quality",
+  "imageStyleNonCharacterPre": "A scene of",
+  "imageStyleNonCharacterPost": "beautifully rendered",
+  "victoryCondition": "Reach the end",
+  "victoryText": "You have won!",
+  "defeatCondition": "Get defeated",
+  "defeatText": "You have lost.",
+  "designNotes": "Test notes for design",
+  "canChangeCharacterName": true,
+  "canChangeCharacterDescription": true,
+  "canChangeCharacterSkills": true,
+  "canSelectOtherPortraits": false,
+  "canCreateNewPortrait": true,
+  "canChangeTrackedItemsStartingValues": false,
+  "enableAISpecificInstructionBlocks": false,
+  "skills": ["Combat", "Persuasion", "Stealth"],
+  "possibleCharacters": [
+    {
+      "characterId": "char_001",
+      "name": "Test Character",
+      "description": "A test character",
+      "portrait": "https://example.com/portrait.jpg",
+      "skills": {
+        "Combat": 3,
+        "Persuasion": 2,
+        "Stealth": 1
+      }
+    }
+  ],
+  "NPCs": [
+    {
+      "id": "npc_001",
+      "name": "Test NPC",
+      "one_liner": "A mysterious stranger",
+      "detail": "Full character details",
+      "appearance": "Tall and mysterious",
+      "location": "The tavern",
+      "secret_info": "Has a secret past",
+      "names": ["Mysterious One", "The Stranger"],
+      "img_appearance": "Dark robes",
+      "img_clothing": "Black and mysterious"
+    }
+  ],
+  "instructionBlocks": [
+    {
+      "id": "block_001",
+      "name": "Combat Rules",
+      "content": "Combat resolution system details"
+    }
+  ],
+  "loreBookEntries": [
+    {
+      "id": "lore_001",
+      "name": "Ancient History",
+      "content": "The world was once...",
+      "keywords": ["history", "ancient", "world"]
+    }
+  ],
+  "trackedItems": [
+    {
+      "id": "item_001",
+      "name": "Health Points",
+      "dataType": "number",
+      "visibility": "everyone",
+      "description": "Your current health",
+      "updateInstructions": "Decrease when damaged",
+      "initialValue": "100"
+    }
+  ],
+  "triggerEvents": [
+    {
+      "id": "trigger_001",
+      "name": "Victory Trigger",
+      "triggerConditions": [
+        {
+          "id": "cond_001",
+          "type": "triggerOnEvent",
+          "data": "Player reaches the goal"
+        }
+      ],
+      "triggerEffects": [
+        {
+          "id": "eff_001",
+          "type": "scriptedText",
+          "data": "You have reached victory!"
+        }
+      ]
+    }
+  ]
+}
