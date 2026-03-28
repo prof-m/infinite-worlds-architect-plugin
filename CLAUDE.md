@@ -34,9 +34,9 @@
 ### Tools
 
 - **`extract_story_data`** — Parse story export files and write structured JSON output
-  - Input: Array of file paths and output directory
-  - Output: manifest.json, metadata.json, turn_index.json, tracked_state.json (optional)
-  - Returns: success status, turn count, range, tracked items flags, warnings
+  - Input: Array of file paths, output directory, optional character list
+  - Output: manifest.json, metadata.json, turn_index.json, tracked_state.json (optional), character_index.json (optional)
+  - Returns: success status, turn count, range, tracked items flags, filesWritten, warnings
 
 - **`query_story_data`** — Query previously extracted data by category
   - Categories: `manifest`, `metadata`, `turn_index`, `tracked_state`, `turn_detail`
@@ -54,7 +54,8 @@
 **Handlers** (lib/handlers/):
 - **validation.js**: Input validation for both tools
 - **output-writer.js**: Atomic JSON file writing with proper schemas
-- **extraction.js**: Orchestrates parsing → file writing
+- **extraction.js**: Orchestrates parsing → character indexing → file writing
+- **character-indexer.js**: Indexes character mentions by turn and line number
 - **query.js**: Loads and filters extracted data
 
 **Integration**:
@@ -69,14 +70,25 @@ Output JSON schemas defined in implementation plan (Section 2, Step 8):
 - `metadata.json` — title, background, objective, character (name, background, skills), turn count
 - `turn_index.json` — turn array with action/outcome previews (100-char), line ranges, source files
 - `tracked_state.json` — snapshots of tracked/hidden items by turn range (only if items exist)
+- `character_index.json` — character names/aliases mapped to mentions with line numbers (optional, only if characters provided)
 
 ### Usage Example
 
 ```javascript
-// Extract story
+// Extract story without character indexing
 const result = await extractStoryData(
   ['/path/to/export.txt'],
   '/tmp/extraction'
+);
+
+// Extract story with character indexing
+const resultWithCharacters = await extractStoryData(
+  ['/path/to/export.txt'],
+  '/tmp/extraction',
+  [
+    { name: 'Victor', aliases: ['The Maestro', 'V'] },
+    { name: 'Alice', aliases: [] }
+  ]
 );
 
 // Query extracted data
@@ -93,12 +105,46 @@ const lastTurn = await queryStoryData(
 );
 ```
 
+### Character Indexing (Optional)
+
+When character names are provided to `extractStoryData()`, a `character_index.json` file is created with:
+
+```json
+{
+  "characters": {
+    "Victor": {
+      "aliases": ["The Maestro", "V"],
+      "mentions": [
+        {
+          "turn": 1,
+          "lines": [5, 12, 23],
+          "context": "Victor enters the room looking confident"
+        }
+      ]
+    }
+  },
+  "indexed_character_count": 2,
+  "total_mentions": 8,
+  "incomplete": false
+}
+```
+
+Features:
+- Case-insensitive matching with word boundaries to avoid false positives
+- Line-by-line tracking of character mentions
+- Context extraction (100 character preview of first mention)
+- Incomplete flag when not all characters found in story
+- Aliases automatically searched alongside character names
+
 ### Testing
 
-- **Unit tests**: 103 tests covering all phases, handlers, and integration
+- **Unit tests**: 119 tests covering all phases, handlers, and integration
+  - 103 existing tests for parsing and query functionality
+  - 16 new tests for character indexing (finds characters, handles aliases, incomplete flag, etc.)
 - **Integration tests**: Real story exports (4, 22, 30 turns)
 - **Manual tests**: Comprehensive end-to-end harness in test-mcp-manual.js
-- **Performance**: 22-turn export parses in < 5ms
+- **Performance**: 22-turn export with character indexing parses in < 10ms
+- **Backward compatibility**: Optional character indexing doesn't affect existing functionality
 
 ## Roadmap
 - See `claude-scratchpad/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
