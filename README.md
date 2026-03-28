@@ -92,6 +92,10 @@ Reference materials are in `skills/world-architect/references/`.
 
 After restarting, type `/infinite-worlds-architect:` and you should see the available commands in autocomplete. You can also check MCP server status with `/mcp`.
 
+## How to Use Skills
+
+For a complete guide to all available skills and their trigger phrases, see [`skills/TRIGGER_PHRASES.md`](skills/TRIGGER_PHRASES.md).
+
 ## Quick Start
 
 **Create a new world from scratch:**
