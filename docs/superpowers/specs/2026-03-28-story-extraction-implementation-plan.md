@@ -71,7 +71,7 @@ index.js (MCP server)
   │     ├─→ parsers/index.js
   │     │     ├─→ phase1-combining.js (→ utils.js)
   │     │     ├─→ phase2-headers.js (→ utils.js)
-  │     │     ├─→ phase3-turns.js (→ phase4-tracked-items, utils.js)
+  │     │     ├─→ phase3-turns.js (→ utils.js, phase4-tracked-items.js for tracked sections)
   │     │     └─→ phase4-tracked-items.js (→ utils.js)
   │     ├─→ handlers/output-writer.js
   │     └─→ validation.js
@@ -84,6 +84,7 @@ index.js (MCP server)
 - Parsers are **pure functions** (no file I/O, no side effects) — easy to test in isolation.
 - Handlers manage I/O and error marshaling.
 - `utils.js` has no internal dependencies.
+- **Phase 4 organization note:** Phase 4 is called from Phase 3 (when parsing Tracked/Hidden Tracked sections) but is a separate module. Do NOT merge them; Phase 4 logic is complex enough to warrant its own module for testability. Keep the separation.
 
 ---
 
@@ -140,16 +141,25 @@ index.js (MCP server)
 2. Read file contents, preserving line numbers.
 3. For each file:
    - Scan for turn delimiters (`-- Turn N --`).
-   - Collect turns into a Map by turn number.
-   - Keep only the most recent file's version of each turn (if overlaps).
+   - Collect turns into a Map keyed by turn number (number not string).
+   - When same turn appears in multiple files, keep the version from the file with the later mtime.
 4. Extract header from the most recently modified file only.
-5. Generate manifest recording: source files, turn ranges, deduplication notes.
-6. Return: `{ header: string, turns: Array, manifest: object, warnings: string[] }`
+5. **Turn number continuity:**
+   - Convert Map to array and sort by turn number ascending.
+   - Detect gaps (e.g., turns 1-50, then 95-100) and record as warnings: "Turns 51-94 appear to be missing."
+   - Allow gaps; extraction succeeds even with discontinuous turn numbers.
+   - Reject Turn 1 being completely absent (throw fatal error).
+6. Generate manifest recording: source files, turn ranges per file, detected gaps, deduplication notes.
+7. Return: `{ header: string, turns: Array<{number, content, sourceFile, lineRange}>, manifest: object, warnings: string[] }`
+
+**Special case:** If mtime is identical on overlapping turns (millisecond-precision collision), prefer the file that appears first in the input `filePaths` array.
 
 **Test:** Create `test/parsers/phase1-combining.test.js`. Test with:
 - Single file: verify turns extracted correctly
 - Multi-file: overlapping turns, header priority to newest file
-- Missing Turn 1: error case
+- Gap detection: turns 1-10, 50-60 (gap 11-49) should warn but not error
+- Out-of-order turn blocks: a file with turns in order Turn 5, Turn 3, Turn 10 should be sorted to 3, 5, 10
+- Missing Turn 1: error case (fatal)
 
 ---
 
@@ -164,32 +174,46 @@ index.js (MCP server)
 - For CHARACTER block:
   - Detect subsections (Name, Background, Skills) via two-line pattern
   - Parse skills: `/^(.+?):\s*(\d+)\s*\(([^)]+)\)$/`
+  - **If CHARACTER section is present but empty or contains only subsection headers with no data**, record as warning but don't fail
   - Exit on `-- ... --` that's not a recognized subsection
 - Extract objective from Turn 1:
-  - Find `- - - - -` divider
-  - Locate `Your objective for this adventure is:` line
+  - Find `- - - - -` divider (if it exists; continuation exports may not have objective)
+  - Locate `Your objective for this adventure is:` line (case-insensitive search)
   - Capture text until closing divider
-- Return structured header object (null fields where not found)
+  - If no objective found, return null and warn
+- **Continuation export handling:** If input files are mid-story exports (no header section, only turns), call parseHeaders with empty headerText and extract only objective from turn1Text. This is a valid scenario.
+- Return structured header object with all fields nullable: `{ title, storyBackground, character: null, objective }`
 
-**Test:** Create `test/parsers/phase2-headers.test.js`. Test with real export headers from test files.
+**Test:** Create `test/parsers/phase2-headers.test.js`. Test with:
+- Real export headers from test files
+- Continuation export (no header, only Turn 1 with objective)
+- Missing objective section in Turn 1
+- CHARACTER section that's empty after subsection headers
 
 ---
 
 #### Step 4: Implement `lib/parsers/phase3-turns.js`
 
-**Function:** `function parseTurns(combinedText, turns) → Array<{ number, action, outcome, secretInfo, trackedItems, hiddenTrackedItems, source }>`
+**Function:** `function parseTurns(combinedText, turns) → Array<{ number, action, outcome, secretInfo, trackedItems, hiddenTrackedItems, source, lineRange }>`
 
 **Algorithm:**
 - For each turn block (from Phase 1):
-  - Implement turn state machine (ACTION, OUTCOME, SECRET_INFO, TRACKED, HIDDEN_TRACKED)
-  - Detect sections via two-line pattern
-  - Special case Turn 1: action is null
-  - Accumulate text for each section
-  - Call Phase 4 parser on Tracked/Hidden Tracked sections
-  - Record source file and line range
-- Return array of turn objects
+  - Implement turn state machine (INIT, ACTION, OUTCOME, SECRET_INFO, TRACKED, HIDDEN_TRACKED)
+  - Detect sections using two-line pattern: `\n(.+)\n-{4,}`
+  - **Special case Turn 1:** action field is null (no Action section exists in Turn 1)
+  - **Special case empty sections:** If a section header exists but content is empty/whitespace-only, record section as null (not empty string)
+  - Accumulate text for each section until next section header or turn boundary
+  - If Tracked/Hidden Tracked sections exist, call Phase 4 parser on their content
+  - Record source file path and exact line range [startLine, endLine]
+  - Warn if section header is detected but next section delimiter is malformed
+- Return array of turn objects, preserving turn number order from Phase 1
 
-**Test:** Create `test/parsers/phase3-turns.test.js`. Test with real turn content from test files.
+**Test:** Create `test/parsers/phase3-turns.test.js`. Test with:
+- Real turn content from test files
+- Turn 1 (verify action is null, outcome/objective present)
+- Empty section (section header with no content before next section)
+- Missing Outcome section (only Action present)
+- Tracked/Hidden Tracked sections (passed to Phase 4)
 
 ---
 
@@ -200,19 +224,34 @@ index.js (MCP server)
 - `generateSnapshots(trackedPerTurn) → Array<{ fromTurn, toTurn, trackedItems, hiddenTrackedItems }>`
 
 **Algorithm (parseTrackedItems):**
-- If content is null or empty, return null
-- Split section on `\n\n` (blank line) followed by item header pattern
-- For each segment: key = first line (strip colon), value = remainder (trimmed)
-- Return object (all values are strings)
+- If section text is null, empty, or whitespace-only, return null
+- To detect item headers: match lines like `SomethingHere:` (ends with colon, no content after)
+  - Use regex: `/^([^:\n]+):\s*$/m` to find item headers
+  - **Critical:** Reject false positives like "URL: http://example.com" (content after colon) — these are NOT item headers
+- Split section by item headers; for each segment:
+  - Key = the header line (strip trailing colon and whitespace)
+  - Value = all subsequent lines until next item header or end of section (trimmed)
+- Return object where all values are strings; if a key has no value (header at end of section), value is empty string ""
+- Handle multi-line values (items can span multiple lines)
 
 **Algorithm (generateSnapshots):**
-- Iterate through turns in order
-- Compare current state to previous state
-- When state changes, emit snapshot: `{ fromTurn, toTurn, trackedItems, hiddenTrackedItems }`
-- Snapshots are contiguous; every turn falls within exactly one
-- Return snapshots array
+- Input: array of turns, each with { trackedItems, hiddenTrackedItems } (both nullable)
+- Iterate through turns in order (1, 2, 3, ...)
+- **State comparison:** A state change occurs when:
+  - Any key in tracked_items has a different value (null treated as missing)
+  - Any key in hidden_tracked_items has a different value
+  - tracked_items transitions from null to object or vice versa
+  - hidden_tracked_items transitions from null to object or vice versa
+- When state changes, emit snapshot: `{ fromTurn: lastTurn, toTurn: currentTurn - 1, trackedItems: lastState.tracked, hiddenTrackedItems: lastState.hidden }`
+- After the loop, if there's a final state, emit a final snapshot: `{ fromTurn: lastChangePoint, toTurn: maxTurnNumber, trackedItems, hiddenTrackedItems }`
+- **Snapshot structure guarantee:** Every snapshot has both fields; values are either null or a non-empty object `{ key: value, ... }`
+- Every turn number falls within exactly one snapshot's [fromTurn, toTurn] range (inclusive)
+- Return sorted snapshots array
 
-**Test:** Create `test/parsers/phase4-tracked-items.test.js`. Test with various tracked item formats (simple, multi-line, empty values).
+**Test:** Create `test/parsers/phase4-tracked-items.test.js`. Test with:
+- Item parsing: simple items, multi-line values, empty values, false positive rejection
+- Snapshot generation: state changes, null transitions, consecutive unchanged turns
+- Edge case: all turns have null tracked_items (should produce one snapshot covering all turns with both fields null)
 
 ---
 
@@ -244,38 +283,51 @@ index.js (MCP server)
 #### Step 7: Implement `lib/validation.js`
 
 **Functions:**
-- `validateExtractInput(inputPaths, extractionDir)` → `{ valid, errors }`
-- `validateQueryInput(extractionDir, category, turns)` → `{ valid, errors }`
-- `validateInputPaths(paths)` → `{ valid, errors }`
-- `validateExtractionDir(dir)` → `{ valid, errors }`
+- `validateExtractInput(inputPaths, extractionDir)` → `{ valid: boolean, errors: string[] }`
+- `validateQueryInput(extractionDir, category, turns)` → `{ valid: boolean, errors: string[] }`
 
-**Logic:**
-- Check types (array, string, etc.)
-- Check non-empty
-- For paths: verify readable/writable
-- For category: check enum membership
-- For turns: check array of integers or "last"
+**Validation logic:**
 
-**Test:** Create `test/validation.test.js`. Test valid and invalid inputs.
+**extractInput:**
+- inputPaths: must be non-empty array of strings
+- Each path: must exist (fs.statSync), must be readable
+- extractionDir: must be a string, may not exist (will be created), parent directory must exist and be writable
+- If errors found, return `{ valid: false, errors: [list of error messages] }`
+
+**queryInput:**
+- extractionDir: must exist and be readable
+- category: must be one of: "manifest", "metadata", "turn_index", "tracked_state", "turn_detail"
+- turns: must be array of integers or strings, non-empty; each element is number or "last" (case-sensitive)
+- If errors found, return `{ valid: false, errors: [...] }`
+
+**Error messages should be actionable:**
+- "Input path does not exist: /path/to/file"
+- "Parent directory not writable: /path/to"
+- "Invalid category 'foo'; valid categories: manifest, metadata, ..."
+- "turns parameter must be non-empty array of integers or 'last'"
+
+**Test:** Create `test/validation.test.js`. Test valid and invalid inputs for both functions.
 
 ---
 
 #### Step 8: Implement `lib/handlers/output-writer.js`
 
-**Function:** `async function writeOutputFiles(extractionDir, parsedHeader, parsedTurns, snapshots) → { filesWritten, warnings }`
+**Function:** `async function writeOutputFiles(extractionDir, parsedHeader, parsedTurns, snapshots, manifest) → { filesWritten: [filenames], warnings }`
 
-**Files to write:**
+**Files to write (all to extractionDir):**
 
 1. **manifest.json**
    ```json
    {
      "version": "1.0",
-     "source_files": [{ path, turns: [first, last], modified }],
-     "header_source": path,
+     "source_files": [
+       { "path": "filename", "turns": [first, last], "mtime_ms": timestamp }
+     ],
+     "header_source": "filename or null",
      "total_turns": number,
      "has_tracked_items": boolean,
      "has_hidden_tracked_items": boolean,
-     "files": [filenames]
+     "detected_gaps": ["Turns 51-94 missing"]
    }
    ```
 
@@ -285,7 +337,7 @@ index.js (MCP server)
      "title": string | null,
      "story_background": string | null,
      "objective": string | null,
-     "character": { name, background, skills },
+     "character": { "name": string | null, "background": string | null, "skills": [...] } | null,
      "total_turns": number
    }
    ```
@@ -297,39 +349,47 @@ index.js (MCP server)
        {
          "number": number,
          "has_action": boolean,
-         "action_preview": string | null,
-         "outcome_preview": string,
+         "action_preview": string | null (first 100 chars, null if no action),
+         "outcome_preview": string (first 100 chars of outcome, never null),
          "has_secret_info": boolean,
          "has_tracked_items": boolean,
-         "line_range": [number, number],
-         "source_file": string
+         "line_range": [startLine, endLine],
+         "source_file": "filename"
        }
      ]
    }
    ```
 
-4. **tracked_state.json** (only if tracked items exist)
+4. **tracked_state.json** (only if any turn has tracked_items or hidden_tracked_items)
    ```json
    {
      "snapshots": [
        {
          "from_turn": number,
          "to_turn": number,
-         "tracked_items": { key: value },
+         "tracked_items": { key: value } | null,
          "hidden_tracked_items": { key: value } | null
        }
      ]
    }
    ```
 
-**Logic:**
+**Algorithm:**
 - Create `extractionDir` if it doesn't exist
-- Build each file's data structure
-- Write to disk (path.resolve with proper formatting)
-- Validate all writes succeeded
-- Return list of written filenames + warnings
+- **Atomic writes:** Write each file to a temporary name (e.g., `manifest.json.tmp`), then rename atomically
+- If directory creation fails, throw (user must have write permission)
+- Build each JSON structure, validate JSON.parse() succeeds
+- For outcome_preview: extract first 100 characters of outcome section (trimmed), handle newlines
+- Line range must reflect actual source file line numbers (from Phase 1)
+- **Critical:** Always include manifest.json and metadata.json; only skip tracked_state.json if no tracked items exist in any turn
+- Return object: `{ filesWritten: [manifest.json, metadata.json, turn_index.json, ...], warnings: [] }`
 
-**Test:** Create `test/handlers/output-writer.test.js`. Verify JSON schema correctness.
+**Test:** Create `test/handlers/output-writer.test.js`. Test:
+- JSON schema correctness
+- File write success
+- Atomic rename behavior
+- Outcome preview truncation
+- Manifest gaps field formatting
 
 ---
 
@@ -361,20 +421,36 @@ index.js (MCP server)
 
 - **`manifest`**: Load and return manifest.json
 - **`metadata`**: Load and return metadata.json
-- **`tracked_state`**: Load tracked_state.json, resolve "last" to max turn, find snapshots for each requested turn
+- **`tracked_state`**: Load tracked_state.json (error if missing), resolve "last" to max turn from manifest, find snapshots for each requested turn, return snapshot data
 - **`turn_index`**: Load and return turn_index.json
-- **`turn_detail`**: Load turn_index, resolve turns, extract line ranges, read source files, extract Action/Outcome/SecretInfo sections
+- **`turn_detail`**: Load turn_index.json, resolve "last" to max turn, extract line ranges for requested turns, read source files, extract Action/Outcome/SecretInfo sections, return detailed content
 
 **"last" alias resolution:**
-- Read manifest.json to get total_turns
-- Replace "last" in turns array with that number
+- **Always read manifest.json first** to get total_turns
+- Replace "last" in turns array with total_turns value
+- If turns array is empty after resolution, return error "No turns specified"
+- Verify all resolved turn numbers exist in turn_index (reject out-of-range turns)
+
+**turn_detail safety:**
+- For each requested turn, look up line range in turn_index: `[startLine, endLine]`
+- Verify source_file path is safe (no `..` traversal, must be in extractionDir's original files)
+- **Read source files line-by-line**, extracting only lines [startLine, endLine]
+- If source file is missing, return error "Source file for Turn N not found"
+- Accumulate Action, Outcome, SecretInfo sections for each turn
+- Return `{ turns: [{ number, action, outcome, secret_info }] }`
 
 **Error handling:**
-- Missing extraction directory → return error
-- Missing tracked_state.json when requesting tracked_state → return error with explanation
-- Invalid source file path in turn_detail → return error
+- Missing extraction directory → return `{ success: false, error: "Extraction directory not found" }`
+- Invalid category → return `{ success: false, error: "Invalid category. Valid: manifest, metadata, turn_index, tracked_state, turn_detail" }`
+- Missing turns parameter or empty array → return `{ success: false, error: "turns parameter required and must be non-empty array" }`
+- Missing tracked_state.json when requesting tracked_state → return `{ success: false, error: "tracked_state.json not found; this export has no tracked items" }`
+- Source file for turn_detail not found → return `{ success: false, error: "Source file for Turn X not found" }`
 
-**Test:** Create `test/handlers/query.test.js`. Test all five categories with pre-extracted test data.
+**Test:** Create `test/handlers/query.test.js`. Test:
+- All five categories with pre-extracted test data
+- "last" alias resolution (e.g., turns: ["last"] → turned into [N])
+- Out-of-range turns (e.g., turns: [999] when max is 250)
+- turn_detail with multi-file scenarios (verify correct file is read)
 
 ---
 
@@ -383,39 +459,80 @@ index.js (MCP server)
 #### Step 11: Update `index.js` (MCP Server)
 
 **Changes:**
-1. Import handlers:
+
+1. **Add imports** (near top with other handlers):
    ```javascript
    import { extractStoryData } from "./lib/handlers/extraction.js";
    import { queryStoryData } from "./lib/handlers/query.js";
    ```
 
-2. Add tool definitions to `ListToolsRequestSchema` (alphabetically):
+2. **Add tool definitions to `tools` array in `ListToolsRequestSchema`** (in alphabetical order by name):
+   - Find the section where tools are defined in ListToolsRequestSchema
+   - Insert both `extract_story_data` and `query_story_data` in alphabetical position
+   - **Before existing tools that alphabetically follow** (e.g., if tools list has `eval_world` and `world_manifest`, insert between `compile_world` and `decompile_world`)
+
    ```javascript
    {
      name: "extract_story_data",
-     description: "Parse one or more Infinite Worlds story export files...",
-     inputSchema: { /* schema */ }
+     description: "Parse one or more story export files and extract structured data (metadata, turns, tracked items). Writes JSON files to extraction directory for efficient querying.",
+     inputSchema: {
+       type: "object",
+       properties: {
+         input_paths: {
+           type: "array",
+           items: { type: "string" },
+           description: "Absolute file paths to story export files (.txt)"
+         },
+         extraction_dir: {
+           type: "string",
+           description: "Directory to write extracted JSON files (created if missing)"
+         }
+       },
+       required: ["input_paths", "extraction_dir"]
+     }
    },
    {
      name: "query_story_data",
-     description: "Retrieve previously extracted story data...",
-     inputSchema: { /* schema */ }
+     description: "Query previously extracted story data by category (manifest, metadata, turn_index, tracked_state, turn_detail).",
+     inputSchema: {
+       type: "object",
+       properties: {
+         extraction_dir: {
+           type: "string",
+           description: "Directory containing extracted JSON files"
+         },
+         category: {
+           type: "string",
+           enum: ["manifest", "metadata", "turn_index", "tracked_state", "turn_detail"],
+           description: "What data to retrieve"
+         },
+         turns: {
+           type: "array",
+           items: {
+             oneOf: [{ type: "integer" }, { type: "string", enum: ["last"] }]
+           },
+           description: "For turn_detail: which turns to retrieve. For tracked_state: which turns to look up snapshots for."
+         }
+       },
+       required: ["extraction_dir", "category"]
+     }
    }
    ```
 
-3. Add to `toolHandlers` map (alphabetically):
+3. **Add to `toolHandlers` map** (in alphabetical order):
    ```javascript
    const toolHandlers = {
-     // ... existing ...
+     // ... existing handlers ...
      extract_story_data: extractStoryData,
      query_story_data: queryStoryData,
-     // ... rest ...
+     // ... rest of handlers ...
    };
    ```
+   **Placement:** Insert both between tools that alphabetically surround them (e.g., after `decompile_world`, before `eval_world`)
 
-4. Verify tool definitions are alphabetized per plugin conventions.
+4. **Verify alphabetization** by listing all tool names in `ListToolsRequestSchema` and `toolHandlers` and confirming they match in alphabetical order.
 
-**Test:** Run `node index.js` in isolation. Verify no startup errors. Check that `/tools/list` request returns the new tools.
+**Test:** Run `node index.js` in isolation. Verify no startup errors. Test with MCP client: call `tools/list` and verify both `extract_story_data` and `query_story_data` appear in response.
 
 ---
 
@@ -445,19 +562,27 @@ index.js (MCP server)
 ```
 test/
 ├── parsers/
-│   ├── utils.test.js (regex patterns)
-│   ├── phase1-combining.test.js
-│   ├── phase2-headers.test.js
-│   ├── phase3-turns.test.js
-│   ├── phase4-tracked-items.test.js
-│   └── integration.test.js
+│   ├── utils.test.js (regex patterns, helper functions)
+│   ├── phase1-combining.test.js (file combining, gap detection, mtime ordering)
+│   ├── phase2-headers.test.js (title, background, character, objective extraction)
+│   ├── phase3-turns.test.js (turn parsing, section detection, Turn 1 special case)
+│   ├── phase4-tracked-items.test.js (item parsing, snapshot deduplication)
+│   └── integration.test.js (end-to-end with all 5 test exports)
 ├── handlers/
-│   ├── output-writer.test.js
-│   ├── extraction.test.js
-│   └── query.test.js
-├── validation.test.js
-└── mcp-tools.test.js
+│   ├── validation.test.js (input validation)
+│   ├── output-writer.test.js (JSON schema, atomic writes)
+│   ├── extraction.test.js (full extraction pipeline)
+│   └── query.test.js (all 5 query categories, "last" alias)
+└── mcp-tools.test.js (tool registration, MCP envelope)
 ```
+
+**Critical test cases:**
+- **Turn combining:** Test files with gaps (1-50, 95-100), overlaps with mtime priority, out-of-order blocks
+- **Duplicate sections:** Test a section header appearing twice in a turn (parser should use first occurrence)
+- **Snapshot state transitions:** null→object, object→object (different keys), null→null (same for both fields)
+- **Item header false positives:** "URL: http://example.com" should NOT be parsed as an item, only "Item Name:" patterns
+- **Multi-file line ranges:** Verify line numbers in turn_index match original source file (account for offsets)
+- **Continuation exports:** File starting at Turn 50 with no header section
 
 **Run tests:**
 ```bash
@@ -470,6 +595,7 @@ npm test
 - [ ] All unit tests pass
 - [ ] Integration tests pass with all 5 test exports
 - [ ] Query tests pass with pre-extracted data
+- [ ] Line number spot-checks pass (pick 3 random turns, verify line ranges match source)
 - [ ] No runtime errors in MCP server
 
 ---
@@ -663,52 +789,87 @@ Reduces context usage by ~10x for large stories.
 ### Error Handling Strategy
 
 **Parser phase errors (non-fatal):**
-- Collected in `ErrorCollector` object
-- Returned in warnings array
-- Extraction continues
+- Missing CHARACTER section subsection headers (only Name, not Background) → warn, continue
+- Empty section after header (section header with blank content) → warn, set section to null
+- Out-of-order turn blocks → warn, but sort and continue
+- Turn number gaps detected → warn "Turns X-Y missing", but continue
+- Regex not matching expected pattern → warn "Could not parse X section in Turn N", set to null
 
 **Fatal errors (halt extraction):**
-- File not found → throw OS error
-- No `-- Turn 1 --` delimiter → throw "No parseable turns"
-- Recover gracefully in handler, return error to MCP
+- Input file not found → throw with message "File not found: /path"
+- No `-- Turn 1 --` delimiter in any combined file → throw "No Turn 1 found; extraction failed"
+- Directory permission denied → throw "Cannot write to extraction directory: /path (permission denied)"
+- Invalid JSON schema would be produced → throw "Internal: invalid output structure"
+
+**Handler recovery:**
+- Catch fatal errors in extraction.js, return: `{ success: false, error: "message" }`
+- Do NOT re-throw; always return structured error response to MCP
 
 **Query errors:**
-- Invalid category → error response
-- Missing turns parameter → error response
-- Source file for turn_detail not found → error response
+- Invalid category → `{ success: false, error: "..." }`
+- Missing turns parameter when required (for turn_detail) → `{ success: false, error: "turns parameter required for category turn_detail" }`
+- Source file for turn_detail not found → `{ success: false, error: "Source file not accessible: Turn X" }`
+- extraction_dir doesn't exist → `{ success: false, error: "Extraction directory not found: /path" }`
 
 ---
 
 ### Testing Strategy
 
+**Test framework:** Use `node:test` (Node.js built-in) or install Jest/Vitest if preferred. All tests must be runnable via `npm test` without additional dependencies beyond dev.
+
 **Unit tests (40% of test code):**
 - Each phase in isolation with hardcoded input
-- Regex patterns with sample snippets
-- Edge cases (empty values, multi-line, duplicates)
+- Regex patterns with sample snippets from real exports
+- Edge cases: empty values, multi-line, duplicates, false positives in item header detection
+- Snapshot deduplication: test state transitions (null→object, value changes, null→null)
+- Test all 5 test exports to verify regex patterns match real data
 
 **Integration tests (40% of test code):**
-- End-to-end with real test exports
-- Verify all output files + schemas
-- Compare actual output to expected values
+- End-to-end with real test exports (4-turn, 22-turn, 30-turn, 250-turn)
+- Verify all output files written with correct JSON schemas
+- Verify line numbers are correct (spot-check against source files)
+- Compare actual snapshots to expected state transitions
+- Test multi-file combining: overlapping turns, header priority, gap detection
 
 **MCP tests (20% of test code):**
-- Tool registration (tools appear in tools/list)
-- Request/response envelope format
-- Error marshaling
+- Tool registration: tools appear in tools/list
+- extract_story_data: call with test files, verify output files created
+- query_story_data: call all 5 categories, verify correct data returned
+- Error cases: invalid inputs, missing files, bad category
 
 ---
 
 ### Performance Optimization
 
-**No optimization needed initially:**
-- Parser is already efficient (single-pass regex matching)
-- 250-turn export parses in < 2 seconds on modern hardware
-- Output file sizes are < 500 KB (well within token budget)
+**Required for implementation:**
+- **Regex pre-compilation:** All regex patterns in `utils.js` must be compiled at module load time, not in parse loops
+- Export `PATTERNS` object from utils.js with pre-compiled regex instances:
+  ```javascript
+  const PATTERNS = {
+    TURN_DELIMITER: /^-- Turn (\d+) --$/m,
+    TITLE: /^==\s*(.+?)\s*==$/,
+    // ... all others
+  };
+  export { PATTERNS };
+  ```
+- Use `PATTERNS.TURN_DELIMITER` in all phase implementations, never re-compile
 
-**If optimization becomes necessary later:**
-- Cache regex patterns (already done in utils.js)
+**Performance targets:**
+- TheWorldsAStageTurn4.txt (4 turns): < 100ms
+- Counsellor2_Turn22.txt (22 turns): < 200ms
+- TheRingOfDisTurn30.txt (30 turns): < 200ms
+- HTTT 250 turns: < 2 seconds
+
+**Avoid these patterns (would cause slowdown):**
+- Calling `new RegExp()` in loops
+- Using `string.match()` in loops (use regex.exec() with stateful matching instead)
+- Reading entire files into memory multiple times
+- Re-parsing the same section twice (cache results)
+
+**If optimization becomes necessary:**
 - Use streaming for very large files (> 1 GB)
-- Consider incremental parsing for resume capability
+- Consider memoizing section parsing
+- Profile with `node --prof` before and after changes
 
 ---
 
@@ -741,11 +902,58 @@ Reduces context usage by ~10x for large stories.
 
 | Risk | Mitigation |
 |------|-----------|
-| Regex patterns don't match all export formats | Validate against all 5 test exports + edge cases |
-| Snapshot deduplication logic incorrect | Unit tests with mock turn sequences |
-| Output files malformed JSON | Validate JSON.parse() in tests |
-| MCP integration breaks existing tools | Alphabetical ordering, minimal changes to index.js |
-| Performance regression on large exports | Benchmark before/after on 250-turn export |
+| Regex patterns don't match all export formats | Test against all 5 test exports; verify false positive rejection (item header pattern) |
+| Snapshot deduplication logic incorrect | Unit tests with mock turn sequences; test null transitions and state changes |
+| Output files malformed JSON | Validate JSON.parse() in tests; check against turn_index and manifest |
+| MCP integration breaks existing tools | Alphabetical ordering, minimal changes to index.js; run existing tools after integration |
+| Performance regression on large exports | Benchmark before/after on 250-turn export; use profiler if target missed |
+| Line number tracking incorrect | Spot-check line ranges in turn_index against source files |
+| Multi-file combining produces wrong turn order | Unit test with out-of-order turn blocks; verify manifest gaps |
+| Directory permission errors not handled | Test with read-only parent directory; return actionable error message |
+| Character section parsing empty when header exists | Handle empty section gracefully; warn but don't fail |
+| Turn 1 special case breaks with continuation exports | Test with exports that start at Turn 50; verify action is null, objective parsed correctly |
+
+---
+
+## 7. Implementation Checklist Details
+
+### Critical Algorithm Clarifications
+
+**Phase 1 (Combining) - Turn Number Ordering:**
+The algorithm must:
+1. Load all files and identify turn boundaries
+2. Collect turns by turn number (NOT by file order)
+3. When a turn appears in multiple files, use the version from the file with the latest mtime
+4. Sort all collected turns by turn number (ascending)
+5. Record gaps as warnings
+
+Example: File A (mtime 100ms) has turns 1-50, File B (mtime 200ms) has turns 40-100
+- Result: Turns 1-39 from File A, Turns 40-100 from File B
+- Manifest shows: "Turns deduplicated; File B preferred for turns 40-50"
+
+**Phase 4 (Tracked Items) - Snapshot Generation Algorithm:**
+The algorithm must:
+1. For each turn N from 1 to MAX:
+   - Get state_N = { trackedItems, hiddenTrackedItems }
+   - Compare to state_(N-1)
+2. If state changed, emit snapshot: `{ from_turn: lastChangeTurn, to_turn: N-1, ...lastState }`
+3. After loop, emit final snapshot from last change to MAX turn
+
+Example:
+- Turns 1-5: no tracked items (null)
+- Turns 6-10: tracked_items = {Gold: "50"}, hidden null
+- Turns 11-20: tracked_items = {Gold: "75"}, hidden null
+- Turns 21-22: no tracked items (null)
+
+Result snapshots:
+```json
+[
+  { "from_turn": 1, "to_turn": 5, "tracked_items": null, "hidden_tracked_items": null },
+  { "from_turn": 6, "to_turn": 10, "tracked_items": {"Gold": "50"}, "hidden_tracked_items": null },
+  { "from_turn": 11, "to_turn": 20, "tracked_items": {"Gold": "75"}, "hidden_tracked_items": null },
+  { "from_turn": 21, "to_turn": 22, "tracked_items": null, "hidden_tracked_items": null }
+]
+```
 
 ---
 
