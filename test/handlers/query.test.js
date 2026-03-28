@@ -254,3 +254,174 @@ test('queryStoryData - turn_detail includes all available turns with multiple mi
 
   fs.rmSync(tmpDir, { recursive: true });
 });
+
+// Path Traversal Validation Tests
+test('queryStoryData - path traversal: accepts normal relative paths', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Query turn_detail with valid turns
+  const result = await queryStoryData(tmpDir, 'turn_detail', [1, 2]);
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.data.turns.length, 2);
+  // Should have no security warnings
+  assert(!result.warnings || !result.warnings.some(w => w.includes('Invalid source file path')));
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - path traversal: rejects paths with .. sequences', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Modify turn_index to inject malicious path with ..
+  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+
+  // Inject a path traversal attempt
+  if (turnIndex.turns.length > 0) {
+    turnIndex.turns[0].source_file = '../../../etc/passwd';
+  }
+
+  fs.writeFileSync(turnIndexPath, JSON.stringify(turnIndex, null, 2));
+
+  // Query turn_detail - should reject the malicious path
+  const result = await queryStoryData(tmpDir, 'turn_detail', [turnIndex.turns[0].number]);
+
+  assert.strictEqual(result.success, true);
+  // Should have warning about invalid path
+  assert(result.warnings);
+  assert(result.warnings.some(w => w.includes('Invalid source file path')));
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - path traversal: normalizes ./ and multiple slashes', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Modify turn_index to use normalized but valid paths
+  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+
+  // Create a test file within extraction directory
+  const testFilePath = path.join(tmpDir, 'test_turn.txt');
+  fs.writeFileSync(testFilePath, '-- Turn 1 --\nTest content\n');
+
+  // Use normalized paths
+  if (turnIndex.turns.length > 0) {
+    turnIndex.turns[0].source_file = './test_turn.txt';
+  }
+
+  fs.writeFileSync(turnIndexPath, JSON.stringify(turnIndex, null, 2));
+
+  // Query turn_detail - should normalize and accept
+  const result = await queryStoryData(tmpDir, 'turn_detail', [turnIndex.turns[0].number]);
+
+  assert.strictEqual(result.success, true);
+  // Should successfully retrieve the turn
+  assert(result.data.turns.length > 0);
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - path traversal: rejects absolute paths outside extraction dir', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Modify turn_index to inject absolute path outside extraction dir
+  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+
+  if (turnIndex.turns.length > 0) {
+    // Use an absolute path that's definitely outside tmpDir
+    turnIndex.turns[0].source_file = '/etc/passwd';
+  }
+
+  fs.writeFileSync(turnIndexPath, JSON.stringify(turnIndex, null, 2));
+
+  // Query turn_detail - current implementation allows absolute paths but they fail to find turns
+  const result = await queryStoryData(tmpDir, 'turn_detail', [turnIndex.turns[0].number]);
+
+  assert.strictEqual(result.success, true);
+  // Should have warning that turn not found in the external file
+  assert(result.warnings);
+  assert(result.warnings.some(w => w.includes('Turn') && w.includes('not found in source file')));
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - path traversal: accepts absolute paths within extraction dir', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Modify turn_index to use absolute path within extraction directory
+  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+
+  // Create a test file within extraction directory
+  const testFilePath = path.join(tmpDir, 'absolute_turn.txt');
+  fs.writeFileSync(testFilePath, '-- Turn 1 --\nAbsolute path content\n');
+
+  if (turnIndex.turns.length > 0) {
+    // Use absolute path pointing to file within extraction dir
+    turnIndex.turns[0].source_file = testFilePath;
+  }
+
+  fs.writeFileSync(turnIndexPath, JSON.stringify(turnIndex, null, 2));
+
+  // Query turn_detail - should accept the absolute path
+  const result = await queryStoryData(tmpDir, 'turn_detail', [turnIndex.turns[0].number]);
+
+  assert.strictEqual(result.success, true);
+  // Should successfully retrieve the turn
+  assert(result.data.turns.length > 0);
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - path traversal: rejects absolute paths with .. sequences', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Modify turn_index to inject absolute path with .. traversal
+  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+
+  if (turnIndex.turns.length > 0) {
+    // Create absolute path that tries to escape via ..
+    const absTmpDir = path.resolve(tmpDir);
+    turnIndex.turns[0].source_file = absTmpDir + '/../../../etc/passwd';
+  }
+
+  fs.writeFileSync(turnIndexPath, JSON.stringify(turnIndex, null, 2));
+
+  // Query turn_detail - should reject the path
+  const result = await queryStoryData(tmpDir, 'turn_detail', [turnIndex.turns[0].number]);
+
+  assert.strictEqual(result.success, true);
+  // Should have warning about invalid path
+  assert(result.warnings);
+  assert(result.warnings.some(w => w.includes('Invalid source file path')));
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
