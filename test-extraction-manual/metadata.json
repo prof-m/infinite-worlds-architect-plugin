@@ -1,0 +1,37 @@
+{
+  "title": "The World is a Stage",
+  "story_background": "You were once a respected stage magician, known for your incredible skills in hypnosis, sleight of hand, and captivating stage presence. However, your life took a dark turn when a venue refused to pay you after a performance. Feeling wronged and desperate, you decided to use your talents for more nefarious purposes, embarking on a thrilling life of crime.\n\n\n-- Character --",
+  "objective": null,
+  "character": {
+    "name": "Victor Ashecroft",
+    "background": "A charismatic stage magician nicknamed \"the Maestro of Mystery\", Victor Ashecroft uses their incredible skills in hypnosis, sleight of hand, and showmanship to commit daring heists and evade capture. Their hypnotic abilities allow him to control the minds of his enemies, turning them into his loyal assistants.",
+    "skills": [
+      {
+        "name": "Gadgetry",
+        "rating": 4,
+        "level": "Highly skilled"
+      },
+      {
+        "name": "Hypnosis",
+        "rating": 5,
+        "level": "Exceptional"
+      },
+      {
+        "name": "Stage Presence",
+        "rating": 5,
+        "level": "Exceptional"
+      },
+      {
+        "name": "Escape Artistry",
+        "rating": 3,
+        "level": "Competent"
+      },
+      {
+        "name": "Sleight of Hand",
+        "rating": 4,
+        "level": "Highly skilled"
+      }
+    ]
+  },
+  "total_turns": 4
+}

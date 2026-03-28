@@ -29,3 +29,7 @@
 
 ## Roadmap
 - See `claude-scratchpad/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
+
+## Story Data Extraction Tools
+
+See `skills/world-architect/references/story-extraction-tool.md` for complete documentation of the `extract_story_data` and `query_story_data` MCP tools.

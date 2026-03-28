@@ -1,0 +1,56 @@
+{
+  "turns": [
+    {
+      "number": 1,
+      "has_action": false,
+      "action_preview": null,
+      "outcome_preview": "",
+      "has_secret_info": false,
+      "has_tracked_items": false,
+      "line_range": [
+        1,
+        1
+      ],
+      "source_file": "/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples/TheWorldsAStageTurn4.txt"
+    },
+    {
+      "number": 2,
+      "has_action": false,
+      "action_preview": null,
+      "outcome_preview": "",
+      "has_secret_info": false,
+      "has_tracked_items": false,
+      "line_range": [
+        1,
+        1
+      ],
+      "source_file": "/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples/TheWorldsAStageTurn4.txt"
+    },
+    {
+      "number": 3,
+      "has_action": false,
+      "action_preview": null,
+      "outcome_preview": "",
+      "has_secret_info": false,
+      "has_tracked_items": false,
+      "line_range": [
+        1,
+        1
+      ],
+      "source_file": "/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples/TheWorldsAStageTurn4.txt"
+    },
+    {
+      "number": 4,
+      "has_action": false,
+      "action_preview": null,
+      "outcome_preview": "",
+      "has_secret_info": false,
+      "has_tracked_items": false,
+      "line_range": [
+        1,
+        1
+      ],
+      "source_file": "/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples/TheWorldsAStageTurn4.txt"
+    }
+  ]
+}

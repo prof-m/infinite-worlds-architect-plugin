@@ -6,6 +6,8 @@ import { get_diff_summary, compile_draft, decompile_json, read_draft_section, up
 import { add_instruction_block, add_trigger, add_character, add_npc, add_tracked_item, modify_character, modify_npc, modify_tracked_item, modify_trigger_event } from "./lib/handlers/entities.js";
 import { validate_world, audit_world } from "./lib/handlers/validation.js";
 import { confirm_path, scaffold_world, compare_worlds } from "./lib/handlers/utility.js";
+import { extractStoryData } from "./lib/handlers/extraction.js";
+import { queryStoryData } from "./lib/handlers/query.js";
 
 const server = new Server({ name: "iw-json-tools", version: "1.3.0" }, { capabilities: { tools: {} } });
 
@@ -20,11 +22,13 @@ const toolHandlers = {
     compile_draft,
     confirm_path,
     decompile_json,
+    extract_story_data: extractStoryData,
     get_diff_summary,
     modify_character,
     modify_npc,
     modify_tracked_item,
     modify_trigger_event,
+    query_story_data: queryStoryData,
     read_draft_section,
     scaffold_world,
     update_draft_section,

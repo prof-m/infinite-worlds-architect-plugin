@@ -8,6 +8,8 @@
     "@modelcontextprotocol/sdk": "^1.5.0"
   },
   "scripts": {
-    "start": "node index.js"
-  }
+    "start": "node index.js",
+    "test": "node --test 'test/**/*.test.js'"
+  },
+  "devDependencies": {}
 }
