@@ -190,3 +190,67 @@ test('queryStoryData - queries manifest with resolved "last"', async (t) => {
 
   fs.rmSync(tmpDir, { recursive: true });
 });
+
+test('queryStoryData - turn_detail returns partial results for missing turns', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Query turn_detail with mix of existing and non-existing turns
+  const result = await queryStoryData(tmpDir, 'turn_detail', [1, 2, 99]);
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.category, 'turn_detail');
+  // Should have details for turns 1 and 2
+  assert.strictEqual(result.data.turns.length, 2);
+  assert.strictEqual(result.data.turns[0].number, 1);
+  assert.strictEqual(result.data.turns[1].number, 2);
+  // Should have warnings about turn 99
+  assert(result.warnings);
+  assert(result.warnings.some(w => w.includes('99')));
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - turn_detail returns all available turns for single missing turn', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Query turn_detail with only a non-existing turn
+  const result = await queryStoryData(tmpDir, 'turn_detail', [100]);
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.category, 'turn_detail');
+  // Should have no details
+  assert.strictEqual(result.data.turns.length, 0);
+  // Should have warnings
+  assert(result.warnings);
+  assert(result.warnings.some(w => w.includes('100')));
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('queryStoryData - turn_detail includes all available turns with multiple missing turns', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+  // Extract first
+  await extractStoryData([inputFile], tmpDir);
+
+  // Query turn_detail with all existing turns
+  const result = await queryStoryData(tmpDir, 'turn_detail', [1, 2, 3, 4]);
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.category, 'turn_detail');
+  // Should have details for all 4 turns
+  assert.strictEqual(result.data.turns.length, 4);
+  // Should not have warnings when all turns exist
+  assert(!result.warnings || result.warnings.length === 0);
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
