@@ -1,8 +1,10 @@
 # Skill Trigger Phrases
 
-This document lists the natural language patterns that trigger each Infinite Worlds Architect skill. Use these phrases to activate the skill that matches your current task.
+This document provides a user-friendly index of natural language patterns that trigger each Infinite Worlds Architect skill.
 
-> **Note for agents**: These trigger phrases are embedded directly in each skill's `description` field in its `SKILL.md` frontmatter. That means the agent can match them against user intent when scanning available skills — before any skill body is loaded. This file is supplementary human-readable reference only; the `description` field is the canonical, always-discoverable source.
+> **Canonical source for agents**: Trigger phrases for all six skills are documented in the `world-architect` skill's "Skill Activation Patterns" section in `skills/world-architect/SKILL.md`. This is the first skill agents encounter when working with worlds, ensuring they discover all available options on initial interaction. Additionally, each individual skill's `description` field in its `SKILL.md` frontmatter contains its own trigger phrases for fallback matching.
+>
+> This document is a supplementary human-readable quick-reference guide for manual lookup.
 
 ## draft-world
 
