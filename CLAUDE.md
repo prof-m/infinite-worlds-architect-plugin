@@ -40,3 +40,21 @@ See `skills/world-architect/references/story-extraction-tool.md` for complete do
 - **Never push directly to master** — push with `git push origin feature/<branch-name>` and open a PR.
 - **Stage but never commit without explicit user instruction** — use `git add` to prepare changes, then wait for the user to say "commit" or "create PR" before running `git commit`.
 - **Subagents implementing features** must create a feature branch in a worktree as their very first action, before reading any files or writing any code.
+
+### Subagent Prompt Requirements
+
+Every prompt dispatched to an implementation subagent must include this block at the top, before the task description:
+
+```
+## Your first action (do this before anything else)
+1. Create a git worktree: `git worktree add .worktrees/<branch-name> -b feature/<branch-name>`
+2. All file reads and writes must happen within that worktree path
+3. Never touch files on master
+
+## Do NOT
+- Commit to master
+- Push to master
+- Make any changes outside the worktree
+```
+
+Provide the exact branch name in the prompt — never leave branching to the agent's discretion.
