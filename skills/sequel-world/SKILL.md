@@ -1,6 +1,6 @@
 ---
 name: sequel-world
-description: Create a sequel world from an existing story export and world JSON
+description: "Create a sequel world from an existing story export and world JSON. Trigger phrases: 'Create a sequel world based on a story that was played', 'Build a new world informed by what happened in a story export', 'I want a sequel world that continues from a story I played', 'Create a new world that picks up after this story ended', 'Use a story export to inform a sequel world'."
 ---
 
 I want to create a sequel world from an existing story export.
