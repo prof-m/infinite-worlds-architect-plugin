@@ -1,6 +1,6 @@
 ---
 name: scaffold-world
-description: Generates a quick world JSON file from a single prompt
+description: "Generates a quick world JSON file from a single prompt. Trigger phrases: 'Create a quick world from a simple idea', 'I want to prototype a world fast', 'Generate a world from a title and premise', 'Quick-start a world with defaults', 'Build me a world in seconds'."
 ---
 
 I want to scaffold a new Infinite Worlds world.

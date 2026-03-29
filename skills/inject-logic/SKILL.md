@@ -1,6 +1,6 @@
 ---
 name: inject-logic
-description: Inject pre-written mechanics (like time-tracking or dice-roll evaluation) into an existing world
+description: "Inject pre-written mechanics (like time-tracking or dice-roll evaluation) into an existing world. Trigger phrases: 'I want to add mechanics to my world', 'Inject a pre-built system into my world', 'Add time-tracking or dice-roll mechanics to my world', 'Install a mechanic into my existing world', 'I want to use a special mechanic in my world'."
 ---
 
 I want to inject a new mechanic into my world JSON file.
