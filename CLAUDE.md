@@ -33,3 +33,10 @@
 ## Story Data Extraction Tools
 
 See `skills/world-architect/references/story-extraction-tool.md` for complete documentation of the `extract_story_data` and `query_story_data` MCP tools.
+
+## Git Workflow
+- **All work on a feature branch in a worktree** — never directly on master. First action for any feature or fix: `git worktree add .claude/worktrees/<name> -b feature/<name>` and switch to it.
+- **Never commit to master** — master is only updated via merged PRs.
+- **Never push directly to master** — push with `git push origin feature/<branch-name>` and open a PR.
+- **Stage but never commit without explicit user instruction** — use `git add` to prepare changes, then wait for the user to say "commit" or "create PR" before running `git commit`.
+- **Subagents implementing features** must create a feature branch in a worktree as their very first action, before reading any files or writing any code.
