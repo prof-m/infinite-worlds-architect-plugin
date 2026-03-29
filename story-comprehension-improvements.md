@@ -85,9 +85,10 @@ Analysis of a sequel-world generation session (Gemini agent processing a 250-tur
 Two MCP tools that parse story exports into structured JSON:
 
 1. **`extract_story_data`** — Parses story exports and writes JSON
-   - Input: File paths, output directory, optional character list
+   - Input: File paths, output directory
    - Output: manifest.json, metadata.json, turn_index.json, tracked_state.json, character_index.json (optional)
-   - Returns: success, turn count, range, presence flags, files written, warnings
+   - Returns: success, totalTurns, turnRange, inputFilesProcessed, hasTrackedItems, hasHiddenTrackedItems, filesWritten, warnings
+   - Note: Character indexing is only available via direct function calls with characterList parameter; not exposed via MCP tool interface
 
 2. **`query_story_data`** — Queries extracted data by category
    - Categories: manifest, metadata, turn_index, tracked_state, turn_detail
@@ -106,11 +107,11 @@ Two MCP tools that parse story exports into structured JSON:
 
 ### Output Files
 
-- **manifest.json**: Version, source files (with turn ranges/mtimes), total turns, detected gaps, flags, deduplication notes
-- **metadata.json**: Title, background, character details (name, background, skills), objective, turn count
-- **turn_index.json**: Array of turns with action/outcome previews (100-char), line ranges, source files
-- **tracked_state.json**: Snapshots of tracked items with initial/final/history (only if items exist); hidden items separated
-- **character_index.json** (optional): Character mention tracking by turn and line with context previews
+- **manifest.json**: Version, source files, header source file, total turns, flags for tracked items presence, deduplication notes
+- **metadata.json**: Title, story background, character details (name, background, skills), objective, turn count
+- **turn_index.json**: Array of turns with action/outcome previews (100-char snippets only), line ranges, source files
+- **tracked_state.json**: Snapshots of tracked items and hidden items by turn range (only if items exist). Each snapshot records state from from_turn to to_turn.
+- **character_index.json** (optional): Character mention tracking by turn and line with context previews (requires characterList parameter, not exposed via MCP interface)
 
 ### What 2B Extracts
 
@@ -130,20 +131,20 @@ Two MCP tools that parse story exports into structured JSON:
 
 ### Test Coverage
 
-✅ 144 comprehensive tests (100% pass rate)
-- 62 parser unit tests (all 4 phases)
-- 31 handler/validation tests (extraction, query, output writing, character indexing)
-- 16 character indexing tests
-- 4 integration tests with real exports (4, 22, 30 turns)
+✅ 112 comprehensive tests (100% pass rate)
+- Parser unit tests (all 4 phases)
+- Handler/validation tests (extraction, query, output writing, character indexing)
+- Character indexing tests
+- Integration tests with real exports (4, 22, 30 turns)
 - Performance: 22-turn export <5ms; 30-turn export ~3ms
 
 ### Design Principles Embodied in 2B
 
-1. **Deterministic**: No hallucination risks, validated across 4 diverse exports
+1. **Deterministic**: No hallucination risks, validated across 4 diverse exports. Character indexing is available internally but not exposed via MCP to prevent agents from requesting features not in the interface.
 2. **Zero dependencies**: Uses only Node.js built-ins (fs, path)
 3. **Multi-file output**: Agents load only what they need; tracked items isolated
-4. **Query tools abstraction**: Path traversal defenses, automatic caching
-5. **Honest schema**: Empty arrays/null with _note fields explaining deferral to 2C
+4. **Query tools abstraction**: Path traversal defenses, automatic file caching for 5+ turn queries
+5. **Honest schema**: Structured data with no invented fields. Narrative understanding (character descriptions, relationships, locations, events) intentionally deferred to 2C agents for semantic reading.
 
 ### Token Impact
 
@@ -178,11 +179,11 @@ See `skills/world-architect/references/story-extraction-tool.md` for complete to
 **What**: Modify command to load extraction data via query_story_data calls rather than having agent read raw story text.
 
 **Details**:
-- Agent calls `query_story_data(category='metadata')` for story background/objective fields
-- Agent calls `query_story_data(category='turn_detail', turns=[N])` for deep-dives into specific turns
-- Agent calls `query_story_data(category='tracked_state')` for tracked item fields
+- Agent calls `query_story_data(extraction_dir, 'metadata')` for story background/objective fields
+- Agent calls `query_story_data(extraction_dir, 'turn_detail', [N, ...])` for deep-dives into specific turns
+- Agent calls `query_story_data(extraction_dir, 'tracked_state')` or `query_story_data(extraction_dir, 'tracked_state', [N, ...])` for tracked item fields
 - Applies to: sequel-world, spinoff-world (if story exports added)
-- Dependencies: Task 1 (extraction must have been run)
+- Dependencies: Task 1 (extraction must have been run before querying)
 - Complexity: Medium (add query tool calls to field-by-field walkthrough; update reference docs)
 - Expected token impact: Data access via query tools more efficient than re-reading raw files
 
@@ -341,10 +342,11 @@ Each data point includes `sourceTurns` array citing where supporting text was fo
 
 ### Integration With 2B Query Tools
 
-When `narrative/` directory exists, query tools automatically join data:
-- `query_story_data(category='metadata')` includes 2C's story_arc summaries and milestones
-- Character-related queries could be extended to include 2C relationships/descriptions when available
-- **No changes to 2B's implementation**. The 2B extraction tool remains pure and unchanged.
+When `narrative/` directory exists, query tools would require modifications to detect and merge 2C data:
+- Currently: 2B query tools have no knowledge of `narrative/` directory
+- Proposed: `query_story_data(category='metadata')` could include 2C's story_arc summaries and milestones if narrative/ directory is detected
+- Current behavior: Agents must manually merge 2C results with 2B data
+- **Note**: Adding narrative/ detection and auto-join would require modifications to query.js (specifically the 'metadata' case and new aggregation logic)
 
 ### Cost and Performance
 
@@ -381,9 +383,10 @@ After 2B has been integrated and validated in real sessions. Priorities:
 ### Fallback Behavior (If 2C Never Implemented)
 
 If 2C is never implemented, the sequel-world command still works fully with 2B alone:
-- Agent reads 2B's deterministic data for tracked items, character mentions, story structure
-- Agent reads specific turns via `query_story_data(turn_detail)` for narrative understanding
-- Proposal 4 (Character Writing Guide) guides agent to synthesize from raw turn text when `narrative/` doesn't exist
+- Agent reads 2B's deterministic data for tracked items, story structure
+- Agent reads specific turns via `query_story_data(extraction_dir, 'turn_detail', [N, ...])` for narrative understanding and character descriptions
+- Proposal 4 (Character Writing Guide) guides agent to synthesize character fields from turn text when `narrative/` doesn't exist
+- Note: Character mention tracking via character_index.json requires character indexing, which is not currently exposed via MCP tool interface
 - This is less efficient than 2C but significantly better than current approach (no extraction at all)
 
 ---
