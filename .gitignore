@@ -13,3 +13,5 @@ claude-scratchpad/
 /.vscode
 /.idea/
 /.ripgreprc
+/.gitmodules
+/.gitconfig
