@@ -2,8 +2,6 @@
  * Tests for lib/handlers/utility.js
  */
 
-import { describe, test, beforeEach, afterEach } from 'node:test';
-import assert from 'node:assert';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -38,7 +36,7 @@ describe('confirm_path', () => {
       type: 'file'
     });
 
-    assert(result.content[0].text.includes('RESOLVED_PATH'));
+    expect(result.content[0].text).toContain('RESOLVED_PATH');
   });
 
   test('confirms existence of directory', async () => {
@@ -50,7 +48,7 @@ describe('confirm_path', () => {
       type: 'directory'
     });
 
-    assert(result.content[0].text.includes('RESOLVED_PATH'));
+    expect(result.content[0].text).toContain('RESOLVED_PATH');
   });
 
   test('returns NOT_FOUND for missing file', async () => {
@@ -59,7 +57,7 @@ describe('confirm_path', () => {
       type: 'file'
     });
 
-    assert(result.content[0].text.includes('NOT_FOUND'));
+    expect(result.content[0].text).toContain('NOT_FOUND');
   });
 
   test('returns NOT_FOUND for missing directory', async () => {
@@ -68,7 +66,7 @@ describe('confirm_path', () => {
       type: 'directory'
     });
 
-    assert(result.content[0].text.includes('NOT_FOUND'));
+    expect(result.content[0].text).toContain('NOT_FOUND');
   });
 });
 
@@ -83,11 +81,11 @@ describe('scaffold_world', () => {
       instructions: 'Explore freely'
     });
 
-    assert(result.content[0].text.includes('scaffolded successfully'));
+    expect(result.content[0].text).toContain('scaffolded successfully');
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.title, 'My Adventure');
-    assert.strictEqual(world.background, 'A mysterious land');
+    expect(world.title).toBe('My Adventure');
+    expect(world.background).toBe('A mysterious land');
   });
 
   test('sets expected default values', async () => {
@@ -100,11 +98,11 @@ describe('scaffold_world', () => {
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
 
-    assert.strictEqual(world.authorStyle, 'Concise, highly descriptive narrative.');
-    assert.strictEqual(world.objective, 'Explore.');
-    assert.strictEqual(world.nsfw, false);
-    assert.strictEqual(world.imageModel, 'manticore');
-    assert.strictEqual(world.canChangeCharacterName, true);
+    expect(world.authorStyle).toBe('Concise, highly descriptive narrative.');
+    expect(world.objective).toBe('Explore.');
+    expect(world.nsfw).toBe(false);
+    expect(world.imageModel).toBe('manticore');
+    expect(world.canChangeCharacterName).toBe(true);
   });
 
   test('initializes all entity arrays', async () => {
@@ -117,12 +115,12 @@ describe('scaffold_world', () => {
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
 
-    assert(Array.isArray(world.possibleCharacters));
-    assert(Array.isArray(world.NPCs));
-    assert(Array.isArray(world.instructionBlocks));
-    assert(Array.isArray(world.loreBookEntries));
-    assert(Array.isArray(world.trackedItems));
-    assert(Array.isArray(world.triggerEvents));
+    expect(Array.isArray(world.possibleCharacters)).toBeTruthy();
+    expect(Array.isArray(world.NPCs)).toBeTruthy();
+    expect(Array.isArray(world.instructionBlocks)).toBeTruthy();
+    expect(Array.isArray(world.loreBookEntries)).toBeTruthy();
+    expect(Array.isArray(world.trackedItems)).toBeTruthy();
+    expect(Array.isArray(world.triggerEvents)).toBeTruthy();
   });
 
   test('initializes with default skills', async () => {
@@ -135,9 +133,9 @@ describe('scaffold_world', () => {
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
 
-    assert(Array.isArray(world.skills));
-    assert(world.skills.includes('Persuasion'));
-    assert(world.skills.includes('Observation'));
+    expect(Array.isArray(world.skills)).toBeTruthy();
+    expect(world.skills).toContain('Persuasion');
+    expect(world.skills).toContain('Observation');
   });
 
   test('overwrites existing file', async () => {
@@ -155,7 +153,7 @@ describe('scaffold_world', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.title, 'New World');
+    expect(world.title).toBe('New World');
   });
 });
 
@@ -187,8 +185,8 @@ describe('compare_worlds', () => {
     });
 
     const text = result.content[0].text;
-    assert(text.includes('title'));
-    assert(text.includes('description'));
+    expect(text).toContain('title');
+    expect(text).toContain('description');
   });
 
   test('compares entity arrays', async () => {
@@ -234,31 +232,31 @@ describe('compare_worlds', () => {
     });
 
     // Should produce a comparison report
-    assert(result.content !== undefined);
-    assert(result.content.length > 0);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
   });
 
   test('throws error for missing first world', async () => {
     const worldB = path.join(tmpDir, 'worldB.json');
     await writeWorld(worldB, { title: 'B' });
 
-    await assert.rejects(async () => {
+    await expect(async () => {
       await compare_worlds({
         pathA: path.join(tmpDir, 'nonexistent.json'),
         pathB: worldB
       });
-    });
+    }).rejects.toThrow();
   });
 
   test('throws error for missing second world', async () => {
     const worldA = path.join(tmpDir, 'worldA.json');
     await writeWorld(worldA, { title: 'A' });
 
-    await assert.rejects(async () => {
+    await expect(async () => {
       await compare_worlds({
         pathA: worldA,
         pathB: path.join(tmpDir, 'nonexistent.json')
       });
-    });
+    }).rejects.toThrow();
   });
 });

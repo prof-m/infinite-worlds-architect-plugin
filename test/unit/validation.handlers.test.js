@@ -3,8 +3,6 @@
  * Tests world validation and error detection
  */
 
-import { describe, test, beforeEach, afterEach } from 'node:test';
-import assert from 'node:assert';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -48,7 +46,7 @@ describe('validate_world - Required Fields', () => {
     const result = await validate_world({ path: worldPath });
     const resultText = result.content[0].text;
 
-    assert(resultText.includes('Valid') || resultText.includes('valid'));
+    expect(resultText).toMatch(/valid/i);
   });
 
   test('rejects missing title', async () => {
@@ -56,7 +54,7 @@ describe('validate_world - Required Fields', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('Required field "title"'));
+    expect(result.content[0].text).toContain('Required field "title"');
   });
 
   test('rejects missing background', async () => {
@@ -64,7 +62,7 @@ describe('validate_world - Required Fields', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('Required field "background"'));
+    expect(result.content[0].text).toContain('Required field "background"');
   });
 
   test('rejects missing instructions', async () => {
@@ -72,7 +70,7 @@ describe('validate_world - Required Fields', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('Required field "instructions"'));
+    expect(result.content[0].text).toContain('Required field "instructions"');
   });
 
   test('rejects whitespace-only title', async () => {
@@ -80,7 +78,7 @@ describe('validate_world - Required Fields', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('Required field "title"'));
+    expect(result.content[0].text).toContain('Required field "title"');
   });
 });
 
@@ -99,7 +97,7 @@ describe('validate_world - Tracked Items', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('invalid dataType'));
+    expect(result.content[0].text).toContain('invalid dataType');
   });
 
   test('rejects invalid tracked item visibility', async () => {
@@ -116,7 +114,7 @@ describe('validate_world - Tracked Items', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('invalid visibility'));
+    expect(result.content[0].text).toContain('invalid visibility');
   });
 
   test('accepts valid tracked item types', async () => {
@@ -139,8 +137,8 @@ describe('validate_world - Tracked Items', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(!result.content[0].text.includes('invalid dataType'));
-    assert(!result.content[0].text.includes('invalid visibility'));
+    expect(result.content[0].text).not.toContain('invalid dataType');
+    expect(result.content[0].text).not.toContain('invalid visibility');
   });
 });
 
@@ -165,7 +163,7 @@ describe('validate_world - Trigger Conditions', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('invalid condition type'));
+    expect(result.content[0].text).toContain('invalid condition type');
   });
 
   test('accepts valid trigger condition types', async () => {
@@ -186,7 +184,7 @@ describe('validate_world - Trigger Conditions', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(!result.content[0].text.includes('invalid condition type'));
+    expect(result.content[0].text).not.toContain('invalid condition type');
   });
 });
 
@@ -211,7 +209,7 @@ describe('validate_world - Trigger Effects', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('invalid effect type'));
+    expect(result.content[0].text).toContain('invalid effect type');
   });
 
   test('accepts valid trigger effect types', async () => {
@@ -232,7 +230,7 @@ describe('validate_world - Trigger Effects', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(!result.content[0].text.includes('invalid effect type'));
+    expect(result.content[0].text).not.toContain('invalid effect type');
   });
 });
 
@@ -252,7 +250,7 @@ describe('validate_world - Character Skills', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('invalid value 6'));
+    expect(result.content[0].text).toContain('invalid value 6');
   });
 
   test('rejects negative skill value', async () => {
@@ -270,7 +268,7 @@ describe('validate_world - Character Skills', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('invalid value -1'));
+    expect(result.content[0].text).toContain('invalid value -1');
   });
 
   test('accepts valid skill values (0-5)', async () => {
@@ -290,7 +288,7 @@ describe('validate_world - Character Skills', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(!result.content[0].text.includes('invalid value'));
+    expect(result.content[0].text).not.toContain('invalid value');
   });
 });
 
@@ -308,7 +306,7 @@ describe('validate_world - ID Uniqueness', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content[0].text.includes('Duplicate id'));
+    expect(result.content[0].text).toContain('Duplicate id');
   });
 
   test('accepts unique IDs across entities', async () => {
@@ -325,15 +323,15 @@ describe('validate_world - ID Uniqueness', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(!result.content[0].text.includes('Duplicate id'));
+    expect(result.content[0].text).not.toContain('Duplicate id');
   });
 });
 
 describe('validate_world - Error Handling', () => {
   test('throws error for non-existent world file', async () => {
-    await assert.rejects(async () => {
+    await expect(async () => {
       await validate_world({ path: path.join(tmpDir, 'nonexistent.json') });
-    });
+    }).rejects.toThrow();
   });
 
   test('handles empty entity arrays gracefully', async () => {
@@ -345,8 +343,8 @@ describe('validate_world - Error Handling', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(result.content !== undefined);
-    assert(result.content.length > 0);
+    expect(result.content).toBeDefined();
+    expect(result.content.length).toBeGreaterThan(0);
   });
 
   test('validates world with all entity types populated', async () => {
@@ -382,6 +380,6 @@ describe('validate_world - Error Handling', () => {
     await writeWorld(worldPath, world);
 
     const result = await validate_world({ path: worldPath });
-    assert(typeof result.content[0].text === 'string');
+    expect(typeof result.content[0].text).toBe('string');
   });
 });
