@@ -1,6 +1,6 @@
 ---
 name: draft-world
-description: Interactively build a world step-by-step using a readable Markdown draft before compiling to JSON
+description: "Interactively build a world step-by-step using a readable Markdown draft before compiling to JSON. Trigger phrases: 'I want to create a new world from scratch', 'Help me design a world step-by-step', 'I have an idea for a world and want to build it interactively', 'Walk me through building a world field by field', 'Create a new Infinite Worlds world with me'."
 ---
 
 I want to interactively draft a new Infinite Worlds world.

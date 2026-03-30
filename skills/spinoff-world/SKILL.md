@@ -1,6 +1,6 @@
 ---
 name: spinoff-world
-description: Create a new world branched from an existing world JSON file
+description: "Create a new world branched from an existing world JSON file. Trigger phrases: 'Create a new world based on an existing one but with a different angle', 'Branch off a variation of my world', 'I want to explore an alternative version of this world', 'Create a spinoff world from my existing world', 'Build a new world inspired by this one with a different concept'."
 ---
 
 I want to create a spinoff world from an existing world JSON file.

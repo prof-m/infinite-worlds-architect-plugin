@@ -1,6 +1,6 @@
 ---
 name: modify-world
-description: Interactively modify specific fields of an existing world JSON file
+description: "Interactively modify specific fields of an existing world JSON file. Trigger phrases: 'I want to change specific fields in my existing world', 'Help me edit my world JSON file', 'I need to modify some aspects of this world', 'Let me pick which fields to update in my world', 'I want to refine my existing world'."
 ---
 
 I want to modify an existing world JSON file.

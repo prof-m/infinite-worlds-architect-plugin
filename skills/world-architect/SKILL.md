@@ -106,6 +106,70 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `update_draft_section` — Update a specific section in a Markdown draft file.
 - `validate_world` — Validate a world JSON file against the Infinite Worlds schema. Returns structured errors, warnings, and info items.
 
+## Skill Activation Patterns
+
+As the entry point for Infinite Worlds design work, this skill provides access to six complementary tools. Use these natural language patterns to activate the right skill for your task:
+
+### draft-world — Build New Worlds Step-by-Step
+**Trigger phrases:**
+- "I want to create a new world from scratch"
+- "Help me design a world step-by-step"
+- "I have an idea for a world and want to build it interactively"
+- "Walk me through building a world field by field"
+- "Create a new Infinite Worlds world with me"
+
+**When to use:** You have an idea and want full control over every field (title, description, background, characters, triggers, etc.) with guidance at each step before final compilation.
+
+### modify-world — Edit Existing Worlds
+**Trigger phrases:**
+- "I want to change specific fields in my existing world"
+- "Help me edit my world JSON file"
+- "I need to modify some aspects of this world"
+- "Let me pick which fields to update in my world"
+- "I want to refine my existing world"
+
+**When to use:** You have a world JSON file that's mostly complete, but want to tweak specific fields and see diffs before saving changes.
+
+### scaffold-world — Quick-Start Worlds
+**Trigger phrases:**
+- "Create a quick world from a simple idea"
+- "I want to prototype a world fast"
+- "Generate a world from a title and premise"
+- "Quick-start a world with defaults"
+- "Build me a world in seconds"
+
+**When to use:** You want a working world JSON file immediately with token-efficient defaults, perfect for rapid prototyping.
+
+### spinoff-world — Branch Existing Worlds
+**Trigger phrases:**
+- "Create a new world based on an existing one but with a different angle"
+- "Branch off a variation of my world"
+- "I want to explore an alternative version of this world"
+- "Create a spinoff world from my existing world"
+- "Build a new world inspired by this one with a different concept"
+
+**When to use:** You have an existing world and want to create a variant that explores a different angle while preserving the source's core structure. Perfect for alternate realities or parallel narratives.
+
+### sequel-world — Continue from Story Exports
+**Trigger phrases:**
+- "Create a sequel world based on a story that was played"
+- "Build a new world informed by what happened in a story export"
+- "I want a sequel world that continues from a story I played"
+- "Create a new world that picks up after this story ended"
+- "Use a story export to inform a sequel world"
+
+**When to use:** You've played a story in an existing world and now want to create a new world that naturally continues the narrative, character arcs, and world state changes from that story.
+
+### inject-logic — Add Special Mechanics
+**Trigger phrases:**
+- "I want to add mechanics to my world"
+- "Inject a pre-built system into my world"
+- "Add time-tracking or dice-roll mechanics to my world"
+- "Install a mechanic into my existing world"
+- "I want to use a special mechanic in my world"
+
+**When to use:** You have a world JSON file and want to safely append pre-written instruction blocks (like time-tracking integration or dice-roll evaluation overrides) without manual JSON editing.
+
 ## Custom Commands
 
 - `/infinite-worlds-architect:draft-world`: Starts an interactive, field-by-field walkthrough using a Markdown draft file to build a new world.
