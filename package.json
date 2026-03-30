@@ -9,9 +9,11 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "node --test 'test/unit/**/*.test.js'",
-    "test:watch": "watch 'npm test' lib handlers",
-    "test:unit": "node --test 'test/unit/**/*.test.js'"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "jest": "^30.3.0"
+  }
 }
