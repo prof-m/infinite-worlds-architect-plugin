@@ -1,9 +1,10 @@
+import assert from 'node:assert';
 /**
  * Tests for lib/handlers/utility.js
  */
 
-import { describe, test, beforeEach, afterEach } from 'node:test';
-import assert from 'node:assert';
+
+
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';

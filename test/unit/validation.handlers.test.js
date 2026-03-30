@@ -1,10 +1,11 @@
+import assert from 'node:assert';
 /**
  * Tests for lib/handlers/validation.js
  * Tests world validation and error detection
  */
 
-import { describe, test, beforeEach, afterEach } from 'node:test';
-import assert from 'node:assert';
+
+
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';

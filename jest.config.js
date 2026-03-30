@@ -1,6 +1,11 @@
 export default {
   testEnvironment: 'node',
-  testMatch: ['**/test/unit/**/*.test.js'],
+  testMatch: ['<rootDir>/test/unit/**/*.test.js'],
+  testPathIgnorePatterns: ['/node_modules/', '/.worktrees/', '.claude/worktrees'],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  transform: {},
   collectCoverageFrom: [
     'lib/**/*.js',
     '!lib/tools.js'
