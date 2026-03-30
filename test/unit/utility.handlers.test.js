@@ -1,10 +1,4 @@
 import assert from 'node:assert';
-/**
- * Tests for lib/handlers/utility.js
- */
-
-
-
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -14,6 +8,10 @@ import {
   compare_worlds
 } from '../../lib/handlers/utility.js';
 import { writeWorld } from '../../lib/helpers.js';
+
+/**
+ * Tests for lib/handlers/utility.js
+ */
 
 let tmpDir;
 

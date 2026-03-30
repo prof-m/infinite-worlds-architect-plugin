@@ -1,7 +1,7 @@
 export default {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/test/unit/**/*.test.js'],
-  testPathIgnorePatterns: ['/node_modules/', '/.worktrees/', '.claude/worktrees'],
+  testPathIgnorePatterns: ['/node_modules/', '.claude/worktrees'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },

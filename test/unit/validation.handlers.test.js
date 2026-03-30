@@ -1,16 +1,14 @@
 import assert from 'node:assert';
-/**
- * Tests for lib/handlers/validation.js
- * Tests world validation and error detection
- */
-
-
-
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { validate_world } from '../../lib/handlers/validation.js';
 import { writeWorld } from '../../lib/helpers.js';
+
+/**
+ * Tests for lib/handlers/validation.js
+ * Tests world validation and error detection
+ */
 
 let tmpDir, worldPath;
 
