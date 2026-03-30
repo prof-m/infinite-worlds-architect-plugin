@@ -3,8 +3,6 @@
  * Tests entity creation and management functions
  */
 
-import { describe, test, beforeEach, afterEach } from 'node:test';
-import assert from 'node:assert';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -56,14 +54,14 @@ describe('add_instruction_block', () => {
       keywords: []
     });
 
-    assert.strictEqual(response.content[0].type, 'text');
-    assert(response.content[0].text.includes('added successfully'));
+    expect(response.content[0].type).toBe('text');
+    expect(response.content[0].text).toContain('added successfully');
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.instructionBlocks.length, 1);
-    assert.strictEqual(world.instructionBlocks[0].name, 'Test Block');
-    assert.strictEqual(world.instructionBlocks[0].content, 'Block content');
-    assert(world.instructionBlocks[0].id !== undefined);
+    expect(world.instructionBlocks.length).toBe(1);
+    expect(world.instructionBlocks[0].name).toBe('Test Block');
+    expect(world.instructionBlocks[0].content).toBe('Block content');
+    expect(world.instructionBlocks[0].id).toBeDefined();
   });
 
   test('adds lore book entry with keywords', async () => {
@@ -74,12 +72,12 @@ describe('add_instruction_block', () => {
       keywords: ['magic', 'system', 'arcane']
     });
 
-    assert(response.content[0].text.includes('added successfully'));
+    expect(response.content[0].text).toContain('added successfully');
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.loreBookEntries.length, 1);
-    assert.strictEqual(world.loreBookEntries[0].name, 'Magic System');
-    assert.deepStrictEqual(world.loreBookEntries[0].keywords, ['magic', 'system', 'arcane']);
+    expect(world.loreBookEntries.length).toBe(1);
+    expect(world.loreBookEntries[0].name).toBe('Magic System');
+    expect(world.loreBookEntries[0].keywords).toEqual(['magic', 'system', 'arcane']);
   });
 
   test('generates unique IDs for multiple blocks', async () => {
@@ -97,17 +95,15 @@ describe('add_instruction_block', () => {
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
     const ids = world.instructionBlocks.map(b => b.id);
-    assert.strictEqual(new Set(ids).size, 2);
+    expect(new Set(ids).size).toBe(2);
   });
 
   test('throws error for missing world', async () => {
-    await assert.rejects(async () => {
-      await add_instruction_block({
-        path: path.join(tmpDir, 'nonexistent.json'),
-        name: 'Block',
-        content: 'Content'
-      });
-    });
+    await expect(add_instruction_block({
+      path: path.join(tmpDir, 'nonexistent.json'),
+      name: 'Block',
+      content: 'Content'
+    })).rejects.toThrow();
   });
 });
 
@@ -119,14 +115,14 @@ describe('add_character', () => {
       description: 'A brave hero'
     });
 
-    assert(response.content[0].text.includes('added successfully'));
-    assert(response.content[0].text.includes('Hero'));
+    expect(response.content[0].text).toContain('added successfully');
+    expect(response.content[0].text).toContain('Hero');
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.possibleCharacters.length, 1);
-    assert.strictEqual(world.possibleCharacters[0].name, 'Hero');
-    assert.strictEqual(world.possibleCharacters[0].description, 'A brave hero');
-    assert(world.possibleCharacters[0].characterId !== undefined);
+    expect(world.possibleCharacters.length).toBe(1);
+    expect(world.possibleCharacters[0].name).toBe('Hero');
+    expect(world.possibleCharacters[0].description).toBe('A brave hero');
+    expect(world.possibleCharacters[0].characterId).toBeDefined();
   });
 
   test('adds character with skills', async () => {
@@ -140,7 +136,7 @@ describe('add_character', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.deepStrictEqual(world.possibleCharacters[0].skills, skills);
+    expect(world.possibleCharacters[0].skills).toEqual(skills);
   });
 
   test('adds character with portrait', async () => {
@@ -153,17 +149,15 @@ describe('add_character', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.possibleCharacters[0].portrait, portrait);
+    expect(world.possibleCharacters[0].portrait).toBe(portrait);
   });
 
   test('rejects invalid skill values', async () => {
-    await assert.rejects(async () => {
-      await add_character({
-        path: worldPath,
-        name: 'Bad Character',
-        skills: { Combat: 10 }
-      });
-    });
+    await expect(add_character({
+      path: worldPath,
+      name: 'Bad Character',
+      skills: { Combat: 10 }
+    })).rejects.toThrow();
   });
 
   test('uses provided characterId', async () => {
@@ -176,7 +170,7 @@ describe('add_character', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.possibleCharacters[0].characterId, customId);
+    expect(world.possibleCharacters[0].characterId).toBe(customId);
   });
 
   test('generates characterId if not provided', async () => {
@@ -186,17 +180,15 @@ describe('add_character', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert(world.possibleCharacters[0].characterId !== undefined);
-    assert.strictEqual(typeof world.possibleCharacters[0].characterId, 'string');
+    expect(world.possibleCharacters[0].characterId).toBeDefined();
+    expect(typeof world.possibleCharacters[0].characterId).toBe('string');
   });
 
   test('throws error for missing name', async () => {
-    await assert.rejects(async () => {
-      await add_character({
-        path: worldPath,
-        description: 'No name'
-      });
-    }, /Required field/);
+    await expect(add_character({
+      path: worldPath,
+      description: 'No name'
+    })).rejects.toThrow(/Required field/);
   });
 
   test('adds multiple characters with unique IDs', async () => {
@@ -205,9 +197,9 @@ describe('add_character', () => {
     await add_character({ path: worldPath, name: 'Char 3' });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.possibleCharacters.length, 3);
+    expect(world.possibleCharacters.length).toBe(3);
     const ids = world.possibleCharacters.map(c => c.characterId);
-    assert.strictEqual(new Set(ids).size, 3);
+    expect(new Set(ids).size).toBe(3);
   });
 });
 
@@ -218,12 +210,12 @@ describe('add_npc', () => {
       name: 'Tavern Keeper'
     });
 
-    assert(response.content[0].text.includes('added successfully'));
+    expect(response.content[0].text).toContain('added successfully');
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.NPCs.length, 1);
-    assert.strictEqual(world.NPCs[0].name, 'Tavern Keeper');
-    assert(world.NPCs[0].id !== undefined);
+    expect(world.NPCs.length).toBe(1);
+    expect(world.NPCs[0].name).toBe('Tavern Keeper');
+    expect(world.NPCs[0].id).toBeDefined();
   });
 
   test('adds NPC with all fields', async () => {
@@ -245,12 +237,12 @@ describe('add_npc', () => {
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
     const npc = world.NPCs[0];
 
-    assert.strictEqual(npc.detail, 'Full character detail');
-    assert.strictEqual(npc.one_liner, 'A mysterious figure');
-    assert.strictEqual(npc.appearance, 'Tall and dark');
-    assert.strictEqual(npc.location, 'The tavern');
-    assert.strictEqual(npc.secret_info, 'Secret past');
-    assert.deepStrictEqual(npc.names, ['Stranger', 'Shadow']);
+    expect(npc.detail).toBe('Full character detail');
+    expect(npc.one_liner).toBe('A mysterious figure');
+    expect(npc.appearance).toBe('Tall and dark');
+    expect(npc.location).toBe('The tavern');
+    expect(npc.secret_info).toBe('Secret past');
+    expect(npc.names).toEqual(['Stranger', 'Shadow']);
   });
 
   test('uses provided id', async () => {
@@ -263,7 +255,7 @@ describe('add_npc', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.NPCs[0].id, customId);
+    expect(world.NPCs[0].id).toBe(customId);
   });
 
   test('generates id if not provided', async () => {
@@ -273,16 +265,14 @@ describe('add_npc', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert(world.NPCs[0].id !== undefined);
+    expect(world.NPCs[0].id).toBeDefined();
   });
 
   test('throws error for missing name', async () => {
-    await assert.rejects(async () => {
-      await add_npc({
-        path: worldPath,
-        detail: 'No name provided'
-      });
-    }, /Required field/);
+    await expect(add_npc({
+      path: worldPath,
+      detail: 'No name provided'
+    })).rejects.toThrow(/Required field/);
   });
 
   test('adds multiple NPCs', async () => {
@@ -291,7 +281,7 @@ describe('add_npc', () => {
     await add_npc({ path: worldPath, name: 'NPC 3' });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.NPCs.length, 3);
+    expect(world.NPCs.length).toBe(3);
   });
 });
 
@@ -303,14 +293,14 @@ describe('add_tracked_item', () => {
       initialValue: '100'
     });
 
-    assert(response.content[0].text.includes('added successfully'));
+    expect(response.content[0].text).toContain('added successfully');
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.trackedItems.length, 1);
-    assert.strictEqual(world.trackedItems[0].name, 'Health');
-    assert.strictEqual(world.trackedItems[0].initialValue, '100');
-    assert.strictEqual(world.trackedItems[0].dataType, 'text');
-    assert.strictEqual(world.trackedItems[0].visibility, 'everyone');
+    expect(world.trackedItems.length).toBe(1);
+    expect(world.trackedItems[0].name).toBe('Health');
+    expect(world.trackedItems[0].initialValue).toBe('100');
+    expect(world.trackedItems[0].dataType).toBe('text');
+    expect(world.trackedItems[0].visibility).toBe('everyone');
   });
 
   test('adds tracked item with custom types', async () => {
@@ -323,28 +313,24 @@ describe('add_tracked_item', () => {
     });
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    assert.strictEqual(world.trackedItems[0].dataType, 'number');
-    assert.strictEqual(world.trackedItems[0].visibility, 'player_only');
+    expect(world.trackedItems[0].dataType).toBe('number');
+    expect(world.trackedItems[0].visibility).toBe('player_only');
   });
 
   test('rejects invalid dataType', async () => {
-    await assert.rejects(async () => {
-      await add_tracked_item({
-        path: worldPath,
-        name: 'Item',
-        dataType: 'invalid'
-      });
-    });
+    await expect(add_tracked_item({
+      path: worldPath,
+      name: 'Item',
+      dataType: 'invalid'
+    })).rejects.toThrow();
   });
 
   test('rejects invalid visibility', async () => {
-    await assert.rejects(async () => {
-      await add_tracked_item({
-        path: worldPath,
-        name: 'Item',
-        visibility: 'invalid'
-      });
-    });
+    await expect(add_tracked_item({
+      path: worldPath,
+      name: 'Item',
+      visibility: 'invalid'
+    })).rejects.toThrow();
   });
 
   test('generates unique IDs for multiple items', async () => {
@@ -353,36 +339,32 @@ describe('add_tracked_item', () => {
 
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
     const ids = world.trackedItems.map(i => i.id);
-    assert.strictEqual(new Set(ids).size, 2);
+    expect(new Set(ids).size).toBe(2);
   });
 });
 
 describe('add_trigger', () => {
   test('rejects invalid condition type', async () => {
-    await assert.rejects(async () => {
-      await add_trigger({
-        path: worldPath,
-        name: 'Bad Trigger',
-        conditionType: 'invalidType',
-        conditionData: 'test'
-      });
-    });
+    await expect(add_trigger({
+      path: worldPath,
+      name: 'Bad Trigger',
+      conditionType: 'invalidType',
+      conditionData: 'test'
+    })).rejects.toThrow();
   });
 
   test('rejects invalid effect type', async () => {
-    await assert.rejects(async () => {
-      await add_trigger({
-        path: worldPath,
-        name: 'Bad Trigger',
-        conditionType: 'triggerOnEvent',
-        conditionData: 'test',
-        effectType: 'invalidEffect',
-        effectData: 'test'
-      });
-    });
+    await expect(add_trigger({
+      path: worldPath,
+      name: 'Bad Trigger',
+      conditionType: 'triggerOnEvent',
+      conditionData: 'test',
+      effectType: 'invalidEffect',
+      effectData: 'test'
+    })).rejects.toThrow();
   });
 
   test('add_trigger is exported', () => {
-    assert(typeof add_trigger === 'function');
+    expect(typeof add_trigger).toBe('function');
   });
 });
