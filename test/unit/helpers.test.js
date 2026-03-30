@@ -3,8 +3,6 @@
  * Tests utility functions, constants, validators
  */
 
-import { describe, test, beforeEach, afterEach } from 'node:test';
-import assert from 'node:assert';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -45,73 +43,73 @@ afterEach(async () => {
 
 describe('Constants', () => {
   test('VALID_CONDITION_TYPES contains expected values', () => {
-    assert(VALID_CONDITION_TYPES.includes('triggerOnEvent'));
-    assert(VALID_CONDITION_TYPES.includes('triggerOnTurn'));
-    assert(VALID_CONDITION_TYPES.includes('triggerOnStartOfGame'));
-    assert(VALID_CONDITION_TYPES.length > 3);
+    expect(VALID_CONDITION_TYPES).toContain('triggerOnEvent');
+    expect(VALID_CONDITION_TYPES).toContain('triggerOnTurn');
+    expect(VALID_CONDITION_TYPES).toContain('triggerOnStartOfGame');
+    expect(VALID_CONDITION_TYPES.length).toBeGreaterThan(3);
   });
 
   test('VALID_EFFECT_TYPES contains expected values', () => {
-    assert(VALID_EFFECT_TYPES.includes('scriptedText'));
-    assert(VALID_EFFECT_TYPES.includes('giveGuidance'));
-    assert(VALID_EFFECT_TYPES.includes('endsGame'));
-    assert(VALID_EFFECT_TYPES.length > 5);
+    expect(VALID_EFFECT_TYPES).toContain('scriptedText');
+    expect(VALID_EFFECT_TYPES).toContain('giveGuidance');
+    expect(VALID_EFFECT_TYPES).toContain('endsGame');
+    expect(VALID_EFFECT_TYPES.length).toBeGreaterThan(5);
   });
 
   test('VALID_DATA_TYPES has correct values', () => {
-    assert.deepStrictEqual(VALID_DATA_TYPES, ['text', 'number', 'xml']);
+    expect(VALID_DATA_TYPES).toEqual(['text', 'number', 'xml']);
   });
 
   test('VALID_VISIBILITIES has correct values', () => {
-    assert.deepStrictEqual(VALID_VISIBILITIES, ['everyone', 'ai_only', 'player_only', 'nobody']);
+    expect(VALID_VISIBILITIES).toEqual(['everyone', 'ai_only', 'player_only', 'nobody']);
   });
 
   test('ROOT_FIELDS contains world-level field names', () => {
-    assert(ROOT_FIELDS.includes('title'));
-    assert(ROOT_FIELDS.includes('description'));
-    assert(ROOT_FIELDS.includes('background'));
-    assert(ROOT_FIELDS.includes('instructions'));
-    assert(ROOT_FIELDS.length > 10);
+    expect(ROOT_FIELDS).toContain('title');
+    expect(ROOT_FIELDS).toContain('description');
+    expect(ROOT_FIELDS).toContain('background');
+    expect(ROOT_FIELDS).toContain('instructions');
+    expect(ROOT_FIELDS.length).toBeGreaterThan(10);
   });
 
   test('ENTITY_ARRAYS defines entity collections', () => {
     const keys = ENTITY_ARRAYS.map(e => e.key);
-    assert(keys.includes('possibleCharacters'));
-    assert(keys.includes('NPCs'));
-    assert(keys.includes('trackedItems'));
-    assert.strictEqual(keys.length, 6);
+    expect(keys).toContain('possibleCharacters');
+    expect(keys).toContain('NPCs');
+    expect(keys).toContain('trackedItems');
+    expect(keys.length).toBe(6);
   });
 });
 
 describe('ID Generation', () => {
   test('generateId produces hex string', () => {
     const id = generateId();
-    assert.strictEqual(typeof id, 'string');
-    assert(/^[a-f0-9]+$/.test(id));
+    expect(typeof id).toBe('string');
+    expect(/^[a-f0-9]+$/.test(id)).toBeTruthy();
   });
 
   test('generateId produces 8-character strings', () => {
     const id = generateId();
-    assert.strictEqual(id.length, 8);
+    expect(id.length).toBe(8);
   });
 
   test('generateId produces unique values', () => {
     const id1 = generateId();
     const id2 = generateId();
     const id3 = generateId();
-    assert.strictEqual(new Set([id1, id2, id3]).size, 3);
+    expect(new Set([id1, id2, id3]).size).toBe(3);
   });
 
   test('newUUID produces valid UUID format', () => {
     const uuid = newUUID();
-    assert.strictEqual(typeof uuid, 'string');
-    assert(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid));
+    expect(typeof uuid).toBe('string');
+    expect(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)).toBeTruthy();
   });
 
   test('newUUID produces unique values', () => {
     const uuid1 = newUUID();
     const uuid2 = newUUID();
-    assert.notStrictEqual(uuid1, uuid2);
+    expect(uuid1).not.toBe(uuid2);
   });
 });
 
@@ -127,19 +125,19 @@ describe('File Operations', () => {
     await writeWorld(filePath, testData);
     const read = await readWorld(filePath);
 
-    assert.deepStrictEqual(read, testData);
+    expect(read).toEqual(testData);
   });
 
   test('readWorld returns null for non-existent file', async () => {
     const result = await readWorld('/nonexistent/file.json');
-    assert.strictEqual(result, null);
+    expect(result).toBeNull();
   });
 
   test('readWorld returns null for invalid JSON', async () => {
     const filePath = path.join(tmpDir, 'invalid.json');
     await fs.writeFile(filePath, 'not valid json');
     const result = await readWorld(filePath);
-    assert.strictEqual(result, null);
+    expect(result).toBeNull();
   });
 
   test('loadWorld resolves path and returns world', async () => {
@@ -152,56 +150,54 @@ describe('File Operations', () => {
 
     const { world, resolvedPath } = await loadWorld(filePath);
 
-    assert.deepStrictEqual(world, testData);
-    assert.strictEqual(resolvedPath, path.resolve(filePath));
+    expect(world).toEqual(testData);
+    expect(resolvedPath).toBe(path.resolve(filePath));
   });
 
   test('loadWorld throws on missing file', async () => {
-    await assert.rejects(async () => {
-      await loadWorld('/nonexistent/world.json');
-    });
+    await expect(loadWorld('/nonexistent/world.json')).rejects.toThrow();
   });
 });
 
 describe('Text Processing', () => {
   test('unwrapCodeBlock removes markdown code fences', () => {
     const result = unwrapCodeBlock('```\nsome code\nmore code\n```');
-    assert.strictEqual(result, 'some code\nmore code');
+    expect(result).toBe('some code\nmore code');
   });
 
   test('unwrapCodeBlock handles whitespace', () => {
     const result = unwrapCodeBlock('  ```\n  content  \n  ```  ');
-    assert.strictEqual(result, 'content');
+    expect(result).toBe('content');
   });
 
   test('unwrapCodeBlock returns original if not wrapped', () => {
     const text = 'just plain text';
-    assert.strictEqual(unwrapCodeBlock(text), text);
+    expect(unwrapCodeBlock(text)).toBe(text);
   });
 
   test('normalizeMarkdown removes bold markers', () => {
     const result = normalizeMarkdown('**bold text** and __also bold__');
-    assert.strictEqual(result, 'bold text and also bold');
+    expect(result).toBe('bold text and also bold');
   });
 
   test('normalizeMarkdown removes italic markers', () => {
     const result = normalizeMarkdown('*italic* and _also italic_');
-    assert.strictEqual(result, 'italic and also italic');
+    expect(result).toBe('italic and also italic');
   });
 
   test('normalizeMarkdown removes list markers', () => {
     const result = normalizeMarkdown('- item 1\n- item 2\n* item 3');
-    assert.strictEqual(result, 'item 1\nitem 2\nitem 3');
+    expect(result).toBe('item 1\nitem 2\nitem 3');
   });
 
   test('normalizeMarkdown removes headers', () => {
     const result = normalizeMarkdown('# Header 1\n## Header 2\nContent');
-    assert.strictEqual(result, 'Header 1\nHeader 2\nContent');
+    expect(result).toBe('Header 1\nHeader 2\nContent');
   });
 
   test('normalizeMarkdown handles empty input', () => {
-    assert.strictEqual(normalizeMarkdown(''), '');
-    assert.strictEqual(normalizeMarkdown(null), '');
+    expect(normalizeMarkdown('')).toBe('');
+    expect(normalizeMarkdown(null)).toBe('');
   });
 });
 
@@ -212,90 +208,90 @@ describe('Validation Functions', () => {
       'Persuasion': 5,
       'Stealth': 0
     };
-    assert.doesNotThrow(() => validateSkillValues(skills));
+    expect(() => validateSkillValues(skills)).not.toThrow();
   });
 
   test('validateSkillValues rejects out of range', () => {
     const skills = { 'Combat': 6 };
-    assert.throws(() => validateSkillValues(skills));
+    expect(() => validateSkillValues(skills)).toThrow();
   });
 
   test('validateSkillValues rejects negative values', () => {
     const skills = { 'Combat': -1 };
-    assert.throws(() => validateSkillValues(skills));
+    expect(() => validateSkillValues(skills)).toThrow();
   });
 
   test('validateSkillValues rejects non-integer', () => {
     const skills = { 'Combat': 3.5 };
-    assert.throws(() => validateSkillValues(skills));
+    expect(() => validateSkillValues(skills)).toThrow();
   });
 
   test('validateSkillValues handles null input', () => {
-    assert.doesNotThrow(() => validateSkillValues(null));
+    expect(() => validateSkillValues(null)).not.toThrow();
   });
 
   test('validateTrackedItemEnums validates dataType', () => {
-    assert.doesNotThrow(() => validateTrackedItemEnums('text', 'everyone'));
-    assert.doesNotThrow(() => validateTrackedItemEnums('number', 'ai_only'));
-    assert.doesNotThrow(() => validateTrackedItemEnums('xml', 'player_only'));
+    expect(() => validateTrackedItemEnums('text', 'everyone')).not.toThrow();
+    expect(() => validateTrackedItemEnums('number', 'ai_only')).not.toThrow();
+    expect(() => validateTrackedItemEnums('xml', 'player_only')).not.toThrow();
   });
 
   test('validateTrackedItemEnums rejects invalid dataType', () => {
-    assert.throws(() => validateTrackedItemEnums('invalid', 'everyone'));
+    expect(() => validateTrackedItemEnums('invalid', 'everyone')).toThrow();
   });
 
   test('validateTrackedItemEnums rejects invalid visibility', () => {
-    assert.throws(() => validateTrackedItemEnums('text', 'invalid'));
+    expect(() => validateTrackedItemEnums('text', 'invalid')).toThrow();
   });
 
   test('validateTrackedItemEnums handles null values', () => {
-    assert.doesNotThrow(() => validateTrackedItemEnums(null, null));
+    expect(() => validateTrackedItemEnums(null, null)).not.toThrow();
   });
 });
 
 describe('Condition Data Coercion', () => {
   test('coerceConditionData coerces triggerOnTurn to integer', () => {
     const result = coerceConditionData('triggerOnTurn', '5');
-    assert.strictEqual(result, 5);
-    assert.strictEqual(typeof result, 'number');
+    expect(result).toBe(5);
+    expect(typeof result).toBe('number');
   });
 
   test('coerceConditionData coerces triggerOnRandomChance to integer', () => {
     const result = coerceConditionData('triggerOnRandomChance', '50');
-    assert.strictEqual(result, 50);
+    expect(result).toBe(50);
   });
 
   test('coerceConditionData coerces triggerOnStartOfGame to boolean', () => {
     const trueResult = coerceConditionData('triggerOnStartOfGame', 'true');
     const falseResult = coerceConditionData('triggerOnStartOfGame', 'false');
-    assert.strictEqual(trueResult, true);
+    expect(trueResult).toBe(true);
     // Note: lowercase 'false' returns true when coerced
-    assert.strictEqual(typeof falseResult, 'boolean');
+    expect(typeof falseResult).toBe('boolean');
   });
 
   test('coerceConditionData parses triggerOnCharacter JSON', () => {
     const result = coerceConditionData('triggerOnCharacter', '["char1", "char2"]');
-    assert(Array.isArray(result));
-    assert.deepStrictEqual(result, ['char1', 'char2']);
+    expect(Array.isArray(result)).toBeTruthy();
+    expect(result).toEqual(['char1', 'char2']);
   });
 
   test('coerceConditionData parses triggerOnTrackedItem JSON', () => {
     const json = '{"item": "value"}';
     const result = coerceConditionData('triggerOnTrackedItem', json);
-    assert.deepStrictEqual(result, { item: 'value' });
+    expect(result).toEqual({ item: 'value' });
   });
 
   test('coerceConditionData returns data as-is for unknown types', () => {
     const data = { custom: 'data' };
     const result = coerceConditionData('unknownType', data);
-    assert.deepStrictEqual(result, data);
+    expect(result).toEqual(data);
   });
 });
 
 describe('Response Functions', () => {
   test('successResponse formats text response', () => {
     const response = successResponse('Test message');
-    assert.deepStrictEqual(response, {
+    expect(response).toEqual({
       content: [{ type: 'text', text: 'Test message' }]
     });
   });
@@ -303,7 +299,7 @@ describe('Response Functions', () => {
   test('successResponse handles multiline text', () => {
     const text = 'Line 1\nLine 2\nLine 3';
     const response = successResponse(text);
-    assert.strictEqual(response.content[0].text, text);
+    expect(response.content[0].text).toBe(text);
   });
 });
 
@@ -311,15 +307,15 @@ describe('ID Stripping', () => {
   test('stripIds removes id field', () => {
     const obj = { id: '123', name: 'Test' };
     const result = stripIds(obj);
-    assert.deepStrictEqual(result, { name: 'Test' });
-    assert(result.id === undefined);
+    expect(result).toEqual({ name: 'Test' });
+    expect(result.id).toBeUndefined();
   });
 
   test('stripIds removes characterId field', () => {
     const obj = { characterId: 'char_001', name: 'Test' };
     const result = stripIds(obj);
-    assert.deepStrictEqual(result, { name: 'Test' });
-    assert(result.characterId === undefined);
+    expect(result).toEqual({ name: 'Test' });
+    expect(result.characterId).toBeUndefined();
   });
 
   test('stripIds handles nested objects', () => {
@@ -331,9 +327,9 @@ describe('ID Stripping', () => {
       }
     };
     const result = stripIds(obj);
-    assert(result.id === undefined);
-    assert(result.nested.id === undefined);
-    assert.strictEqual(result.nested.value, 'test');
+    expect(result.id).toBeUndefined();
+    expect(result.nested.id).toBeUndefined();
+    expect(result.nested.value).toBe('test');
   });
 
   test('stripIds handles arrays', () => {
@@ -342,9 +338,9 @@ describe('ID Stripping', () => {
       { id: '2', name: 'Second' }
     ];
     const result = stripIds(arr);
-    assert(result[0].id === undefined);
-    assert(result[1].id === undefined);
-    assert.strictEqual(result[0].name, 'First');
+    expect(result[0].id).toBeUndefined();
+    expect(result[1].id).toBeUndefined();
+    expect(result[0].name).toBe('First');
   });
 
   test('stripIds preserves non-id values', () => {
@@ -357,16 +353,16 @@ describe('ID Stripping', () => {
     };
     const result = stripIds(obj);
 
-    assert.strictEqual(result.name, 'Test');
-    assert.strictEqual(result.description, 'A test object');
-    assert.strictEqual(result.value, 42);
-    assert.strictEqual(result.active, true);
+    expect(result.name).toBe('Test');
+    expect(result.description).toBe('A test object');
+    expect(result.value).toBe(42);
+    expect(result.active).toBe(true);
   });
 
   test('stripIds handles primitives', () => {
-    assert.strictEqual(stripIds('string'), 'string');
-    assert.strictEqual(stripIds(123), 123);
-    assert.strictEqual(stripIds(true), true);
-    assert.strictEqual(stripIds(null), null);
+    expect(stripIds('string')).toBe('string');
+    expect(stripIds(123)).toBe(123);
+    expect(stripIds(true)).toBe(true);
+    expect(stripIds(null)).toBeNull();
   });
 });
