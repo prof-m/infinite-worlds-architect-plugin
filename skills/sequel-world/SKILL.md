@@ -89,21 +89,76 @@ Before proceeding with field-by-field refinement, establish these non-negotiable
 
 After `extract_story_data` completes successfully, assemble a "Story Facts Brief" from the extracted data and present it to the user for review and correction. This step ensures accuracy and establishes a persistent record of verified facts that will guide the field-by-field walkthrough.
 
+### Pre-Flight Verification: Ensure Extraction Data Is Available
+
+Before assembling the Story Facts Brief, verify that extraction succeeded:
+
+**Step 0: Verify Extraction State**
+
+1. **Check extract_story_data success** — Did the extraction return success: true with all files created? 
+   - If not, inform the user: "Story data extraction failed or produced incomplete data. Story Facts Review cannot proceed."
+   - Ask: "Would you like to re-run extract_story_data, or skip Story Facts Review and proceed with field work?"
+
+2. **Verify extraction files exist** — Confirm these files are in extraction_dir:
+   - manifest.json ✓
+   - metadata.json ✓
+   - turn_index.json ✓
+   - (tracked_state.json - optional, if trackedItemsFound = true)
+
+   If any file is missing, inform user and ask if they want to re-run extraction.
+
+3. **Check query_story_data connectivity** — Before Step 1, call:
+   ```
+   query_story_data(extraction_dir, 'manifest')
+   ```
+   If this fails, inform user of the error and offer to skip Story Facts Review.
+
+**Only proceed to Step 1 if all verifications pass.** This prevents wasted effort querying nonexistent data.
+
 ### Step 1: Assemble Story Facts Brief
 
 Query the extraction data to gather key story information:
 
 1. Call `query_story_data(extraction_dir, 'metadata')` to retrieve story background, character background, and objective
 2. Call `query_story_data(extraction_dir, 'turn_index')` to retrieve turn summaries showing the story arc and key developments
-3. Call `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])` for the first 5-10 turns to capture initial character appearances, settings, and key events
+3. Call `query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5])` to capture initial character introductions, world-building, and foundational events. (These early turns typically contain the most detailed character descriptions and setting information. If the story has fewer than 5 turns, use all available turns.)
 4. If `manifest.json` indicates tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to understand how tracked items evolved
 
 Format this data into a readable "Story Facts Brief" with these sections:
-- **Background**: Story setting, premise, and initial conditions (from metadata)
-- **Objective**: The player character's goal and motivation (from metadata)
-- **Characters**: For each character mentioned, list: name, first appearance turn, physical description (if provided in story), personality traits or behaviors observed, and last known location/status
-- **Key Events**: Major plot points, turning points, and story developments (from turn_index summaries and turn_detail)
-- **Current Status**: Where the story ended, unresolved threads, and character relationships at story conclusion
+
+1. **Background** — Story setting, premise, world context (from metadata.background)
+2. **Objective** — Player character's goal, motivation, desired outcome (from metadata.objective)
+3. **Characters** — For each named character:
+   - Name and aliases
+   - Physical description (if available from turn_detail)
+   - First appearance turn number
+   - Personality traits and motivations
+   - Relationships to other characters (allies, rivals, family, etc.)
+   - Last known status and location
+   - Key events character was involved in
+4. **Character Relationships** — Major connections:
+   - Source → Target: [type] (alliance, rivalry, romance, betrayal, family, etc.)
+   - Brief description of why this relationship matters
+5. **Key Locations** — Places mentioned in story:
+   - Location name
+   - First and last mention (turn numbers)
+   - Significance to the story
+6. **Major Events** — Plot points and turning points:
+   - Event description and turn number(s)
+   - Characters involved
+   - Outcome/consequences
+7. **Story Arc Summary** — Narrative progression:
+   - Opening: Where things began
+   - Turning points: Major shifts in the narrative
+   - Climax: Peak tension or confrontation
+   - Resolution: How things ended
+   - Unresolved threads: Open questions or dangling plot points
+8. **Current Status at Story End** — Final state:
+   - Player character: status, location, relationships, unmet goals
+   - Key NPCs: final status and relationships
+   - World state: any major changes or implications
+
+Source all of this from: metadata.json, turn_index.json, turn_detail queries, and tracked_state.json if present.
 
 ### Step 2: Present Brief to User for Corrections
 
@@ -118,11 +173,47 @@ Display the assembled Story Facts Brief to the user with this request:
 >
 > Provide corrections in any format you prefer, and I'll merge them into a verified facts document."
 
-Wait for the user to provide corrections, clarifications, or confirmation that the brief is accurate.
+### Step 2B: User Review & Response Handling
+
+Present the Story Facts Brief to the user with this prompt:
+
+"Review the brief below and provide one of the following:
+- **Specific corrections** (e.g., "Alice's appearance is actually...", "Event X happened in turn 5, not turn 3")
+- **Explicit confirmation** (e.g., "looks good", "no changes", "accurate")
+- **Questions** (e.g., "what does this field mean?")
+
+What would you like to do?"
+
+**Handle user response:**
+
+| Response Type | Action |
+|---|---|
+| Specific corrections provided | Incorporate corrections into the brief. Go to Step 3 with modified facts. |
+| Explicit confirmation (e.g., "looks good") | Go to Step 3 with brief as-is. Note: "User confirmed brief is accurate." |
+| Multiple corrections | Incorporate all and ask: "Any other corrections?" (loop until user confirms) |
+| Ambiguous response (e.g., "hmm, maybe?") | Ask for clarification: "Should I use the brief as-is, or do you have specific changes?" |
+| No response after N minutes | Ask again: "Are you still reviewing? Should I proceed or wait?" |
+
+Only proceed to Step 3 after you have either specific corrections incorporated OR explicit confirmation.
 
 ### Step 3: Write verified_story_facts.md
 
-Based on the user's review, write a `verified_story_facts.md` file to the extraction directory (alongside `manifest.json`, `metadata.json`, etc.). This file serves as the persistent ground truth for this extraction.
+Based on the user's review, write a `verified_story_facts.md` file to the extraction directory using this exact path:
+
+**Path:** `${extraction_dir}/verified_story_facts.md`
+
+**Directory handling:**
+- The extraction directory should already exist (created by extract_story_data)
+- Verify it exists before writing: if the directory doesn't exist, create it using `mkdir -p`
+- Write the file with read/write permissions for the user
+
+**Character handling:**
+- If extraction_dir contains spaces or special characters, ensure proper escaping/quoting
+- Example: If extraction_dir = `/path/to/story export`, full path = `/path/to/story export/verified_story_facts.md`
+
+**Location note:** File will persist at this path across multiple sessions. If the user re-runs Story Facts Review, the previous verified_story_facts.md will be overwritten.
+
+This file serves as the persistent ground truth for this extraction.
 
 Structure the file as follows:
 
@@ -168,6 +259,22 @@ Structure the file as follows:
 
 If the user provided no corrections, write the file with a note: "No corrections provided — original facts verified as accurate."
 
+**Error Handling for File Write:**
+
+If the file write operation fails (e.g., permissions denied, disk full, directory missing):
+
+1. Inform the user of the specific error (e.g., "EACCES: permission denied writing to [path]")
+2. Offer the user three options:
+   a. **Retry with alternate location** — "Would you like me to write the file to your working directory instead?"
+   b. **Skip verified facts file** — "I can proceed without writing the file. During field-by-field work, I'll reference extraction data directly."
+   c. **Fix permissions and retry** — "Check that the extraction directory exists and you have write permissions, then I'll retry."
+
+3. If user chooses (a), write to working directory and note the location
+4. If user chooses (b), proceed to field-by-field without verified_story_facts.md
+5. If user chooses (c), retry once after user confirms
+
+**Never silently skip this step or proceed with fabricated facts.**
+
 ### Step 4: Load and Reference During Field-by-Field Walkthrough
 
 When proceeding to field-by-field refinement, load the `verified_story_facts.md` file before proposing field values. When proposing any field that relates to characters, events, appearance, relationships, motivations, or story elements:
@@ -178,6 +285,28 @@ When proceeding to field-by-field refinement, load the `verified_story_facts.md`
 - This prevents downstream errors where one field correction cascades across multiple unrelated fields
 
 **Example**: If verified facts note "Alice was betrayed by Bob in turn 7," when proposing the "Possible Characters" field for Bob, reference this fact to ensure any character description or relationship aligns with the verified betrayal narrative.
+
+**Loading Mechanism for Field-by-Field Work:**
+
+When proceeding to field-by-field refinement with the draft:
+
+1. **Read the file** — Load verified_story_facts.md from: `${extraction_dir}/verified_story_facts.md`
+
+2. **Parse the structure** — Extract the "Resolved Facts" section (user corrections + original facts merged)
+
+3. **Reference by field type:**
+   - **Character fields** (appearance, relationships, motivations) → Reference "Characters" section
+   - **Event/outcome fields** → Reference "Major Events" and "Story Arc Summary" sections
+   - **Location fields** → Reference "Key Locations" section
+   - **Status/relationship fields** → Reference "Character Relationships" and "Current Status" sections
+
+4. **Handle contradictions** — If a field proposal contradicts verified facts:
+   - Note the contradiction to the user: "The verified facts show [X], but I'm proposing [Y]. Should I adjust?"
+   - Give user the option to correct verified facts or revise the proposal
+
+5. **Maintain consistency** — Use verified facts as your reference for character consistency, timeline accuracy, and relationship stability across all fields.
+
+**Note:** Verified facts take precedence over raw story re-reading during field work. This prevents cascading errors.
 
 ## Field-Level Verification Checklist
 
