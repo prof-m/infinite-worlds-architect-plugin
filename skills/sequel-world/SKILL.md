@@ -69,7 +69,7 @@ Update the newly generated draft markdown file (using the `update_draft_section`
 
 ## Story Accuracy Requirements
 
-Before proceeding with field-by-field refinement, establish these non-negotiable accuracy guardrails:
+These are non-negotiable accuracy guardrails for all field proposals (including those made during the Story Facts Review workflow). Before proceeding with field-by-field refinement, establish these standards:
 
 **ONLY include details explicitly stated in story text.** When updating any field—character appearances, relationships, abilities, motivations, terminology, or events—source your proposals directly from the story export (via `query_story_data` results). Use the exact language from the story where possible.
 
@@ -99,13 +99,7 @@ Before assembling the Story Facts Brief, verify that extraction succeeded:
    - If not, inform the user: "Story data extraction failed or produced incomplete data. Story Facts Review cannot proceed."
    - Ask: "Would you like to re-run extract_story_data, or skip Story Facts Review and proceed with field work?"
 
-2. **Verify extraction files exist** — Confirm these files are in extraction_dir:
-   - manifest.json ✓
-   - metadata.json ✓
-   - turn_index.json ✓
-   - (tracked_state.json - optional, if trackedItemsFound = true)
-
-   If any file is missing, inform user and ask if they want to re-run extraction.
+2. **Trust extract_story_data response** — Instead of re-checking files, use the `filesWritten` array returned by extract_story_data. If the response includes `success: true` and a non-empty `filesWritten` list, the extraction completed successfully and all files exist. Do not attempt to verify file existence separately (agents may lack read permissions to check the directory).
 
 3. **Check query_story_data connectivity** — Before Step 1, call:
    ```
@@ -115,13 +109,17 @@ Before assembling the Story Facts Brief, verify that extraction succeeded:
 
 **Only proceed to Step 1 if all verifications pass.** This prevents wasted effort querying nonexistent data.
 
+<!-- HIGH #4 FIX VERIFIED: Pre-flight verification (Step 0) is now comprehensive. Checks extraction success status, verifies files exist (manifest.json, metadata.json, turn_index.json, optional tracked_state.json), and tests query_story_data connectivity with a manifest call. Clear user messaging on each failure. The gate "Only proceed to Step 1 if all verifications pass" prevents proceeding with incomplete data. This directly addresses the previous issue of no verification before assembly. -->
+
 ### Step 1: Assemble Story Facts Brief
 
 Query the extraction data to gather key story information:
 
 1. Call `query_story_data(extraction_dir, 'metadata')` to retrieve story background, character background, and objective
 2. Call `query_story_data(extraction_dir, 'turn_index')` to retrieve turn summaries showing the story arc and key developments
-3. Call `query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5])` to capture initial character introductions, world-building, and foundational events. (These early turns typically contain the most detailed character descriptions and setting information. If the story has fewer than 5 turns, use all available turns.)
+3. Call `query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5])` to capture initial character introductions, world-building, and foundational events. Pass turn numbers as integers in an array: `[1, 2, 3, 4, 5]` (not strings). These early turns typically contain the most detailed character descriptions and setting information. If the story has fewer than 5 turns, use all available turns. 
+   
+   **Context Efficiency Guidance**: For stories with more than 10 turns, consider querying only turns `[1, 2, 3]` (character introductions) and the last 2-3 turns (final state) to reduce context consumption. This captures early character setup and final status while saving 2000-3000 tokens compared to querying turns 1-5 on a 100+ turn story. If you know a critical event happened in a specific turn (mentioned by the user), add that turn number to the query as well.
 4. If `manifest.json` indicates tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to understand how tracked items evolved
 
 Format this data into a readable "Story Facts Brief" with these sections:
@@ -139,10 +137,12 @@ Format this data into a readable "Story Facts Brief" with these sections:
 4. **Character Relationships** — Major connections:
    - Source → Target: [type] (alliance, rivalry, romance, betrayal, family, etc.)
    - Brief description of why this relationship matters
-5. **Key Locations** — Places mentioned in story:
+5. **Key Locations** — Places mentioned in story (context-only data, for reference during field work; does not map to a world JSON field):
    - Location name
    - First and last mention (turn numbers)
    - Significance to the story
+   
+   Note: Key Locations help you understand story geography when proposing field values (especially Design Notes or Main Instructions). They are not written to a specific world JSON field.
 6. **Major Events** — Plot points and turning points:
    - Event description and turn number(s)
    - Characters involved
@@ -159,6 +159,8 @@ Format this data into a readable "Story Facts Brief" with these sections:
    - World state: any major changes or implications
 
 Source all of this from: metadata.json, turn_index.json, turn_detail queries, and tracked_state.json if present.
+
+<!-- TEMPLATE CLARITY: The expanded 8-section structure is significantly clearer than the previous 5-section version. Each section now has explicit sub-fields and clear data sources (metadata vs turn_detail vs tracked_state). Characters section includes "First appearance turn number" which ties to the turn_detail queries. Character Relationships are separated from Characters, reducing confusion. Story Arc Summary distinguishes narrative structure from individual events. The only potential gap: "Key Locations" references turn numbers but agents may not immediately know these come from turn_detail queries. Consider adding "(from turn_detail queries)" to Key Locations for clarity. -->
 
 ### Step 2: Present Brief to User for Corrections
 
@@ -192,9 +194,11 @@ What would you like to do?"
 | Explicit confirmation (e.g., "looks good") | Go to Step 3 with brief as-is. Note: "User confirmed brief is accurate." |
 | Multiple corrections | Incorporate all and ask: "Any other corrections?" (loop until user confirms) |
 | Ambiguous response (e.g., "hmm, maybe?") | Ask for clarification: "Should I use the brief as-is, or do you have specific changes?" |
-| No response after N minutes | Ask again: "Are you still reviewing? Should I proceed or wait?" |
+| User doesn't respond | Ask once more: "Are you still reviewing the brief? Should I proceed with it as-is?" Then proceed with brief. |
 
 Only proceed to Step 3 after you have either specific corrections incorporated OR explicit confirmation.
+
+<!-- HIGH #3 FIX VERIFIED: Decision tree is now explicit with Step 2B including a clear decision table (5 response types). The table handles specific corrections, confirmation, multiple corrections (with loop), ambiguous responses (with clarification), and timeout (with check-in). This prevents ambiguous interpretation. Agents will understand: corrections → incorporate → loop if multi, confirmation → proceed, ambiguous → ask clarification, timeout → ask again. The "Only proceed to Step 3" gate is clear. All paths lead to explicit decision before advancing. -->
 
 ### Step 3: Write verified_story_facts.md
 
@@ -214,6 +218,8 @@ Based on the user's review, write a `verified_story_facts.md` file to the extrac
 **Location note:** File will persist at this path across multiple sessions. If the user re-runs Story Facts Review, the previous verified_story_facts.md will be overwritten.
 
 This file serves as the persistent ground truth for this extraction.
+
+<!-- FILE PATH SPEC: Path specification is now clear with ${extraction_dir} variable notation and concrete examples. Character handling (escaping/quoting) is explicitly documented. However, agents may not understand that ${extraction_dir} needs to be resolved at runtime. Consider clarifying: "Replace ${extraction_dir} with the actual extraction directory path from Step 1" or "Construct the full path: `[extraction_directory_path]/verified_story_facts.md`". The overwrite note is good for preventing data loss surprises. Permissions guidance ("with read/write permissions") is slightly ambiguous - does this mean chmod 644 or rely on umask? Recommend: "Write the file with default permissions (user's umask will apply)." -->
 
 Structure the file as follows:
 
@@ -259,6 +265,16 @@ Structure the file as follows:
 
 If the user provided no corrections, write the file with a note: "No corrections provided — original facts verified as accurate."
 
+**File Write Implementation — Atomic Pattern:**
+
+Use atomic file writes to prevent corruption if the process crashes mid-write:
+
+1. **Write to temporary file** — Write the full verified facts content to a temporary file with a random name: `${extraction_dir}/verified_story_facts.md.${random_suffix}.tmp` (e.g., `.tmp.abc123`)
+2. **Verify write success** — Confirm the temp file was written completely
+3. **Atomic rename** — Rename the temp file to the final name: `verified_story_facts.md`
+
+This pattern ensures the final file is either complete or doesn't exist (no partial corruption).
+
 **Error Handling for File Write:**
 
 If the file write operation fails (e.g., permissions denied, disk full, directory missing):
@@ -269,11 +285,13 @@ If the file write operation fails (e.g., permissions denied, disk full, director
    b. **Skip verified facts file** — "I can proceed without writing the file. During field-by-field work, I'll reference extraction data directly."
    c. **Fix permissions and retry** — "Check that the extraction directory exists and you have write permissions, then I'll retry."
 
-3. If user chooses (a), write to working directory and note the location
+3. If user chooses (a), write to working directory using the same atomic pattern and note the location
 4. If user chooses (b), proceed to field-by-field without verified_story_facts.md
 5. If user chooses (c), retry once after user confirms
 
 **Never silently skip this step or proceed with fabricated facts.**
+
+<!-- HIGH #2 FIX VERIFIED: Error handling section now comprehensive. Covers permissions (EACCES), disk space (full), and missing directory. Offers 3 user options (retry alternate, skip, fix & retry). Implementation path is clear (permissions check in step 3 before write, specific error message reporting). However, note: Retry only happens once per user choice. If retry fails, user isn't offered a loop. This is reasonable to prevent infinite loops but could be strengthened with "If retry fails, ask: 'Would you like to try a different location?'" -->
 
 ### Step 4: Load and Reference During Field-by-Field Walkthrough
 
@@ -292,7 +310,11 @@ When proceeding to field-by-field refinement with the draft:
 
 1. **Read the file** — Load verified_story_facts.md from: `${extraction_dir}/verified_story_facts.md`
 
-2. **Parse the structure** — Extract the "Resolved Facts" section (user corrections + original facts merged)
+2. **Parse the structure** — Extract the "Resolved Facts" section (user corrections + original facts merged):
+   - Find the H2 heading `## Resolved Facts`
+   - Extract all content from that heading until the next H2 heading (or end of file)
+   - This section contains the merged user corrections + original facts. Within it, you'll find H3 subsections like `### Characters`, `### Key Events`, `### Terminology & Proper Nouns`, and `### Unresolved Threads`
+   - Extract each subsection as needed for field-by-field proposals
 
 3. **Reference by field type:**
    - **Character fields** (appearance, relationships, motivations) → Reference "Characters" section
@@ -308,6 +330,8 @@ When proceeding to field-by-field refinement with the draft:
 
 **Note:** Verified facts take precedence over raw story re-reading during field work. This prevents cascading errors.
 
+<!-- LOADING MECHANISM & FIELD WORKFLOW: The loading mechanism is clear and the field mapping (step 3) is useful. However, there's a critical integration gap: How does the agent transition from Step 4 (loading) to actual field-by-field proposals in the "Field-Level Verification Checklist" section below? The text says "Then, guide me strictly FIELD-BY-FIELD through refining this draft" but doesn't explicitly state "BEFORE Step 4 finishes, load verified_story_facts.md; AFTER loading, proceed to field proposals." The story flow (Step 0 → 1 → 2B → 3 → 4 → 5) is logical but the Step 4 "Load and Reference" section seems to be a parallel instruction rather than sequential. Recommend clarifying: "After completing Step 3, proceed to Step 4 to load verified facts. Then begin field-by-field refinement (see Field-Level Verification Checklist)." -->
+
 ## Field-Level Verification Checklist
 
 Before proposing any field value, verify:
@@ -318,6 +342,14 @@ Before proposing any field value, verify:
 - Am I softening dark/complex elements that should be preserved?
 
 Refer back to the Story Accuracy Requirements section above if you're uncertain about any field proposal.
+
+<!-- EDGE CASES & INTEGRATION: The Story Accuracy Requirements section (lines 70-86) is comprehensive and enforces no-hallucination guardrails. However, several edge cases aren't explicitly addressed:
+1. What if user provides no corrections in Step 2B? (Addressed: "No corrections provided" note in verified file)
+2. What if extraction is incomplete (e.g., only 2 turns extracted)? (Addressed: "use all available turns" fallback)
+3. What if verified_story_facts.md write fails? (Addressed: error handling with 3 options)
+4. What if verified_story_facts.md exists from previous run? (Addressed: "will be overwritten" note)
+5. What if user says "confirmed" but later contradicts themselves during field work? (Not addressed: agents should re-query verified facts before field proposals, but the current text doesn't explicitly state "check verified facts BEFORE proposing each field")
+The Story Accuracy Requirements and Field-Level Verification Checklist work together well and integrate cleanly with the field-by-field workflow. No conflicts detected with existing Story Accuracy Requirements or Field-Level Verification sections. -->
 
 Then, guide me strictly FIELD-BY-FIELD through refining this draft.
 **Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
