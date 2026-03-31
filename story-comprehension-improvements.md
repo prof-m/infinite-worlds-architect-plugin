@@ -187,80 +187,14 @@ See `skills/world-architect/references/story-extraction-tool.md` for complete to
 - Complexity: Medium (add query tool calls to field-by-field walkthrough; update reference docs)
 - Expected token impact: Data access via query tools more efficient than re-reading raw files
 
-### Integration Task 3: Integrate Proposal 1 (Anti-Fabrication Guard Rails)
-
-**What**: Add "Story Accuracy Requirements" section from Proposal 1 to sequel-world prompt.
-
-**Details**:
-- Applies to: Both sequel-world and spinoff-world
-- Dependencies: None (independent)
-- Complexity: Low (prompt edit, +150 tokens in command)
-- Saves far more tokens in reduced correction cycles
-
-### Integration Task 4: Implement Proposal 4 (Character Field Writing Guide)
-
-**What**: Create reference doc + integrate into command to guide agent on synthesizing extraction data to field values.
-
-**Details**:
-- Create `skills/world-architect/references/character_writing_guide.md`
-- Guide includes: Identity, Appearance (ONLY from story text), Relationships, Arc Progression, Tracked State, Status Changes
-- Applies to: Both sequel-world and spinoff-world
-- Dependencies: Task 2 (optional, but guide designed for 2B-only and 2B+2C scenarios)
-- Complexity: Medium (reference doc + prompt integration)
-- Expected token impact: +200-300 tokens for guide; prevents fabrication errors across 5+ character fields per character
-
-### Integration Task 5: Implement Proposal 5 (Source-First Field Proposal Protocol)
-
-**What**: Require evidence citations before each field proposal, using 2B's extraction output as primary citation source.
-
-**Details**:
-- When extraction data available: cite specific extraction data (e.g., "From query_story_data(category='metadata'): objective = ...")
-- When extraction data lacks field: cite turn numbers from raw story text
-- Applies to: sequel-world (primary), spinoff-world for story-derived fields
-- Dependencies: Task 2
-- Complexity: Low-Medium (prompt edit to field proposal instructions)
-- Expected token impact: +50-100 tokens per field for citations; net savings because citations reference structured data
-
-### Integration Task 6: Implement Proposal 7 (Story-to-Lorebook Output Strategy)
-
-**What**: Create reference doc + guidance defining tier strategy for distributing extracted story state across field types.
-
-**Details**:
-- Create `skills/world-architect/references/story_context_distribution.md`
-- Define: Always-on fields (background, instructions, objective, descriptionRequest) vs. Keyword blocks (per-character, per-location) vs. Tracked items vs. SecretInfo
-- Add distribution guidance to sequel-world/spinoff-world commands
-- Applies to: Both sequel-world and spinoff-world
-- Dependencies: None (can be done independently)
-- Complexity: Low-Medium (reference doc + prompt integration)
-- Expected token impact: NET REDUCTION; moves context from always-on fields to keyword blocks (only injected on relevance)
-
-### Integration Task 7: Implement Proposal 8 (Pre-Generation Story Facts Review)
-
-**What**: After extraction completes, agent assembles "Story Facts Brief" from extraction data. User reviews and corrects; agent writes verified_story_facts.md to persist corrections. Agent loads and references during field-by-field walkthrough.
-
-**Details**:
-- Agent assembles brief from extraction data + narrative comprehension
-- User corrects character appearances, personality, relationships, major events, current status, terminology
-- Agent writes `verified_story_facts.md` with corrections
-- Agent references this file throughout walkthrough to ensure consistency
-- Applies to: Both sequel-world and spinoff-world
-- Dependencies: Task 1 (extraction must have been run)
-- Complexity: Medium (orchestration + user interaction + file persistence)
-- Expected token impact: Upfront cost (~500-1500 tokens for review) + per-field savings (corrections prevent multi-field propagation)
 
 ### Integration Sequence
 
-**Phase 1 (Immediate)**: Tasks 1, 3
+**Phase 1 (Immediate)**: Tasks 1, 2
 - Get extraction tool in use
-- Add guard rails
+- Load extraction data via query tools
 
-**Phase 2 (Near-term)**: Tasks 2, 4, 5, 7
-- Query tools integrated
-- Character guide + field citations
-- Facts review
-
-**Phase 3 (Polish)**: Tasks 6
-- Lorebook strategy
+**Next Steps**: Implement proposals 1, 4, 5, 7, 8 with 2B integration context (see those proposal sections below)
 
 ---
 
@@ -391,13 +325,15 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ---
 
-## Remaining Proposals (3, 5, 7, 8)
+## Remaining Proposals (3, 4, 5, 7, 8)
 
 ### Proposal 3: Safety Fallbacks (Manual Processing + Summary Validation)
 
-**When**: Use if 2B extraction tool unavailable or fails on non-standard export
+**Status**: Optional (use only if 2B extraction tool unavailable or fails)
 
 **What**: Structured manual processing protocol + summary validation step
+
+**When**: Use if 2B extraction tool unavailable or fails on non-standard export
 
 **How**:
 - Divide story into ~40-60 turn segments
@@ -411,21 +347,95 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ---
 
-### Proposal 5: Source-First Field Proposal Protocol
+### Proposal 4: Character Field Writing Guide (2B Integration)
 
-See Integration Task 5 above.
+**Status**: Ready to implement (after Integration Task 2)
+
+**What**: Create reference doc + integrate into command to guide agent on synthesizing extraction data to field values.
+
+**How**:
+- Create `skills/world-architect/references/character_writing_guide.md`
+- Guide teaches: Identity, Appearance (ONLY from story text via 2B's turn_detail), Relationships, Arc Progression (from tracked_state), Status Changes (from turn_detail)
+- Integrate into sequel-world/spinoff-world command prompts as reference material
+- Emphasis: Use 2B's extraction data as ground truth; only read raw story text for narrative understanding (descriptions, relationships, events)
+
+**Dependencies**: Integration Task 2 (query_story_data available)
+
+**Complexity**: Medium (reference doc + prompt integration)
+
+**Expected token impact**: +200-300 tokens for guide; prevents fabrication errors across 5+ character fields per character. Net savings vs. current approach.
+
+**Plugin component**: command-development
 
 ---
 
-### Proposal 7: Story-to-Lorebook Output Strategy
+### Proposal 5: Source-First Field Proposal Protocol (2B Integration)
 
-See Integration Task 6 above.
+**Status**: Ready to implement (after Integration Task 2)
+
+**What**: Require evidence citations before each field proposal, using 2B's extraction output as primary citation source.
+
+**How**:
+- When extraction data available: cite specific extraction data (e.g., "From query_story_data(category='metadata'): objective = ...")
+- When extraction data lacks field: cite specific turn numbers from query_story_data(category='turn_detail', [N]) output
+- Modify field proposal instructions to require this format before agent commits to a field value
+
+**Dependencies**: Integration Task 2 (query_story_data available)
+
+**Complexity**: Low-Medium (prompt edit to field proposal instructions)
+
+**Expected token impact**: +50-100 tokens per field for citations; net savings because citations reference structured data, not re-reading raw files
+
+**Plugin component**: command-development
 
 ---
 
-### Proposal 8: Pre-Generation Story Facts Review
+### Proposal 7: Story-to-Lorebook Output Strategy (2B Integration)
 
-See Integration Task 7 above.
+**Status**: Ready to implement (independent of integration tasks)
+
+**What**: Create reference doc + guidance defining tier strategy for distributing extracted story state across field types.
+
+**How**:
+- Create `skills/world-architect/references/story_context_distribution.md`
+- Define tiers: Always-on fields (background, instructions, objective from 2B) vs. Keyword blocks (character/location specific, populated from 2B's tracked_state and turn_detail) vs. Hidden tracked items vs. SecretInfo blobs
+- Document how to use 2B's multi-file output to distribute context efficiently:
+  - Always load: manifest.json (extraction metadata), metadata.json (story background/objective)
+  - Load conditionally: turn_index.json (turn summaries), tracked_state.json (if present), character_index.json (if present)
+  - Load selectively: turn_detail queries for deep narrative understanding of specific turns
+- Add distribution guidance to sequel-world/spinoff-world command prompts
+
+**Dependencies**: None (can be done independently; benefits from having 2B available)
+
+**Complexity**: Low-Medium (reference doc + prompt integration)
+
+**Expected token impact**: NET REDUCTION; moves context from always-on fields to keyword blocks (only injected on relevance). 2B's selective loading makes this efficient.
+
+**Plugin component**: command-development
+
+---
+
+### Proposal 8: Pre-Generation Story Facts Review (2B Integration)
+
+**Status**: Ready to implement (after Integration Task 1)
+
+**What**: After extraction completes, agent assembles "Story Facts Brief" from 2B's extraction data. User reviews and corrects; agent writes verified_story_facts.md to persist corrections. Agent loads and references during field-by-field walkthrough.
+
+**How**:
+- Agent calls extract_story_data and waits for success
+- Agent assembles brief from 2B's extraction data: query_story_data(category='metadata') for background/objective; query_story_data(category='turn_detail', turn_nums) for character appearances and key events
+- Agent presents brief to user with requested corrections
+- User corrects character appearances, personality, relationships, major events, current status, terminology
+- Agent writes `verified_story_facts.md` file (agent-implemented file I/O; not a 2B feature) to extraction directory to persist corrections
+- Agent loads and references this file throughout field-by-field walkthrough to ensure consistency
+
+**Dependencies**: Integration Task 1 (extract_story_data called)
+
+**Complexity**: Medium (orchestration + user interaction + file persistence)
+
+**Expected token impact**: Upfront cost (~500-1500 tokens for review) + per-field savings (corrections prevent multi-field propagation). Break-even or positive ROI on medium/large stories.
+
+**Plugin component**: command-development + user-interaction
 
 ---
 
@@ -438,22 +448,21 @@ See Integration Task 7 above.
 | P1 | 2B Story Extraction Tool | ✅ DONE | Merged PR #10 |
 | P1a | Proposal 1: Anti-Fabrication Guard Rails | Ready | Low |
 | P1b | Integration Task 1: Call extract_story_data | Ready | Low |
+| P1c | Integration Task 2: Use query_story_data | Ready | Medium |
 
-### Tier 2: Core Integration
+### Tier 2: Core Proposals (With 2B Integration)
 
 | Priority | What | Effort | Complexity |
 |----------|------|--------|-----------|
-| P2a | Integration Task 2: Use query_story_data | Medium | Medium |
-| P2b | Integration Task 3: Anti-Fabrication | Low | Low |
-| P2c | Integration Task 4: Character Guide | Medium | Medium |
-| P2d | Integration Task 5: Field Citations | Low-Medium | Low-Medium |
-| P2e | Integration Task 7: Facts Review | Medium | Medium |
+| P2a | Proposal 4: Character Field Writing Guide | Medium | Medium |
+| P2b | Proposal 5: Source-First Field Proposal Protocol | Low-Medium | Low-Medium |
+| P2c | Proposal 8: Pre-Generation Story Facts Review | Medium | Medium |
 
 ### Tier 3: Polish & Future
 
 | Priority | What | Effort | Complexity |
 |----------|------|--------|-----------|
-| P3a | Integration Task 6: Lorebook Strategy | Low-Medium | Low-Medium |
+| P3a | Proposal 7: Story-to-Lorebook Output Strategy | Low-Medium | Low-Medium |
 | P3b | Proposal 3: Safety Fallbacks | Low | Low |
 | P3c | Proposal 2C: Agent-Based Narrative Extraction | Medium | Medium |
 
@@ -466,16 +475,18 @@ See Integration Task 7 above.
       │         │
       │         ├── Integration Task 2: Use query_story_data
       │         │         │
-      │         │         ├── Integration Task 4: Character Writing Guide
-      │         │         └── Integration Task 5: Field Citations
+      │         │         ├── Proposal 4: Character Writing Guide
+      │         │         └── Proposal 5: Source-First Field Citations
       │         │
-      │         └── Integration Task 7: Facts Review
+      │         └── Proposal 8: Story Facts Review
       │
-      ├── Integration Task 3: Anti-Fabrication (Proposal 1)
+      ├── Proposal 1: Anti-Fabrication Guard Rails (independent)
       │
-      ├── Integration Task 6: Lorebook Strategy (Proposal 7)
+      ├── Proposal 7: Lorebook Output Strategy (independent)
       │
-      └── 2C: Agent-Based Narrative Extraction (optional, builds on 2B)
+      ├── Proposal 3: Safety Fallbacks (fallback only, if 2B unavailable)
+      │
+      └── Proposal 2C: Agent-Based Narrative Extraction (optional, builds on 2B)
                    │
                    └── Requires: narrative/ directory structure + query tool extensions
 ```
