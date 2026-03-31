@@ -151,19 +151,18 @@ Located in `lib/handlers/`:
 
 ```json
 {
-  "trackedItems": [
+  "snapshots": [
     {
-      "itemName": "string",
-      "snapshots": [
-        {
-          "turnRange": { "start": "number", "end": "number" },
-          "state": "string"
-        }
-      ]
+      "from_turn": "number",
+      "to_turn": "number",
+      "tracked_items": { "itemName": "string value", ... },
+      "hidden_tracked_items": { "itemName": "string value", ... } or null
     }
   ]
 }
 ```
+
+Note: This structure uses snapshots (one snapshot per state change range). Each snapshot contains `from_turn` and `to_turn` range values, and both `tracked_items` and `hidden_tracked_items` are objects mapping item names to their state values during that range.
 
 ### character_index.json
 

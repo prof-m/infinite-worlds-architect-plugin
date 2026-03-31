@@ -79,7 +79,7 @@ Before proceeding with field-by-field refinement, establish these non-negotiable
 
 **Distinguish literal statements from sarcasm, jokes, and figurative language.** When parsing character dialogue and narration, be alert to tone. A character's sarcastic comment about their abilities is not a literal statement of fact. Self-deprecating humor should not be taken as character truth.
 
-**Do NOT sanitize morally complex events.** If the story contains manipulation, betrayal, coercion, exploitation, or other dark elements, represent them accurately in the world description. Do not soften language or omit uncomfortable truths in an attempt to make the world more "wholesome."
+**Do NOT sanitize morally complex events.** If the story contains manipulation, betrayal, coercion, exploitation, or other dark elements, represent them accurately in the world description. Do not soften language or omit uncomfortable truths in an attempt to make the world more "wholesome." When citing dark content, preserve the story's tone in your field proposal while using the Evidence tag to document the extraction data source. This allows transparent tracking of where dark content originates (the story itself, not agent invention).
 
 **For appearance fields, prefer copying the story's own descriptions verbatim.** When the story explicitly describes how a character looks, dresses, or moves, use those exact descriptions rather than paraphrasing or embellishing them.
 
@@ -91,9 +91,15 @@ Before proposing field citations, verify that extraction data is available:
 
 1. **Confirm extract_story_data succeeded** — If the tool returned success: false, don't proceed with citations. Instead, inform the user that story data extraction failed and offer to re-run extraction.
 
-2. **Verify extraction directory exists** — The extraction_dir should contain: manifest.json, metadata.json, turn_index.json. If these files don't exist, the citation process will fail.
+2. **Verify extraction directory contents** — The extraction_dir should contain manifest.json, metadata.json, and turn_index.json. Verify these exist and are readable before attempting any citations.
 
-3. **Check for extraction errors** — If any file is missing or incomplete, the agent should NOT cite data from that category. Instead, mark the field as "insufficient extraction data" and move on.
+3. **Check for file-specific availability** — Before proposing a citation in a specific category, verify the required file exists:
+   - For metadata citations: Verify metadata.json exists
+   - For turn_detail citations: Verify turn_index.json AND the source story file exist
+   - For tracked_state citations: Verify tracked_state.json exists AND manifest.json indicates trackedItemsFound: true
+   - If any required file is missing, mark that citation category as unavailable and skip proposing fields that depend on it.
+
+4. **Check for corruption or incomplete data** — If a file exists but is not readable or appears corrupted (invalid JSON, empty, etc.), treat it as extraction failure and inform the user.
 
 **Without validation, agents will cite fabricated or nonexistent data, defeating the guardrail entirely.**
 
@@ -122,15 +128,25 @@ For each field proposal, follow this pattern:
 
 Use specific extraction data directly:
 - **If metadata contains the field**: Cite it verbatim. Example: "From query_story_data(extraction_dir, 'metadata'): story_objective = 'stop the invasion'"
-- **If turn details describe the field**: Cite specific turns. Example: "From query_story_data(extraction_dir, 'turn_detail', [3, 7, 12]): These turns show the character's combat skills developing..."
-- **If tracked items define the field**: Cite the state evolution. Example: "From query_story_data(extraction_dir, 'tracked_state'): The 'trust_level' tracked item evolved from 0 to 85 across the story..."
+- **If turn details describe the field**: Cite specific turns with direct quotes from the narrative. Example: "From query_story_data(extraction_dir, 'turn_detail', [3, 7, 12]): 'He demonstrated new combat techniques in turn 3, taught them to allies in turn 7, and used them decisively in turn 12.' This shows combat skills developing across the story."
+- **If tracked items define the field**: Cite the state evolution. Example: "From query_story_data(extraction_dir, 'tracked_state'): The 'trust_level' item shows snapshots from turn 1-5 with state 'Untrusted', then turn 6-end with state 'Trusted', indicating a critical relationship change."
+
+**Important Note on turn_detail**: turn_index provides only 100-character action/outcome PREVIEWS, not full narrative context. For thorough field checking, use turn_detail queries instead. When checking for presence/absence of details in a field (e.g., "Does the story describe the protagonist's backstory?"), query turn_detail for full narrative context rather than relying on turn_index previews alone.
 
 ### When Extraction Data Lacks the Field
 
 If a field isn't covered in extraction data:
-1. **Search related turn data** — query `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])` for specific narrative evidence before proposing a value.
-2. **Cite the turn numbers** — even if the data is sparse, cite the exact turns you examined. Example: "From query_story_data(extraction_dir, 'turn_detail', [1, 2, 4]): These turns contain the only character descriptions in the story..."
-3. **Mark gaps explicitly** — if no evidence supports the field, say so: "No evidence found in query_story_data results for this field."
+
+1. **Handle query failures first** — Before searching for missing data, verify extraction success:
+   - If query_story_data returns success: false, stop and inform the user that extraction data is unavailable for this field.
+   - If warnings are present (e.g., "Turn X not found in source file"), note them—the field may have incomplete evidence.
+   - Do NOT cite data from queries that returned errors or warnings.
+
+2. **Search related turn data with bounded scope** — query `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])` for specific narrative evidence before proposing a value. For gap checking, start with a representative sample: first 5 turns, last 5 turns, and any explicitly story-pivotal turns identified from turn_index. If the field is still not found after sampling, it's reasonable to conclude it's not in the story without querying all turns.
+
+3. **Cite the turn numbers examined** — even if the data is sparse, cite the exact turns you examined and their status. Example: "From query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5]): These opening turns contain the only character descriptions in the story. No further mentions found in sampled closing turns."
+
+4. **Mark gaps explicitly** — if no evidence supports the field, say so: "No evidence found in query_story_data results for this field—sampled turns 1-5 and 45-50 with no mentions."
 
 ### Examples of Correctly Cited vs Non-Cited Proposals
 
@@ -141,29 +157,37 @@ If a field isn't covered in extraction data:
 **Proposed Field Value:** Objective = "Find the hidden temple and retrieve the artifact."
 ```
 
-**GOOD - Turn-Specific Citation:**
+**GOOD - Turn-Specific Citation with Direct Quotes:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'turn_detail', [5, 8, 14]): The protagonist learns new navigation techniques in turn 5, teaches them to the ally in turn 8, and applies them in turn 14.
+**Evidence:** From query_story_data(extraction_dir, 'turn_detail', [5, 8, 14]): 
+- Turn 5: "The scout taught her how to read the stars for navigation."
+- Turn 8: "She explained the star-reading method to her companion."
+- Turn 14: "Using the navigation technique learned earlier, they found the hidden pass."
 
 **Proposed Field Value:** Main Instructions should emphasize navigation and teamwork, as these became central mechanics.
 ```
 
+For turn_detail citations, include direct quotes from the extracted text when possible. This prevents paraphrasing errors and anchors proposals to exact story language.
+
 **GOOD - Gap Identification:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'turn_index'): Turn summaries do not mention the protagonist's backstory or motivations.
+**Evidence:** From query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5, 45, 46, 47, 48, 49]): Sampled turns from beginning and end of story show no explicit descriptions of the protagonist's backstory or original motivations. Turn previews indicate focus on present action rather than origin details.
 
-**Proposed Field Value:** Background section should remain minimal, reflecting that the story focuses on present action rather than origin details. Left unfilled: Character's original motivations (not described in story).
+**Proposed Field Value:** Background section should remain minimal, reflecting that the story focuses on present action rather than origin details. Left unfilled: Character's original motivations (not explicitly described in story).
 ```
+
+Note: When checking for presence/absence of details, use turn_detail for full narrative context rather than turn_index previews, which are truncated to 100 characters.
 
 **GOOD - Tracked Item State Evolution:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'tracked_state'): 
-  - Turn 1-7: state = 'Locked'
-  - Turn 8: state = 'Unlocked' (change detected)
-  - Turn 9+: state = 'Available'
+**Evidence:** From query_story_data(extraction_dir, 'tracked_state'): The 'Advanced Combat' tracked item shows snapshots with:
+  - Turns 1-7: state = 'Locked' (tracked_items: { 'Advanced Combat': 'Locked' })
+  - Turns 8+: state = 'Unlocked' (tracked_items: { 'Advanced Combat': 'Unlocked' })
 
-**Proposed Field Value:** Skill: Locked by default, becomes available in turn 8
+**Proposed Field Value:** Advanced Combat Skill: Locked by default, becomes available in turn 8 based on story progression.
 ```
+
+Note: The tracked_state.json structure contains snapshots with `from_turn`/`to_turn` ranges and a `tracked_items` object mapping item names to their state values in that range.
 
 **BAD - No Citation:**
 ```
@@ -212,6 +236,12 @@ Before proposing any field value, verify:
 - Am I softening dark/complex elements that should be preserved?
 - **Can I cite this from extraction data?** (metadata, turn_detail, turn_index, or tracked_state)
 - **If no citation exists, should I propose this field at all?**
+
+**Decision Rules for Empty or Missing Fields:**
+- **If a field is empty in the original world AND no extraction data explicitly defines its value**: Leave the field empty in the sequel world. Do NOT invent character definitions, abilities, properties, or background details not present in the story.
+- **If the story mentions a concept but doesn't name it**: Use the story's own language rather than creating an official-sounding name for the concept.
+- **If extraction data is missing or incomplete for a field**: Mark the field as "not described in story" rather than attempting to fill it with inference or stereotype.
+- **For dark/complex content found in extraction data**: Preserve the story's tone in your field proposal even if the content is disturbing or morally complex. The Evidence tag documents the raw data; the proposal reflects story-accurate tone.
 
 Refer back to the Story Accuracy Requirements and Field Proposal Citation Requirements sections above if you're uncertain about any field proposal.
 
