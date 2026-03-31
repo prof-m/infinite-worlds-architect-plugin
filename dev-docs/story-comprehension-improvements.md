@@ -319,11 +319,11 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Tier 2: Core Proposals (Next Priority)
 
-| Priority | What | Status | Complexity | Deps |
-|----------|------|--------|-----------|------|
-| P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c |
-| P2b | Proposal 5: Source-First Field Proposal Protocol | Ready | Low-Medium | P1c |
-| P2c | Proposal 8: Pre-Generation Story Facts Review | Ready | Medium | P1b |
+| Priority | What | Status | Complexity | Deps | Merged |
+|----------|------|--------|-----------|------|--------|
+| P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c | |
+| P2b | Proposal 5: Source-First Field Proposal Protocol | ✅ DONE | Low-Medium | P1c | PR #23 (2026-03-31) |
+| P2c | Proposal 8: Pre-Generation Story Facts Review | Ready | Medium | P1b | |
 
 ### Tier 3: Polish & Future
 
@@ -336,15 +336,13 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 ### Implementation Dependencies
 
 ```
-✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c)
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b)
    │
-   ├─── READY: Tier 2 Proposals (P2a, P2b, P2c)
+   ├─── READY: Tier 2 Proposals (P2a, P2c)
    │    ├─ P2a: Character Field Writing Guide (depends on P1c query tools)
-   │    ├─ P2b: Source-First Field Citations (depends on P1c guardrails)
    │    └─ P2c: Story Facts Review (depends on P1b extraction)
    │
-   └─── READY: Tier 3 Polish & Future (P3a, P3b, P3c)
+   └─── READY: Tier 3 Polish & Future (P3a, P3b)
         ├─ P3a: Lorebook Distribution (independent)
-        ├─ P3b: Safety Fallbacks (independent)
-        └─ P3c: Agent-Based Narrative Extraction (depends on P1c query tools)
+        └─ P3b: Safety Fallbacks (independent)
 ```
