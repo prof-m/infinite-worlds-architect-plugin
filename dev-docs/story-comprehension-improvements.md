@@ -2,205 +2,65 @@
 
 ## Status Summary
 
-**Major Update (2026-03-28)**: Proposal 2B (Structured Story State Extraction) has been fully implemented and merged as PR #10. This document has been updated to reflect the actual implementation, integration roadmap, and refined 2C specification based on 2B learnings.
+**Latest Update (2026-03-31)**: 
+- ✅ **Proposal 1** (Anti-Fabrication Guard Rails) - FULLY IMPLEMENTED (PR #22)
+- ✅ **Integration Tasks 1 & 2** (Extract & Query Story Data) - FULLY IMPLEMENTED (PR #21)
+- ✅ **Proposal 2B** (Story State Extraction) - FULLY IMPLEMENTED & INTEGRATED (PR #10, original implementation)
+
+**Implementation archived**: See `story-comprehension-improvements-implemented.md` for completed work details.
 
 ---
 
 ## Table of Contents
 
-1. [Error Diagnosis Summary](#error-diagnosis-summary)
-2. [Proposal 1: Anti-Fabrication Guard Rails](#proposal-1-anti-fabrication-guard-rails)
-3. [Proposal 2: Story State Extraction — 2B IMPLEMENTED](#proposal-2-story-state-extraction--2b-implemented)
-4. [Integration Roadmap](#integration-roadmap-using-2b-in-sequel-world-and-spinoff-world)
-5. [Proposal 2C: Agent-Based Narrative Extraction (Refined)](#proposal-2c-agent-based-narrative-extraction-refined-based-on-2b-implementation)
-6. [Remaining Proposals (3, 4, 5, 7, 8)](#remaining-proposals-3-4-5-7-8)
+1. [Completed Work Summary](#completed-work-summary)
+2. [Proposal 2B: Story State Extraction (Foundation)](#proposal-2b-story-state-extraction-foundation)
+3. [Proposal 2C: Agent-Based Narrative Extraction (Refined)](#proposal-2c-agent-based-narrative-extraction-refined-based-on-2b-implementation)
+4. [Remaining Proposals (3, 4, 5, 7, 8)](#remaining-proposals-3-4-5-7-8)
    - [Proposal 3: Safety Fallbacks](#proposal-3-safety-fallbacks-manual-processing--summary-validation)
    - [Proposal 4: Character Field Writing Guide](#proposal-4-character-field-writing-guide-2b-integration)
    - [Proposal 5: Source-First Field Proposal Protocol](#proposal-5-source-first-field-proposal-protocol-2b-integration)
    - [Proposal 7: Story-to-Lorebook Output Strategy](#proposal-7-story-to-lorebook-output-strategy-2b-integration)
    - [Proposal 8: Pre-Generation Story Facts Review](#proposal-8-pre-generation-story-facts-review-2b-integration)
-7. [Prioritized Implementation Order](#prioritized-implementation-order)
-8. [Known Limitations and Design Notes](#known-limitations-and-design-notes)
-9. [Adversarial Review Notes](#adversarial-review-notes-from-original-analysis)
+5. [Prioritized Implementation Order](#prioritized-implementation-order)
 
 ---
 
-## Error Diagnosis Summary
+## Completed Work Summary
 
-Analysis of a sequel-world generation session (Gemini agent processing a 250-turn story export for "How The Turns Table") revealed **28 distinct errors**.
+**✅ Proposal 1: Anti-Fabrication Guard Rails** (PR #22, merged 2026-03-31)
+- Added 7 anti-fabrication guardrails to sequel-world and spinoff-world commands
+- Field-level verification checklist before field-by-field walkthrough
+- Addresses all 6 major error categories from original diagnosis
+- Files: `skills/sequel-world/SKILL.md`, `skills/spinoff-world/SKILL.md`
 
-### Error Pattern Distribution
+**✅ Integration Tasks 1 & 2** (PR #21, merged 2026-03-31)
+- Task 1: Call `extract_story_data` MCP tool when user provides story exports
+- Task 2: Use `query_story_data` queries instead of raw story file reading
+- Result: ~10x token efficiency gain (16K+ lines → 500-1K tokens)
+- Files: `skills/sequel-world/SKILL.md`
 
-| Category | Count | % | Description |
-|----------|-------|---|-------------|
-| Detail fabrication | 9 | 31% | Inventing physical descriptions, clothing, scents |
-| Hallucination | 6 | 21% | Creating named abilities, secret projects that don't exist |
-| Sanitization | 4 | 14% | Softening morally complex events |
-| Stereotyping | 3 | 10% | Substituting genre-default appearances |
-| Conflation/embellishment | 3 | 10% | Merging distinct events, inflating outcomes |
-| Attribution error | 2 | 7% | Assigning one character's actions to another |
-| Character flattening | 1 | 3% | Reducing complex characterization |
-| Major factual inversion | 1 | 3% | Claiming intentional act was unintentional |
-
-### Most Affected World Fields
-
-1. **Other Characters - Appearance** (8 errors): Nearly every character received fabricated physical details
-2. **Generalist Summary** (7 errors): Invented skill names, coined terminology, mischaracterized outcomes
-3. **Other Characters - Secret Information** (4 errors): Fabricated motivations and projects
-4. **Other Characters - Character Detail** (4 errors): Sanitized and simplified backstories
-
-### Root Causes
-
-1. **Stereotype substitution**: Genre-appropriate defaults when details missing
-2. **Sanitization of dark content**: Softens manipulation, coercion, exploitation
-3. **Proper noun invention**: Official-sounding capitalized terms
-4. **Subagent cascade**: Flawed initial summary becomes ground truth
-5. **Sarcasm/tone blindness**: Literal interpretation of ironic dialog
-6. **Recency bias**: Fills gaps with fabrication rather than admitting uncertainty
+**See `story-comprehension-improvements-implemented.md` for complete implementation details, error diagnosis context, design notes, and review findings.**
 
 ---
 
-## Proposal 1: Anti-Fabrication Guard Rails
-
-**Status**: Ready to implement (low-cost, high-impact)
-
-**What**: Add "Story Accuracy Requirements" section to sequel-world command prompt with explicit prohibitions against fabrication.
-
-**How it works**: Insert guardrails before field-by-field walkthrough:
-- ONLY include details explicitly stated in story text
-- NEVER substitute genre stereotypes for missing details
-- NEVER invent proper nouns, named abilities, coined terminology
-- Distinguish literal statements from sarcasm, jokes, figurative language
-- Do NOT sanitize morally complex events
-- For appearance fields: prefer copying the story's own descriptions
-
-**Token impact**: +150 tokens in command prompt. Very high ROI.
-
-**Applies to**: Both sequel-world and spinoff-world.
-
-**Plugin component**: command-development
-
----
-
-## Proposal 2: Story State Extraction — 2B IMPLEMENTED
+## Proposal 2B: Story State Extraction (Foundation)
 
 **Status**: ✅ FULLY IMPLEMENTED AND MERGED (PR #10)
 
-### What Was Built
+**What**: Two MCP tools that parse story exports into structured JSON:
+- `extract_story_data` — Parses story exports, writes manifest.json, metadata.json, turn_index.json, tracked_state.json
+- `query_story_data` — Queries extracted data by category (manifest, metadata, turn_index, turn_detail, tracked_state)
 
-Two MCP tools that parse story exports into structured JSON:
+**Design**: 4-phase deterministic parser. Zero dependencies, multi-file output, path traversal defenses.
 
-1. **`extract_story_data`** — Parses story exports and writes JSON
-   - Input: File paths, output directory
-   - Output: manifest.json, metadata.json, turn_index.json, tracked_state.json, character_index.json (optional)
-   - Returns: success, totalTurns, turnRange, inputFilesProcessed, hasTrackedItems, hasHiddenTrackedItems, filesWritten, warnings
-   - Note: Character indexing is only available via direct function calls with characterList parameter; not exposed via MCP tool interface
+**Token Impact**: ~10x reduction (16K+ lines of raw text → 500-1K tokens of structured JSON)
 
-2. **`query_story_data`** — Queries extracted data by category
-   - Categories: manifest, metadata, turn_index, tracked_state, turn_detail
-   - Features: "last" alias resolution, turn filtering, file caching (5+ turns)
-   - Returns: structured data or error
+**Documentation**: See `skills/world-architect/references/story-extraction-tool.md`
 
-### Parser Architecture
-
-**Phase 1** (phase1-combining.js): Combines multiple files, deduplicates turns by mtime, detects gaps, builds manifest
-
-**Phase 2** (phase2-headers.js): Extracts title, background, character details, skills, objective
-
-**Phase 3** (phase3-turns.js): Parses turn sections (context, action, outcome, secret info), generates turn index with previews and line ranges
-
-**Phase 4** (phase4-tracked-items.js): Discovers tracked/hidden items, builds value history snapshots (only on state changes)
-
-### Output Files
-
-- **manifest.json**: Version, source files, header source file, total turns, flags for tracked items presence, deduplication notes
-- **metadata.json**: Title, story background, character details (name, background, skills), objective, turn count
-- **turn_index.json**: Array of turns with action/outcome previews (100-char snippets only), line ranges, source files
-- **tracked_state.json**: Snapshots of tracked items and hidden items by turn range (only if items exist). Each snapshot records state from from_turn to to_turn.
-- **character_index.json** (optional): Character mention tracking by turn and line with context previews (requires characterList parameter, not exposed via MCP interface)
-
-### What 2B Extracts
-
-✅ Story background, player character sheet (name, background, skills), objective
-✅ Tracked item histories with change detection (only turns where value changes)
-✅ Hidden tracked items with full history
-✅ Character mention counts seeded from world NPC names (simple string matching)
-✅ Per-turn section text accessible via query_story_data(category='turn_detail')
-
-### What 2B Defers to 2C
-
-❌ Character descriptions, aliases, lastKnownLocation (require narrative understanding)
-❌ Relationships (embedded in narrative, not structured in exports)
-❌ Locations (no whereWhen field exists in tested exports)
-❌ Events/plot milestones with descriptions (require semantic judgment)
-❌ Story arc summaries (opening/final summaries, unresolved threads)
-
-### Test Coverage
-
-✅ 112 comprehensive tests (100% pass rate)
-- Parser unit tests (all 4 phases)
-- Handler/validation tests (extraction, query, output writing, character indexing)
-- Character indexing tests
-- Integration tests with real exports (4, 22, 30 turns)
-- Performance: 22-turn export <5ms; 30-turn export ~3ms
-
-### Design Principles Embodied in 2B
-
-1. **Deterministic**: No hallucination risks, validated across 4 diverse exports. Character indexing is available internally but not exposed via MCP to prevent agents from requesting features not in the interface.
-2. **Zero dependencies**: Uses only Node.js built-ins (fs, path)
-3. **Multi-file output**: Agents load only what they need; tracked items isolated
-4. **Query tools abstraction**: Path traversal defenses, automatic file caching for 5+ turn queries
-5. **Honest schema**: Structured data with no invented fields. Narrative understanding (character descriptions, relationships, locations, events) intentionally deferred to 2C agents for semantic reading.
-
-### Token Impact
-
-**MAJOR REDUCTION**: Instead of loading 16,000+ lines of raw story text, agents receive structured JSON via query tools.
-- Minimal worlds: ~500 tokens total
-- Tracked-item-rich worlds: ~500-1K for metadata + 10K+ for tracked_items (loaded selectively)
-
-### Documentation
-
-See `skills/world-architect/references/story-extraction-tool.md` for complete tool reference (output schemas, usage examples, performance notes, character indexing feature).
+**Note**: Defers narrative understanding (character descriptions, relationships, locations, events) to Proposal 2C agents.
 
 ---
-
-## Integration Roadmap: Using 2B in Sequel-World and Spinoff-World
-
-2B is complete and tested. These tasks integrate it into the commands so it actually gets used.
-
-### Integration Task 1: Call extract_story_data from sequel-world command
-
-**What**: When user provides story export file(s), automatically call extract_story_data to populate extraction directory.
-
-**Details**:
-- Agent specifies extraction directory (e.g., `$CWD/extracted_story`)
-- Returns success/failure status; agent continues or falls back to manual processing
-- Applies to: sequel-world (primary)
-- Dependencies: None (2B is complete)
-- Complexity: Low (add MCP tool call to command prompt)
-- Expected token impact: One-time extraction cost (~100 tokens) + subsequent selective data loading via query tools
-
-### Integration Task 2: Use query_story_data during field-by-field walkthrough
-
-**What**: Modify command to load extraction data via query_story_data calls rather than having agent read raw story text.
-
-**Details**:
-- Agent calls `query_story_data(extraction_dir, 'metadata')` for story background/objective fields
-- Agent calls `query_story_data(extraction_dir, 'turn_detail', [N, ...])` for deep-dives into specific turns
-- Agent calls `query_story_data(extraction_dir, 'tracked_state')` or `query_story_data(extraction_dir, 'tracked_state', [N, ...])` for tracked item fields
-- Applies to: sequel-world, spinoff-world (if story exports added)
-- Dependencies: Task 1 (extraction must have been run before querying)
-- Complexity: Medium (add query tool calls to field-by-field walkthrough; update reference docs)
-- Expected token impact: Data access via query tools more efficient than re-reading raw files
-
-
-### Integration Sequence
-
-**Phase 1 (Immediate)**: Tasks 1, 2
-- Get extraction tool in use
-- Load extraction data via query tools
-
-**Next Steps**: Implement proposals 1, 4, 5, 7, 8 with 2B integration context (see those proposal sections below)
 
 ---
 
@@ -447,88 +307,45 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ## Prioritized Implementation Order
 
-### Tier 1: Foundation (Done + Ready)
+### Tier 1: Foundation (✅ COMPLETE)
 
-| Priority | What | Status | Effort |
+| Priority | What | Status | Merged |
 |----------|------|--------|--------|
-| P1 | 2B Story Extraction Tool | ✅ DONE | Merged PR #10 |
-| P1a | Proposal 1: Anti-Fabrication Guard Rails | Ready | Low |
-| P1b | Integration Task 1: Call extract_story_data | Ready | Low |
-| P1c | Integration Task 2: Use query_story_data | Ready | Medium |
+| P1 | 2B Story Extraction Tool | ✅ DONE | PR #10 |
+| P1a | Proposal 1: Anti-Fabrication Guard Rails | ✅ DONE | PR #22 (2026-03-31) |
+| P1b | Integration Task 1: Call extract_story_data | ✅ DONE | PR #21 (2026-03-31) |
+| P1c | Integration Task 2: Use query_story_data | ✅ DONE | PR #21 (2026-03-31) |
 
-### Tier 2: Core Proposals (With 2B Integration)
+**All foundation tasks complete.** Core story comprehension improvements integrated into sequel-world and spinoff-world commands.
 
-| Priority | What | Effort | Complexity |
-|----------|------|--------|-----------|
-| P2a | Proposal 4: Character Field Writing Guide | Medium | Medium |
-| P2b | Proposal 5: Source-First Field Proposal Protocol | Low-Medium | Low-Medium |
-| P2c | Proposal 8: Pre-Generation Story Facts Review | Medium | Medium |
+### Tier 2: Core Proposals (Next Priority)
+
+| Priority | What | Status | Complexity | Deps |
+|----------|------|--------|-----------|------|
+| P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c |
+| P2b | Proposal 5: Source-First Field Proposal Protocol | Ready | Low-Medium | P1c |
+| P2c | Proposal 8: Pre-Generation Story Facts Review | Ready | Medium | P1b |
 
 ### Tier 3: Polish & Future
 
-| Priority | What | Effort | Complexity |
-|----------|------|--------|-----------|
-| P3a | Proposal 7: Story-to-Lorebook Output Strategy | Low-Medium | Low-Medium |
-| P3b | Proposal 3: Safety Fallbacks | Low | Low |
-| P3c | Proposal 2C: Agent-Based Narrative Extraction | Medium | Medium |
+| Priority | What | Status | Complexity | Deps |
+|----------|------|--------|-----------|------|
+| P3a | Proposal 7: Story-to-Lorebook Output Strategy | Ready | Low-Medium | None |
+| P3b | Proposal 3: Safety Fallbacks | Ready | Low | None |
+| P3c | Proposal 2C: Agent-Based Narrative Extraction | Design | Medium | P1c |
 
 ### Implementation Dependencies
 
 ```
-2B Implementation (DONE) ──── PR #10 merged
-      │
-      ├── Integration Task 1: Call extract_story_data
-      │         │
-      │         ├── Integration Task 2: Use query_story_data
-      │         │         │
-      │         │         ├── Proposal 4: Character Writing Guide
-      │         │         └── Proposal 5: Source-First Field Citations
-      │         │
-      │         └── Proposal 8: Story Facts Review
-      │
-      ├── Proposal 1: Anti-Fabrication Guard Rails (independent)
-      │
-      ├── Proposal 7: Lorebook Output Strategy (independent)
-      │
-      ├── Proposal 3: Safety Fallbacks (fallback only, if 2B unavailable)
-      │
-      └── Proposal 2C: Agent-Based Narrative Extraction (optional, builds on 2B)
-                   │
-                   └── Requires: narrative/ directory structure + query tool extensions
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c)
+   │
+   ├─── READY: Tier 2 Proposals (P2a, P2b, P2c)
+   │    ├─ P2a: Character Field Writing Guide (depends on P1c query tools)
+   │    ├─ P2b: Source-First Field Citations (depends on P1c guardrails)
+   │    └─ P2c: Story Facts Review (depends on P1b extraction)
+   │
+   └─── READY: Tier 3 Polish & Future (P3a, P3b, P3c)
+        ├─ P3a: Lorebook Distribution (independent)
+        ├─ P3b: Safety Fallbacks (independent)
+        └─ P3c: Agent-Based Narrative Extraction (depends on P1c query tools)
 ```
-
----
-
-## Known Limitations and Design Notes
-
-### What 2B Implementation Revealed
-
-1. **Tracked item text blobs can be very large**: HTTT's Suggestions and Traits fields exceed 10K tokens
-2. **Character mention counting is simple string matching**: No alias resolution; requires name seeds from world NPC list
-3. **Secret Information format varies across worlds**: Counsellor2 uses structured `### SECRETINFO_START` blocks; others use free-form prose
-4. **Per-turn section extraction enables deep-dives**: Agent can read specific turns for narrative understanding without loading entire export
-5. **Narrative understanding appropriately deferred to 2C**: No deterministic parser can extract relationships, character descriptions, locations, events from prose
-6. **4-phase parser architecture robust**: Validated across 4 diverse exports (4, 22, 30, 30 turns)
-7. **Multi-file output with query tools efficient**: Agents load selectively; tracked items isolated; batch queries use file caching
-
-### Design Choices Made in 2B
-
-- **Left narrative understanding to 2C**: Rather than attempting deterministic parsing that would produce empty arrays or hallucinated data
-- **Character indexing optional feature**: Core extraction works without it; available when character list provided
-- **Multi-file output trades count for efficiency**: More files but agents load selectively; smaller context per query
-- **Path traversal defenses + file caching built in**: Prevents abuse; optimizes batch queries
-
----
-
-## Adversarial Review Notes (From Original Analysis)
-
-**Still applicable to all proposals**: The error patterns from the original diagnosis remain the fundamental problems. All proposals address specific error categories:
-
-- Proposals 1 + 3: Structural guardrails (detail fabrication, hallucination, stereotyping, sanitization)
-- Proposal 2 (2B): Root cause fix (eliminates need to read raw story; provides structured data)
-- Proposal 4: Synthesis guardrails (character appearance, relationships)
-- Proposal 5: Transparency (citations let user verify agent reasoning)
-- Proposal 7: Efficiency (token reduction via keyword blocks)
-- Proposal 8: Upstream error detection (review before field-by-field walkthrough)
-- Proposal 2C: Automation (agents extract narrative fields; humans review)
-
