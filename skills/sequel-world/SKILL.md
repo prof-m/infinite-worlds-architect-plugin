@@ -15,13 +15,13 @@ Before we begin, ask me for:
 
 Once all paths and names are confirmed:
 
-**Integration Task 1: Extract Story Data**
+Extract Story Data
 Call the `extract_story_data` MCP tool to parse the story export(s) into structured JSON. This replaces manually reading the entire raw file and prevents hallucination from working with thousands of lines of unstructured text.
 - Specify an extraction directory (e.g., `extracted_story/` relative to your output directory). Ensure the extraction directory exists before calling the tool, or use an absolute path.
 - The tool will return success/failure status and create output files (manifest.json, metadata.json, turn_index.json, tracked_state.json)
 - If extraction succeeds, continue with Task 2. If it fails, warn the user and fall back to reading the raw export file directly.
 
-**Integration Task 2: Understand Story Context via Query Tools**
+Understand Story Context via Query Tools
 Instead of reading the entire export file, use `query_story_data` to load structured extraction data:
 1. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
 2. Call `query_story_data(extraction_dir, 'turn_index')` to see a summary of all turns with action/outcome previews. Use this to understand turn distribution and identify key turning points.
@@ -67,7 +67,7 @@ Update the newly generated draft markdown file (using the `update_draft_section`
 # Tracked Items
 # Trigger Events
 
-## Story Accuracy Requirements (Proposal 1: Anti-Fabrication Guard Rails)
+## Story Accuracy Requirements
 
 Before proceeding with field-by-field refinement, establish these non-negotiable accuracy guardrails:
 
