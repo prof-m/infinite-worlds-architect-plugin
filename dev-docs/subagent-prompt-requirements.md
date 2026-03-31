@@ -1,10 +1,6 @@
 # Subagent Prompt Requirements
 
-Every implementation subagent must be given clear first-action instructions in their prompt.
-
-## Required Prompt Block
-
-Every prompt dispatched to an implementation subagent must include this block at the top, before the task description:
+Dispatch to implementation subagents must include this required prompt block at the top, before the task description:
 
 ```
 ## Your first action (do this before anything else)
@@ -18,13 +14,11 @@ Every prompt dispatched to an implementation subagent must include this block at
 - Make any changes outside the worktree
 ```
 
-Provide the exact branch name in the prompt — never leave branching to the agent's discretion.
+Provide the exact branch name — never leave branching to the agent's discretion.
 
 ## Why This Matters
 
-These first-action instructions ensure that:
-- Subagents create isolated worktrees (not modifying master)
-- All changes are on feature branches
-- Clear boundaries are established before any file operations
-
-This prevents accidental modification of master and ensures proper git workflow for multi-agent work.
+These instructions ensure subagents:
+- Create isolated worktrees (not modifying master)
+- Work on feature branches
+- Establish clear boundaries before file operations
