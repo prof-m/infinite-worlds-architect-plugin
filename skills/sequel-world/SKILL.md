@@ -67,15 +67,34 @@ Update the newly generated draft markdown file (using the `update_draft_section`
 # Tracked Items
 # Trigger Events
 
-**Story Accuracy Requirements** (Proposal 1: Anti-Fabrication Guard Rails)
-When proposing field values based on the story:
-- ONLY include details explicitly stated in the story text (via query_story_data results)
-- NEVER substitute genre stereotypes or assumptions for missing details
-- NEVER invent proper nouns, named abilities, or made-up terminology
-- Distinguish between literal statements and sarcasm, jokes, or figurative language
-- Do NOT sanitize morally complex or dark events — preserve them as they occurred
-- For appearance fields: prefer copying the story's own descriptions directly from query_story_data(turn_detail) results
-- When a detail is uncertain or absent from the story, explicitly say "not mentioned in the story" rather than fabricating
+## Story Accuracy Requirements (Proposal 1: Anti-Fabrication Guard Rails)
+
+Before proceeding with field-by-field refinement, establish these non-negotiable accuracy guardrails:
+
+**ONLY include details explicitly stated in story text.** When updating any field—character appearances, relationships, abilities, motivations, terminology, or events—source your proposals directly from the story export (via `query_story_data` results). Use the exact language from the story where possible.
+
+**NEVER substitute genre stereotypes for missing details.** If a character's appearance isn't described, do not invent "typical" descriptions based on their role or background. Leave the field empty, uncertain, or explicitly note "appearance not described in story."
+
+**NEVER invent proper nouns, named abilities, or coined terminology.** Do not create official-sounding ability names, secret project titles, or world-specific terms that don't appear in the story text. If the story mentions a concept without naming it, use the story's own language rather than creating a name.
+
+**Distinguish literal statements from sarcasm, jokes, and figurative language.** When parsing character dialogue and narration, be alert to tone. A character's sarcastic comment about their abilities is not a literal statement of fact. Self-deprecating humor should not be taken as character truth.
+
+**Do NOT sanitize morally complex events.** If the story contains manipulation, betrayal, coercion, exploitation, or other dark elements, represent them accurately in the world description. Do not soften language or omit uncomfortable truths in an attempt to make the world more "wholesome."
+
+**For appearance fields, prefer copying the story's own descriptions verbatim.** When the story explicitly describes how a character looks, dresses, or moves, use those exact descriptions rather than paraphrasing or embellishing them.
+
+**For tracked items, preserve the exact state and descriptions from the story.** When extracting tracked item values, character motivations, secret projects, or hidden information, use only what appears explicitly in the story export. Do not invent "secret projects" a character might be working on, fabricate hidden motivations, or create mysterious "hidden tracked item" entries. If the story doesn't describe an item's state or a character's secret, leave it empty or mark it as "not described in story."
+
+## Field-Level Verification Checklist
+
+Before proposing any field value, verify:
+- Is this detail explicitly stated in the story, or am I inferring/inventing?
+- Am I substituting a genre stereotype for missing information?
+- Am I inventing proper nouns, ability names, or terminology not in the story?
+- Does my proposal accurately reflect the tone (literal vs sarcasm)?
+- Am I softening dark/complex elements that should be preserved?
+
+Refer back to the Story Accuracy Requirements section above if you're uncertain about any field proposal.
 
 Then, guide me strictly FIELD-BY-FIELD through refining this draft.
 **Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
