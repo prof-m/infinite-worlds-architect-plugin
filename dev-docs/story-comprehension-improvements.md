@@ -237,22 +237,21 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Proposal 5: Source-First Field Proposal Protocol (2B Integration)
 
-**Status**: Ready to implement (after Integration Task 2)
+**Status**: ✅ FULLY IMPLEMENTED & MERGED (PR #23, commit a84e40a)
 
-**What**: Require evidence citations before each field proposal, using 2B's extraction output as primary citation source.
+**What Was Implemented:**
+- Added "Pre-Citation Validation" section to verify extraction data exists before citing
+- Added "Field Proposal Citation Requirements" section with explicit citation patterns for metadata, turn_detail, turn_index, and tracked_state
+- Added tracked_state citation example showing state evolution across turns
+- Made gap-check rule explicit: "No extraction data = no proposal"
+- Clarified Evidence tag usage as both internal reasoning and user-facing documentation
+- Files Modified: `skills/sequel-world/SKILL.md`
 
-**How**:
-- When extraction data available: cite specific extraction data (e.g., "From query_story_data(category='metadata'): objective = ...")
-- When extraction data lacks field: cite specific turn numbers from query_story_data(category='turn_detail', [N]) output
-- Modify field proposal instructions to require this format before agent commits to a field value
-
-**Dependencies**: Integration Task 2 (query_story_data available)
-
-**Complexity**: Low-Medium (prompt edit to field proposal instructions)
-
-**Expected token impact**: +50-100 tokens per field for citations; net savings because citations reference structured data, not re-reading raw files
-
-**Plugin component**: command-development
+**Key Design Points:**
+- Citations require extraction_dir parameter: `query_story_data(extraction_dir, 'category', [optional_params])`
+- Validation prevents agents from citing nonexistent data
+- All 4 query sources covered with examples: metadata, turn_detail, turn_index, tracked_state
+- Non-negotiable rule: No citation evidence = field not proposed
 
 ---
 
