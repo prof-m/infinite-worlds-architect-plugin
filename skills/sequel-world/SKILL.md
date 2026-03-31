@@ -214,6 +214,16 @@ Note: The tracked_state.json structure contains snapshots with `from_turn`/`to_t
 ```
 (The story doesn't say "since childhood." This is a genre stereotype being substituted for missing detail.)
 
+**GOOD - Secret Info Citation:**
+```
+**Evidence:**
+From Turn #7 Secret Info: The ally harbors a hidden shame from court politics. Direct quote: "The ally was once a trusted advisor who engineered the downfall of three minor nobles to protect the crown's secrets. Now haunted by the memory of innocent servants caught in the crossfire."
+
+**Proposed Field Value:** Hidden Character Knowledge: "The protagonist discovers that their ally was once implicated in a court scandal that destroyed innocent lives. This hidden past drives the ally's obsessive loyalty to the current cause—a form of penance for past wrongs."
+
+**Verification:** ✓ cited from story data ✓ no fabrication ✓ integrates with character arc
+```
+
 ### Integration with the Verification Checklist
 
 Before proposing each field, combine the Story Accuracy Requirements guardrails with citation discipline:
@@ -256,13 +266,14 @@ Start with the Title. Present the proposed data for that field (incorporating de
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
 
 **Reference Guide for Field Proposals**
-When proposing field values, cite your extraction data sources:
-- For Background, Objective, and general story context: Reference `query_story_data(extraction_dir, 'metadata')`
-- For character details (appearance, status, relationships): Reference specific turn numbers from `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])`
-- For tracked item state and evolution: Reference `query_story_data(extraction_dir, 'tracked_state')`
-- For turn summaries and high-level story arc: Reference `query_story_data(extraction_dir, 'turn_index')`
+When proposing field values, use the human-readable citation formats defined in the "Citation Pattern" and "Examples of Correctly Cited vs Non-Cited Proposals" sections above:
+- **Story Metadata citations:** "From Story Metadata [field name]: [value]"
+- **Turn Outcome citations:** "From Turn #[number] Outcome: [summary]. Direct quote: [quote from turn outcome]"
+- **Secret Info citations:** "From Turn #[number] Secret Info: [summary]. Direct quote: [quote from secret info]"
+- **Tracked Item citations:** "From Turn #[number] Tracked Item [name]: [summary]. Direct Citation: [item name]'s value was '[value]' on Turn #[number]"
+- **Turn summaries:** "From Turn #[number] Outcome/Secret Info: [specific narrative detail]. Direct quote: [quote]"
 
-This keeps your field proposals grounded in structured, verified data rather than synthesized interpretations.
+Do NOT reference MCP function syntax (query_story_data, extraction_dir) in field proposals. Use the human-readable citation formats above to document where evidence comes from. This keeps your field proposals grounded in structured, verified data and transparent to users.
 
 **Integration with Field-by-Field Walkthrough:**
 
