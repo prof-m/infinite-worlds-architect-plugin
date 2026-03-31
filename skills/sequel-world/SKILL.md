@@ -85,6 +85,100 @@ Before proceeding with field-by-field refinement, establish these non-negotiable
 
 **For tracked items, preserve the exact state and descriptions from the story.** When extracting tracked item values, character motivations, secret projects, or hidden information, use only what appears explicitly in the story export. Do not invent "secret projects" a character might be working on, fabricate hidden motivations, or create mysterious "hidden tracked item" entries. If the story doesn't describe an item's state or a character's secret, leave it empty or mark it as "not described in story."
 
+## Story Facts Review
+
+After `extract_story_data` completes successfully, assemble a "Story Facts Brief" from the extracted data and present it to the user for review and correction. This step ensures accuracy and establishes a persistent record of verified facts that will guide the field-by-field walkthrough.
+
+### Step 1: Assemble Story Facts Brief
+
+Query the extraction data to gather key story information:
+
+1. Call `query_story_data(extraction_dir, 'metadata')` to retrieve story background, character background, and objective
+2. Call `query_story_data(extraction_dir, 'turn_index')` to retrieve turn summaries showing the story arc and key developments
+3. Call `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])` for the first 5-10 turns to capture initial character appearances, settings, and key events
+4. If `manifest.json` indicates tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to understand how tracked items evolved
+
+Format this data into a readable "Story Facts Brief" with these sections:
+- **Background**: Story setting, premise, and initial conditions (from metadata)
+- **Objective**: The player character's goal and motivation (from metadata)
+- **Characters**: For each character mentioned, list: name, first appearance turn, physical description (if provided in story), personality traits or behaviors observed, and last known location/status
+- **Key Events**: Major plot points, turning points, and story developments (from turn_index summaries and turn_detail)
+- **Current Status**: Where the story ended, unresolved threads, and character relationships at story conclusion
+
+### Step 2: Present Brief to User for Corrections
+
+Display the assembled Story Facts Brief to the user with this request:
+
+> "I've assembled a Story Facts Brief from the extraction. Please review it for accuracy and provide any corrections or clarifications on:
+> - Character appearances and physical descriptions
+> - Character personalities, motivations, and relationships
+> - Major events and plot developments
+> - Terminology or proper nouns used in the story
+> - Current status of characters and unresolved story threads
+>
+> Provide corrections in any format you prefer, and I'll merge them into a verified facts document."
+
+Wait for the user to provide corrections, clarifications, or confirmation that the brief is accurate.
+
+### Step 3: Write verified_story_facts.md
+
+Based on the user's review, write a `verified_story_facts.md` file to the extraction directory (alongside `manifest.json`, `metadata.json`, etc.). This file serves as the persistent ground truth for this extraction.
+
+Structure the file as follows:
+
+```markdown
+# Verified Story Facts
+
+**Story**: [title from metadata]
+**Extraction Date**: [timestamp]
+**Source**: [extracted from N turns across M source file(s)]
+
+## Original Facts (from Extraction)
+
+[Assembled brief as presented to user]
+
+## User Corrections & Clarifications
+
+[Summarize user's corrections, or note "No corrections provided"]
+
+## Resolved Facts
+
+[Merged version with user corrections applied. This is the authoritative version to reference during field proposals]
+
+### Characters
+
+- **[Name]**: [Corrected description], appears in turn(s) [N, N+1, ...], last known [location/status]
+- [Additional characters...]
+
+### Key Events
+
+- Turn [N]: [Event description with corrections]
+- [Additional events...]
+
+### Terminology & Proper Nouns
+
+- [Term]: [Definition as used in story]
+- [Additional terms...]
+
+### Unresolved Threads
+
+- [Open question or plot thread]
+- [Additional threads...]
+```
+
+If the user provided no corrections, write the file with a note: "No corrections provided — original facts verified as accurate."
+
+### Step 4: Load and Reference During Field-by-Field Walkthrough
+
+When proceeding to field-by-field refinement, load the `verified_story_facts.md` file before proposing field values. When proposing any field that relates to characters, events, appearance, relationships, motivations, or story elements:
+
+- Reference the verified facts: "From verified_story_facts.md: [character/event/detail]"
+- Use verified facts to ensure consistency across multiple fields (e.g., character appearance field, character relationship fields, tracked item state fields)
+- If a field proposal could contradict verified facts, note the contradiction and ask the user for clarification
+- This prevents downstream errors where one field correction cascades across multiple unrelated fields
+
+**Example**: If verified facts note "Alice was betrayed by Bob in turn 7," when proposing the "Possible Characters" field for Bob, reference this fact to ensure any character description or relationship aligns with the verified betrayal narrative.
+
 ## Field-Level Verification Checklist
 
 Before proposing any field value, verify:
