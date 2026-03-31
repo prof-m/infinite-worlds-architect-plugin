@@ -3,6 +3,7 @@
 .worktrees/
 .claude/
 claude-scratchpad/
+/claude-scratchpad/
 
 # WSL2 git worktree artifacts — empty stub files created by failed git operations
 /.bashrc

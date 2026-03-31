@@ -27,8 +27,10 @@
 ## Known Issues
 - Git worktree operations on WSL emit "could not write config file: Device or resource busy" — non-blocking, use `rm -rf` + `git worktree prune` as fallback.
 
-## Roadmap
-- See `claude-scratchpad/improvement-roadmap.md` for the full prioritized improvement backlog (P0-P3).
+## Use the Scratchpad Directory For Temporary Files
+When creating temporary files or files that are not meant to be committed to the main repo, always place those files in the claude-scratchpad directory. Before creating any file, always check if it's a file that needs to be committed to the repository. If it's not, put it in the claude-scratchpad directory.
+
+Before committing any files, review them carefully to make sure each file is relevant to the commit's purpose. If there are extraneous files in the commit, move them to the claude-scratchpad directory before committing.
 
 ## Story Data Extraction Tools
 

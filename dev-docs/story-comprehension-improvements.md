@@ -13,9 +13,15 @@
 3. [Proposal 2: Story State Extraction — 2B IMPLEMENTED](#proposal-2-story-state-extraction--2b-implemented)
 4. [Integration Roadmap](#integration-roadmap-using-2b-in-sequel-world-and-spinoff-world)
 5. [Proposal 2C: Agent-Based Narrative Extraction (Refined)](#proposal-2c-agent-based-narrative-extraction-refined-based-on-2b-implementation)
-6. [Proposal 3-8: Other Proposals](#remaining-proposals-3-5-7-8)
+6. [Remaining Proposals (3, 4, 5, 7, 8)](#remaining-proposals-3-4-5-7-8)
+   - [Proposal 3: Safety Fallbacks](#proposal-3-safety-fallbacks-manual-processing--summary-validation)
+   - [Proposal 4: Character Field Writing Guide](#proposal-4-character-field-writing-guide-2b-integration)
+   - [Proposal 5: Source-First Field Proposal Protocol](#proposal-5-source-first-field-proposal-protocol-2b-integration)
+   - [Proposal 7: Story-to-Lorebook Output Strategy](#proposal-7-story-to-lorebook-output-strategy-2b-integration)
+   - [Proposal 8: Pre-Generation Story Facts Review](#proposal-8-pre-generation-story-facts-review-2b-integration)
 7. [Prioritized Implementation Order](#prioritized-implementation-order)
-8. [Known Limitations](#known-limitations-and-design-notes)
+8. [Known Limitations and Design Notes](#known-limitations-and-design-notes)
+9. [Adversarial Review Notes](#adversarial-review-notes-from-original-analysis)
 
 ---
 

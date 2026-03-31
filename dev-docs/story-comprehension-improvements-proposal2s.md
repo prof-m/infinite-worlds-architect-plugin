@@ -40,7 +40,7 @@ This document expands Proposal 2 from [story-comprehension-improvements.md](stor
 
 **MCP tool definition** (added to `index.js` alongside `compile_draft`, `validate_world`, etc.):
 
-```js
+```jsdoc
 {
     name: "extract_story_state",
     description: "Parse a story export file and produce structured JSON extraction of story metadata, player character sheet, tracked item histories, character mention counts, and per-turn section text. In hybrid mode (2C), also extracts character descriptions, relationships, locations, plot milestones, and unresolved threads via LLM calls. Accepts an optional source world JSON for NPC name seeding.",
