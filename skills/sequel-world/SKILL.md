@@ -17,7 +17,7 @@ Once all paths and names are confirmed:
 
 **Integration Task 1: Extract Story Data**
 Call the `extract_story_data` MCP tool to parse the story export(s) into structured JSON. This replaces manually reading the entire raw file and prevents hallucination from working with thousands of lines of unstructured text.
-- Specify an extraction directory (e.g., `extracted_story/` relative to your output directory)
+- Specify an extraction directory (e.g., `extracted_story/` relative to your output directory). Ensure the extraction directory exists before calling the tool, or use an absolute path.
 - The tool will return success/failure status and create output files (manifest.json, metadata.json, turn_index.json, tracked_state.json)
 - If extraction succeeds, continue with Task 2. If it fails, warn the user and fall back to reading the raw export file directly.
 
@@ -26,7 +26,7 @@ Instead of reading the entire export file, use `query_story_data` to load struct
 1. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
 2. Call `query_story_data(extraction_dir, 'turn_index')` to see a summary of all turns with action/outcome previews. Use this to understand turn distribution and identify key turning points.
 3. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', [N, ...])` passing the turn numbers you want to examine. This loads the full context/action/result text for those specific turns without loading the entire export.
-4. If tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to load the state history of tracked items across the story.
+4. If tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to load the state history of tracked items across the story. (Optimization: Before querying tracked_state, check the manifest's `trackedItemsFound` flag. If false, skip the tracked_state query entirely.)
 
 These queries give you structured data with far better context efficiency than reading raw story text.
 
@@ -78,6 +78,8 @@ When proposing field values based on the story:
 - When a detail is uncertain or absent from the story, explicitly say "not mentioned in the story" rather than fabricating
 
 Then, guide me strictly FIELD-BY-FIELD through refining this draft.
+**Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
+
 Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask me how I'd like to modify it. Once I answer, update the markdown file using `update_draft_section`, and wait for my approval before moving to the next field. Do not group fields together unless I explicitly ask you to.
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
