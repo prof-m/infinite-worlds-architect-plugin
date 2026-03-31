@@ -232,6 +232,100 @@ Both PRs received high marks from independent review:
 
 ---
 
+## Proposal 8: Pre-Generation Story Facts Review (✅ IMPLEMENTED)
+
+**Status**: ✅ FULLY IMPLEMENTED AND MERGED (PR #24, commit b8e1f85)
+
+**What Was Implemented**
+
+Added a comprehensive user-driven story facts review workflow that runs after extraction and before field-by-field work. Users review and correct extracted facts; corrections persist in verified_story_facts.md and prevent cascading field errors.
+
+**How It Works**
+
+**Step 0: Pre-Flight Verification** — Verify extraction succeeded, files exist, query tools work
+
+**Step 1: Assemble Story Facts Brief** — Query extraction data and format into 8-section brief:
+- Background (story setting/premise)
+- Objective (player character goal)
+- Characters (names, descriptions, appearances, relationships, status)
+- Character Relationships (alliances, rivalries, betrayals, family)
+- Key Locations (places and significance)
+- Major Events (plot points with turn numbers)
+- Story Arc Summary (opening, turning points, climax, resolution, threads)
+- Current Status (final state of characters and world)
+
+**Step 2B: User Review & Response Handling** — Explicit 5-row decision table:
+- Corrections provided → incorporate and loop
+- Confirmation given → proceed with brief as-is
+- Multiple corrections → incorporate all, ask for more
+- Ambiguous response → ask for clarification
+- No response → ask again
+
+**Step 3: Write verified_story_facts.md** — Persist user corrections in extraction directory with three sections:
+- Original Facts (from 2B extraction)
+- User Corrections (what user fixed)
+- Resolved Facts (merged, with user input applied)
+
+**Step 4: Load and Reference** — During field-by-field work:
+- Load verified_story_facts.md
+- Reference by field type (characters → Characters section, events → Events section, etc.)
+- Handle contradictions with user
+- Maintain consistency across fields using verified facts
+
+**Files Modified**
+
+- `skills/sequel-world/SKILL.md` — Added 300+ lines:
+  - Pre-Flight Verification (Step 0)
+  - Story Facts Review workflow (Steps 1-4)
+  - 8-section Story Facts Brief template
+  - Step 2B user response decision tree
+  - Error handling for file write failures
+  - File path specification with escaping and directory creation
+  - Loading mechanism for field-by-field reference
+
+**Design Choices**
+
+1. **User-driven, not prescriptive** — Non-structured format for corrections gives users flexibility
+2. **Persistent verification** — verified_story_facts.md persists across runs if story unchanged
+3. **Consistent field work** — References prevent contradictions across related fields (character appearance, relationships, status)
+4. **Error resilience** — Handles extraction failure, file write failure, user ambiguity
+5. **Pre-flight validation** — Prevents wasted effort querying nonexistent data
+
+**Implementation Complexity**
+
+- Added ~300 lines of documentation and workflow
+- Uses existing extract_story_data and query_story_data tools (no MCP changes)
+- File I/O is agent-implemented (writes Markdown to extraction directory)
+- User interaction is interactive (waits for corrections, handles responses)
+- No code changes; pure documentation/guidance
+
+**PR Details**
+
+- Branch: `feature/proposal-8-story-facts-review`
+- Initial implementation: Commit b8e1f85 with all review fixes applied
+- Review findings: 4 HIGH issues fixed before final review
+- Final assessment: READY TO MERGE
+
+**Token Impact**
+
+- Upfront cost: +500-1500 tokens for review and corrections
+- Per-field savings: Verified facts prevent multi-field error propagation
+- Break-even or positive ROI on medium/large stories
+- Especially valuable for stories with many characters and relationships
+
+**Next Phase**
+
+Proposal 8 strongly complements Proposal 4 (Character Field Writing Guide) by providing the user-verified facts that the guide references. Also sets the stage for Proposal 2C (Agent-Based Narrative Extraction) which would build on this verified facts foundation.
+
+**Known Behavior**
+
+- If user provides no corrections, verified_story_facts.md still written with "User confirmed brief is accurate" note
+- If extraction incomplete, workflow offers to re-run extraction or skip facts review
+- If file write fails, user offered 3 options (retry, skip, fix permissions)
+- verified_story_facts.md can be manually edited by user between sessions for persistent corrections
+
+---
+
 ## Next Steps: Remaining Proposals
 
 See `story-comprehension-improvements.md` for:
@@ -240,6 +334,5 @@ See `story-comprehension-improvements.md` for:
 - Proposal 4: Character Field Writing Guide
 - Proposal 5: Source-First Field Proposal Protocol
 - Proposal 7: Story-to-Lorebook Output Strategy
-- Proposal 8: Pre-Generation Story Facts Review
 
 Priority order and dependencies documented in main roadmap.

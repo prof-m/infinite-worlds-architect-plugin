@@ -283,25 +283,23 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Proposal 8: Pre-Generation Story Facts Review (2B Integration)
 
-**Status**: Ready to implement (after Integration Task 1)
+**Status**: ✅ FULLY IMPLEMENTED & MERGED (PR #24, commit b8e1f85)
 
-**What**: After extraction completes, agent assembles "Story Facts Brief" from 2B's extraction data. User reviews and corrects; agent writes verified_story_facts.md to persist corrections. Agent loads and references during field-by-field walkthrough.
+**What Was Implemented:**
+- Added "Story Facts Review" section with 5-step workflow (Step 0 through Step 4)
+- Step 0: Pre-flight verification (extract success, file existence, query connectivity)
+- Step 1: Assemble Story Facts Brief from extraction data (8 sections: Background, Objective, Characters, Relationships, Locations, Events, Arc, Status)
+- Step 2B: Explicit user response decision tree (corrections vs. confirmation vs. ambiguous)
+- Step 3: Write verified_story_facts.md to extraction directory (persistent across sessions)
+- Step 4/5: Load and reference during field-by-field walkthrough to maintain consistency
+- Files Modified: `skills/sequel-world/SKILL.md`
 
-**How**:
-- Agent calls extract_story_data and waits for success
-- Agent assembles brief from 2B's extraction data: query_story_data(category='metadata') for background/objective; query_story_data(category='turn_detail', turn_nums) for character appearances and key events
-- Agent presents brief to user with requested corrections
-- User corrects character appearances, personality, relationships, major events, current status, terminology
-- Agent writes `verified_story_facts.md` file (agent-implemented file I/O; not a 2B feature) to extraction directory to persist corrections
-- Agent loads and references this file throughout field-by-field walkthrough to ensure consistency
-
-**Dependencies**: Integration Task 1 (extract_story_data called)
-
-**Complexity**: Medium (orchestration + user interaction + file persistence)
-
-**Expected token impact**: Upfront cost (~500-1500 tokens for review) + per-field savings (corrections prevent multi-field propagation). Break-even or positive ROI on medium/large stories.
-
-**Plugin component**: command-development + user-interaction
+**Key Design Points:**
+- Upfront cost offset by per-field savings from correction persistence
+- User-driven corrections prevent cascading field errors
+- Verified facts take precedence during field work
+- Error handling for file write failures (permissions, disk space, missing directory)
+- Complete with 8-section template and explicit user interaction tree
 
 ---
 
@@ -324,7 +322,7 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 |----------|------|--------|-----------|------|
 | P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c |
 | P2b | Proposal 5: Source-First Field Proposal Protocol | Ready | Low-Medium | P1c |
-| P2c | Proposal 8: Pre-Generation Story Facts Review | Ready | Medium | P1b |
+| P2c | Proposal 8: Pre-Generation Story Facts Review | ✅ DONE | Medium | P1b | PR #24 (2026-03-31) |
 
 ### Tier 3: Polish & Future
 
@@ -337,15 +335,13 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 ### Implementation Dependencies
 
 ```
-✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c)
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2c)
    │
-   ├─── READY: Tier 2 Proposals (P2a, P2b, P2c)
+   ├─── READY: Tier 2 Proposals (P2a, P2b)
    │    ├─ P2a: Character Field Writing Guide (depends on P1c query tools)
-   │    ├─ P2b: Source-First Field Citations (depends on P1c guardrails)
-   │    └─ P2c: Story Facts Review (depends on P1b extraction)
+   │    └─ P2b: Source-First Field Citations (depends on P1c guardrails)
    │
-   └─── READY: Tier 3 Polish & Future (P3a, P3b, P3c)
+   └─── READY: Tier 3 Polish & Future (P3a, P3b)
         ├─ P3a: Lorebook Distribution (independent)
-        ├─ P3b: Safety Fallbacks (independent)
-        └─ P3c: Agent-Based Narrative Extraction (depends on P1c query tools)
+        └─ P3b: Safety Fallbacks (independent)
 ```
