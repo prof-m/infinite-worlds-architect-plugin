@@ -399,7 +399,10 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 **How**:
 - Create `skills/world-architect/references/story_context_distribution.md`
 - Define tiers: Always-on fields (background, instructions, objective from 2B) vs. Keyword blocks (character/location specific, populated from 2B's tracked_state and turn_detail) vs. Hidden tracked items vs. SecretInfo blobs
-- Document how to use 2B's multi-file output to distribute context efficiently: load metadata.json always, load turn_detail selectively, include tracked_state in character keyword blocks
+- Document how to use 2B's multi-file output to distribute context efficiently:
+  - Always load: manifest.json (extraction metadata), metadata.json (story background/objective)
+  - Load conditionally: turn_index.json (turn summaries), tracked_state.json (if present), character_index.json (if present)
+  - Load selectively: turn_detail queries for deep narrative understanding of specific turns
 - Add distribution guidance to sequel-world/spinoff-world command prompts
 
 **Dependencies**: None (can be done independently; benefits from having 2B available)
@@ -420,10 +423,10 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 **How**:
 - Agent calls extract_story_data and waits for success
-- Agent assembles brief from extraction data: query_story_data(category='metadata') for background/objective; query_story_data(category='turn_detail', turn_nums) for character appearances and key events
+- Agent assembles brief from 2B's extraction data: query_story_data(category='metadata') for background/objective; query_story_data(category='turn_detail', turn_nums) for character appearances and key events
 - Agent presents brief to user with requested corrections
 - User corrects character appearances, personality, relationships, major events, current status, terminology
-- Agent writes `verified_story_facts.md` with corrections (persisted in extraction directory alongside JSON)
+- Agent writes `verified_story_facts.md` file (agent-implemented file I/O; not a 2B feature) to extraction directory to persist corrections
 - Agent loads and references this file throughout field-by-field walkthrough to ensure consistency
 
 **Dependencies**: Integration Task 1 (extract_story_data called)
