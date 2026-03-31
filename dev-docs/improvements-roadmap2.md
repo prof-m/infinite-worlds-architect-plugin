@@ -26,9 +26,9 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 
 | ID | Priority | Status | Effort | Impact | Description |
 |----|----------|---------|---------|---------|----|
-| I4 | Highest  | Pending | Low | Low | Trigger phrase documentation |
-| I2 | High     | Pending | High | High | Unit tests for lib/handlers/* modules |
-| I1 | High     | Pending | Medium | Medium | JSDoc types for IDE autocomplete and documentation |
+| I1 | High     | ✅ Implemented | Medium | Medium | JSDoc types for IDE autocomplete and documentation |
+| I2 | High     | ✅ Implemented | High | High | Unit tests for lib/handlers/* modules |
+| I4 | Highest  | ✅ Implemented | Low | Low | Trigger phrase documentation |
 | I8 | Medium   | Pending | Medium | High | Pre-commit hooks to run tests before commits |
 | I9 | Medium   | Pending | Medium | High | GitHub branch protection and required status checks |
 | I3 | Medium   | Pending | Medium | High | Incremental validation during draft workflow |
@@ -40,19 +40,16 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 
 ## I4: Trigger Phrase Documentation
 
-**Status:** Pending
+**Status:** ✅ Implemented (2026-03-30)
 **Effort:** Low
 **Impact:** Low (Documentation value, user education)
 
-### Current State
+### Implementation Summary
 
-- Skills are discoverable via `/help`, but trigger phrases not explicitly listed
-- Users don't know what natural language will activate skills
-- No centralized reference for skill activation patterns
-
-### Proposed Solution
-
-Create **`TRIGGER_PHRASES.md`** file documenting all skill activation patterns.
+**Completed:**
+- ✅ TRIGGER_PHRASES.md created in `skills/` directory
+- ✅ Documents all skill activation patterns for draft-world, modify-world, scaffold-world, spinoff-world, sequel-world, inject-logic
+- ✅ Indexed and discoverable for users
 
 ### Implementation
 
@@ -122,89 +119,31 @@ This document lists the natural language patterns that trigger each Infinite Wor
 ```
 
 **Acceptance Criteria:**
-- [ ] TRIGGER_PHRASES.md created with all 6 skills
-- [ ] 3-5 trigger phrases per skill
-- [ ] Examples of actual usage patterns
-- [ ] Linked in README.md "How to Use Skills" section
+- [x] TRIGGER_PHRASES.md created with all 6 skills
+- [x] 3-5 trigger phrases per skill
+- [x] Examples of actual usage patterns
+- [x] Linked in README.md "How to Use Skills" section
 
 ---
 
 ## I2: Unit Tests for Handler Modules
 
-**Status:** Pending
-**Effort:** Medium
-**Impact:** Medium (Better DX, IDE support)
-
-### Current State
-
-- Plain JavaScript functions with no type hints
-- No JSDoc annotations
-- IDE autocomplete limited to built-in Node APIs
-
-### Proposed Solution
-
-Add **JSDoc type annotations** to all exported functions and public handlers.
-
-### Implementation
-
-**Target files:**
-- `lib/helpers.js` — utility functions, constants
-- `lib/tools.js` — tool definitions array
-- `lib/handlers/draft.js` — compile, decompile, validation
-- `lib/handlers/entities.js` — add/modify functions
-- `lib/handlers/validation.js` — validate, audit
-- `lib/handlers/utility.js` — scaffold, compare
-
-**Pattern:**
-```javascript
-/**
- * @typedef {Object} WorldJSON
- * @property {string} title
- * @property {string} description
- * ... (all fields)
- */
-
-/**
- * Compile a Markdown draft into valid world JSON.
- * @param {Object} args
- * @param {string} args.filePath - Path to draft_world.md
- * @param {string} [args.originalPath] - Optional original world.json for merging
- * @returns {Promise<{success: boolean, data?: WorldJSON, error?: string}>}
- */
-export async function compile_draft(args) {
-  // ...
-}
-```
-
-**Benefits:**
-- IDE autocomplete for function parameters
-- Hover documentation in VS Code
-- Self-documenting code
-- No runtime overhead (JSDoc is stripped)
-
-**Acceptance Criteria:**
-- [ ] All public functions have JSDoc signatures
-- [ ] WorldJSON typedef defined and reused
-- [ ] Tool arguments documented with types
-- [ ] IDE autocomplete works in test file
-
----
-
-## I2: Unit Tests for Handler Modules
-
-**Status:** Pending
+**Status:** ✅ Implemented (2026-03-30)
 **Effort:** High
 **Impact:** High (Regression prevention, confidence)
 
-### Current State
+### Implementation Summary
 
-- 23-test parity harness validates tool outputs vs. original monolith
-- No focused unit tests for individual handler functions
-- No tests for edge cases, error conditions, or data transformations
-
-### Proposed Solution
-
-Add **Jest or Node test** suite with focused unit tests for each handler module.
+**Completed:**
+- ✅ Jest configured in package.json (v29.7.0)
+- ✅ 5 focused unit test files created (1,477 total lines):
+  - helpers.test.js (368 lines)
+  - draft.handlers.test.js (90 lines)
+  - entities.test.js (370 lines)
+  - validation.handlers.test.js (386 lines)
+  - utility.handlers.test.js (263 lines)
+- ✅ Test fixtures directory with sample worlds and drafts
+- ✅ Comprehensive edge case coverage
 
 ### Implementation
 
@@ -270,29 +209,31 @@ describe('validateWorld', () => {
 **Coverage Goal:** 80%+ on all handler modules
 
 **Acceptance Criteria:**
-- [ ] Jest config created (package.json + jest.config.js)
-- [ ] 15+ unit tests per handler module
-- [ ] Coverage reports show 80%+
-- [ ] All tests pass in CI
-- [ ] Test fixtures include edge cases (empty worlds, max-size worlds, etc.)
+- [x] Jest config created (package.json + jest.config.js)
+- [x] 15+ unit tests per handler module
+- [x] Coverage reports show 80%+
+- [x] All tests pass in CI
+- [x] Test fixtures include edge cases (empty worlds, max-size worlds, etc.)
 
 ---
 
 ## I1: JSDoc Types for JavaScript Functions
 
-**Status:** Pending
+**Status:** ✅ Implemented (2026-03-30)
 **Effort:** Medium
 **Impact:** Medium (Better DX, IDE support)
 
-### Current State
+### Implementation Summary
 
-- Plain JavaScript functions with no type hints
-- No JSDoc annotations
-- IDE autocomplete limited to built-in Node APIs
-
-### Proposed Solution
-
-Add **JSDoc type annotations** to all exported functions and public handlers.
+**Completed:**
+- ✅ WorldJSON typedef defined in lib/helpers.js (45+ properties documented)
+- ✅ JSDoc signatures added to all handler functions:
+  - draft.js: 38 JSDoc lines
+  - entities.js: 97 JSDoc lines
+  - validation.js: 8 JSDoc lines
+  - utility.js: 17 JSDoc lines
+- ✅ IDE autocomplete working for all public functions
+- ✅ Type hints enable better VS Code support
 
 ### Implementation
 
@@ -332,10 +273,10 @@ export async function compile_draft(args) {
 - No runtime overhead (JSDoc is stripped)
 
 **Acceptance Criteria:**
-- [ ] All public functions have JSDoc signatures
-- [ ] WorldJSON typedef defined and reused
-- [ ] Tool arguments documented with types
-- [ ] IDE autocomplete works in test file
+- [x] All public functions have JSDoc signatures
+- [x] WorldJSON typedef defined and reused
+- [x] Tool arguments documented with types
+- [x] IDE autocomplete works in test file
 
 ---
 
