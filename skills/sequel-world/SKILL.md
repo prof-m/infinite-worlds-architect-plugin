@@ -85,6 +85,94 @@ Before proceeding with field-by-field refinement, establish these non-negotiable
 
 **For tracked items, preserve the exact state and descriptions from the story.** When extracting tracked item values, character motivations, secret projects, or hidden information, use only what appears explicitly in the story export. Do not invent "secret projects" a character might be working on, fabricate hidden motivations, or create mysterious "hidden tracked item" entries. If the story doesn't describe an item's state or a character's secret, leave it empty or mark it as "not described in story."
 
+## Field Proposal Citation Requirements
+
+Every field proposal must be grounded in extraction data with explicit evidence citations. This prevents fabrication and anchors proposals to structured, verified story data.
+
+### Citation Pattern
+
+For each field proposal, follow this pattern:
+1. **Cite the extraction data first** — before proposing a value, identify where it comes from.
+2. **Format the citation clearly** — use one of these citation templates:
+   - `From query_story_data(category='metadata'): [extracted fact]`
+   - `From query_story_data(category='turn_detail', [turn_numbers]): [specific narrative detail]`
+   - `From query_story_data(category='turn_index'): [turn summary or arc detail]`
+   - `From query_story_data(category='tracked_state'): [item state/evolution]`
+3. **Precede every field proposal with "Evidence:" tag** — make it explicit and easy to review:
+   ```
+   **Evidence:** From query_story_data(category='metadata'): objective = "rescue the missing diplomat"
+   
+   **Proposed Field Value:** This world's Objective should focus on the mission established in the story...
+   ```
+
+### When Extraction Data Is Available
+
+Use specific extraction data directly:
+- **If metadata contains the field**: Cite it verbatim. Example: "From query_story_data(category='metadata'): story_objective = 'stop the invasion'"
+- **If turn details describe the field**: Cite specific turns. Example: "From query_story_data(category='turn_detail', [3, 7, 12]): These turns show the character's combat skills developing..."
+- **If tracked items define the field**: Cite the state evolution. Example: "From query_story_data(category='tracked_state'): The 'trust_level' tracked item evolved from 0 to 85 across the story..."
+
+### When Extraction Data Lacks the Field
+
+If a field isn't covered in extraction data:
+1. **Search related turn data** — query `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])` for specific narrative evidence before proposing a value.
+2. **Cite the turn numbers** — even if the data is sparse, cite the exact turns you examined. Example: "From query_story_data(category='turn_detail', [1, 2, 4]): These turns contain the only character descriptions in the story..."
+3. **Mark gaps explicitly** — if no evidence supports the field, say so: "No evidence found in query_story_data results for this field."
+
+### Examples of Correctly Cited vs Non-Cited Proposals
+
+**GOOD - Extraction-Based Citation:**
+```
+**Evidence:** From query_story_data(category='metadata'): The objective is "find the hidden temple and retrieve the artifact."
+
+**Proposed Field Value:** Objective = "Find the hidden temple and retrieve the artifact."
+```
+
+**GOOD - Turn-Specific Citation:**
+```
+**Evidence:** From query_story_data(category='turn_detail', [5, 8, 14]): The protagonist learns new navigation techniques in turn 5, teaches them to the ally in turn 8, and applies them in turn 14.
+
+**Proposed Field Value:** Main Instructions should emphasize navigation and teamwork, as these became central mechanics.
+```
+
+**GOOD - Gap Identification:**
+```
+**Evidence:** From query_story_data(category='turn_index'): Turn summaries do not mention the protagonist's backstory or motivations.
+
+**Proposed Field Value:** Background section should remain minimal, reflecting that the story focuses on present action rather than origin details. Left unfilled: Character's original motivations (not described in story).
+```
+
+**BAD - No Citation:**
+```
+**Proposed Field Value:** The character is a seasoned warrior with a troubled past and a secret family.
+```
+(Where is this from? Not in the story. This is fabrication.)
+
+**BAD - Generic Citation:**
+```
+**Evidence:** I read the story and it seems like this character should have combat skills.
+
+**Proposed Field Value:** Skills should include combat mastery.
+```
+(Vague. Did the story explicitly state this, or is this inference?)
+
+**BAD - Assumption Over Evidence:**
+```
+**Evidence:** The character is a fighter, so they probably have years of training.
+
+**Proposed Field Value:** Background: "Trained in the martial arts since childhood."
+```
+(The story doesn't say "since childhood." This is a genre stereotype being substituted for missing detail.)
+
+### Integration with the Verification Checklist
+
+Before proposing each field, combine the Story Accuracy Requirements guardrails with citation discipline:
+- **Guardrail Check**: Is this detail explicitly stated in the story, or am I inferring/inventing?
+- **Citation Check**: Can I cite extraction data (metadata, turn_detail, tracked_state) that supports this?
+- **Gap Check**: If no citation exists, should I propose this field at all, or mark it as "not described in story"?
+
+If you cannot cite the field from extraction data, do not propose it. Leave it empty, uncertain, or explicitly note "not described in story."
+
 ## Field-Level Verification Checklist
 
 Before proposing any field value, verify:
@@ -93,8 +181,10 @@ Before proposing any field value, verify:
 - Am I inventing proper nouns, ability names, or terminology not in the story?
 - Does my proposal accurately reflect the tone (literal vs sarcasm)?
 - Am I softening dark/complex elements that should be preserved?
+- **Can I cite this from extraction data?** (metadata, turn_detail, turn_index, or tracked_state)
+- **If no citation exists, should I propose this field at all?**
 
-Refer back to the Story Accuracy Requirements section above if you're uncertain about any field proposal.
+Refer back to the Story Accuracy Requirements and Field Proposal Citation Requirements sections above if you're uncertain about any field proposal.
 
 Then, guide me strictly FIELD-BY-FIELD through refining this draft.
 **Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
