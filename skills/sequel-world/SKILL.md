@@ -157,7 +157,7 @@ If a field isn't covered in extraction data:
 
 **GOOD - Tracked Item State Evolution:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'tracked_state', ['Locked']): 
+**Evidence:** From query_story_data(extraction_dir, 'tracked_state'): 
   - Turn 1-7: state = 'Locked'
   - Turn 8: state = 'Unlocked' (change detected)
   - Turn 9+: state = 'Available'
