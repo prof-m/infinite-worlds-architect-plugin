@@ -232,14 +232,45 @@ Both PRs received high marks from independent review:
 
 ---
 
+## Proposal 8 Status Update (2026-03-31)
+
+**PR #24 Closed**: Proposal 8 implementation attempt shelved pending Proposal 2C completion.
+
+**Reason**: PR #24 review (8 detailed comments) revealed critical design gaps that cannot be resolved without Proposal 2C (Agent-Based Narrative Extraction) foundation:
+
+1. **File I/O pattern misalignment** - Atomic write pattern not specified; plugin standard vs. agent responsibility unclear
+2. **Parameter type ambiguity** - query_story_data turn parameter (string vs. numeric) inconsistency in Step 1
+3. **Markdown parsing strategy undefined** - No standardized format for "Resolved Facts" extraction from user-provided markdown
+4. **Unimplementable timeout logic** - Step 2B timeout handling impossible for agents (no background timers)
+5. **Context overflow risk** - Turn detail queries for 5+ turns on large stories could exceed budget
+6. **Redundant verification** - extract_story_data filesWritten response makes re-verification unnecessary
+7. **Redundant sections** - Story Accuracy Requirements duplicated existing guidance
+8. **Unmapped narrative data** - Key Locations field extracted but no world JSON destination
+
+**Revised Plan**: Proposal 8 becomes viable as **narrative review gate** once Proposal 2C provides:
+- Structured narrative data (`narrative/` directory with characters, relationships, locations, events)
+- Standardized extraction format (eliminating parsing ambiguity)
+- Selective context loading (avoiding overflow risks)
+
+**Current Dependency Chain**:
+```
+✅ P1, P1b, P1c, P2b, P2b Integration + P5 complete
+   ↓
+→ P2c (Agent-Based Narrative Extraction) — design phase, next priority
+   ↓
+→ P8 (Pre-Generation Story Facts Review) — blocked until P2c foundation exists
+```
+
+---
+
 ## Next Steps: Remaining Proposals
 
 See `story-comprehension-improvements.md` for:
-- Proposal 2C: Agent-Based Narrative Extraction
+- Proposal 2C: Agent-Based Narrative Extraction (HIGH PRIORITY - blocks Proposal 8)
 - Proposal 3: Safety Fallbacks
 - Proposal 4: Character Field Writing Guide
 - Proposal 7: Story-to-Lorebook Output Strategy
-- Proposal 8: Pre-Generation Story Facts Review
+- Proposal 8: Pre-Generation Story Facts Review (BLOCKED on P2c)
 
 Priority order and dependencies documented in main roadmap.
 

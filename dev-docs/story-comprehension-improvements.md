@@ -5,7 +5,9 @@
 **Latest Update (2026-03-31)**: 
 - ✅ **Proposal 1** (Anti-Fabrication Guard Rails) - FULLY IMPLEMENTED (PR #22)
 - ✅ **Integration Tasks 1 & 2** (Extract & Query Story Data) - FULLY IMPLEMENTED (PR #21)
+- ✅ **Proposal 5** (Source-First Field Proposal Protocol) - FULLY IMPLEMENTED (PR #23)
 - ✅ **Proposal 2B** (Story State Extraction) - FULLY IMPLEMENTED & INTEGRATED (PR #10, original implementation)
+- ❌ **Proposal 8** (Pre-Generation Story Facts Review) - SHELVED, blocked on Proposal 2C completion (PR #24 closed)
 
 **Implementation archived**: See `story-comprehension-improvements-implemented.md` for completed work details.
 
@@ -282,25 +284,37 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Proposal 8: Pre-Generation Story Facts Review (2B Integration)
 
-**Status**: Ready to implement (after Integration Task 1)
+**Status**: ❌ SHELVED — BLOCKED BY PROPOSAL 2C (As of PR #24 review, 2026-03-31)
 
-**What**: After extraction completes, agent assembles "Story Facts Brief" from 2B's extraction data. User reviews and corrects; agent writes verified_story_facts.md to persist corrections. Agent loads and references during field-by-field walkthrough.
+**Why Shelved**: PR #24 attempted implementation revealed critical design flaws that cannot be resolved without Proposal 2C (Agent-Based Narrative Extraction) first:
 
-**How**:
-- Agent calls extract_story_data and waits for success
-- Agent assembles brief from 2B's extraction data: query_story_data(category='metadata') for background/objective; query_story_data(category='turn_detail', turn_nums) for character appearances and key events
-- Agent presents brief to user with requested corrections
-- User corrects character appearances, personality, relationships, major events, current status, terminology
-- Agent writes `verified_story_facts.md` file (agent-implemented file I/O; not a 2B feature) to extraction directory to persist corrections
-- Agent loads and references this file throughout field-by-field walkthrough to ensure consistency
+1. **No narrative extraction data available** — Proposal 8 depends on assembled "character descriptions + relationships + key locations" but 2B alone provides only tracked items + turn text, not narrative structure
+2. **Redundant with Proposal 4** — Pre-generation review overlaps with Character Field Writing Guide; 2C agents should own narrative extraction, not user review
+3. **File I/O complexity unresolved** — PR #24 revealed atomic write pattern should match plugin's standard (write-to-temp, rename), but documentation didn't specify responsibility (agent vs. plugin)
+4. **Parsing strategy undefined** — Markdown parsing for "Resolved Facts" section needs standardized format (H2 headers, subsections) that only 2C can define
+5. **Context budget risks** — Turn detail queries for narrative understanding (turns 1-5+) can overflow on large stories; 2C's selective extraction avoids this
+6. **Parameter type ambiguity** — query_story_data turn parameter inconsistency (strings vs. numbers) caused confusion in Step 1 implementation
+7. **Redundant verification** — extract_story_data response includes filesWritten array; asking agent to re-verify file existence adds no value
 
-**Dependencies**: Integration Task 1 (extract_story_data called)
+**Original Concept**: After extraction completes, agent assembles "Story Facts Brief" from 2B's extraction data. User reviews and corrects; agent writes verified_story_facts.md to persist corrections. Agent loads and references during field-by-field walkthrough.
 
-**Complexity**: Medium (orchestration + user interaction + file persistence)
+**Revised Plan After 2C**:
+- Once 2C agents extract narrative data (characters, relationships, locations, events), Proposal 8 becomes viable as a **narrative review gate** before field-by-field work
+- 2C output (`narrative/` directory) provides structured facts to present to user
+- User corrections update narrative data, not just tracked items
+- This eliminates most design ambiguities from PR #24 (file I/O, parsing, context budget)
 
-**Expected token impact**: Upfront cost (~500-1500 tokens for review) + per-field savings (corrections prevent multi-field propagation). Break-even or positive ROI on medium/large stories.
+**Dependencies**: 
+- ❌ Currently blocked on: **Proposal 2C (Agent-Based Narrative Extraction)** — must exist and be integrated first
+- ✅ Already have: Integration Task 1 (extract_story_data), Proposal 5 (citation requirements)
 
-**Plugin component**: command-development + user-interaction
+**Complexity**: Medium (orchestration + user interaction + file persistence) — BUT only feasible after 2C foundation
+
+**Expected token impact**: Upfront cost (~500-1500 tokens for narrative review) + per-field savings. Break-even or positive ROI on medium/large stories.
+
+**Plugin component**: command-development + user-interaction (after 2C complete)
+
+**PR #24 Review Summary**: Closed per user decision. Eight detailed review comments documented design gaps requiring 2C completion before Proposal 8 can be implemented viably. Reference: PR #24 comments (user login: prof-m, 2026-03-31).
 
 ---
 
@@ -323,7 +337,7 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 |----------|------|--------|-----------|------|--------|
 | P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c | |
 | P2b | Proposal 5: Source-First Field Proposal Protocol | ✅ DONE | Low-Medium | P1c | PR #23 (2026-03-31) |
-| P2c | Proposal 8: Pre-Generation Story Facts Review | Ready | Medium | P1b | |
+| P2c | Proposal 2C: Agent-Based Narrative Extraction | Design | Medium | P1c | (Required before P8) |
 
 ### Tier 3: Polish & Future
 
@@ -331,18 +345,22 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 |----------|------|--------|-----------|------|
 | P3a | Proposal 7: Story-to-Lorebook Output Strategy | Ready | Low-Medium | None |
 | P3b | Proposal 3: Safety Fallbacks | Ready | Low | None |
-| P3c | Proposal 2C: Agent-Based Narrative Extraction | Design | Medium | P1c |
+| P3c | Proposal 8: Pre-Generation Story Facts Review | ❌ BLOCKED | Medium | P2c (2C required) |
 
 ### Implementation Dependencies
 
 ```
-✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b)
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b: Proposal 5)
    │
-   ├─── READY: Tier 2 Proposals (P2a, P2c)
-   │    ├─ P2a: Character Field Writing Guide (depends on P1c query tools)
-   │    └─ P2c: Story Facts Review (depends on P1b extraction)
+   ├─── NEXT: Tier 2 Core Proposals
+   │    ├─ P2a: Character Field Writing Guide (Ready, depends on P1c query tools)
+   │    └─ P2c: Agent-Based Narrative Extraction (Design phase, depends on P1c)
+   │         └─ REQUIRED BY: P3c (Proposal 8 cannot proceed without 2C)
    │
    └─── READY: Tier 3 Polish & Future (P3a, P3b)
-        ├─ P3a: Lorebook Distribution (independent)
-        └─ P3b: Safety Fallbacks (independent)
+        ├─ P3a: Lorebook Distribution (Independent)
+        ├─ P3b: Safety Fallbacks (Independent)
+        └─ P3c: Story Facts Review (BLOCKED on P2c completion)
 ```
+
+**Key Blocker**: Proposal 8 (Pre-Generation Story Facts Review) is deferred pending Proposal 2C implementation. PR #24 closure (2026-03-31) revealed that without 2C's narrative extraction, Proposal 8 cannot be implemented without unresolved design ambiguities.
