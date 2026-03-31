@@ -114,7 +114,7 @@ For each field proposal, follow this pattern:
 2. **Format the citation clearly** — use one of these citation templates:
    - `From query_story_data(extraction_dir, 'metadata'): [extracted fact]`
    - `From query_story_data(extraction_dir, 'turn_detail', [3, 7, 12]): [specific narrative detail]`
-     (Note: Replace [3, 7, 12] with actual turn numbers where the detail appears)
+     (Note: Replace [3, 7, 12] with actual turn numbers where the detail appears. Citation can reference 1 or more turns as needed—cite only the turns that contain relevant evidence for the field.)
    - `From query_story_data(extraction_dir, 'turn_index'): [turn summary or arc detail]`
    - `From query_story_data(extraction_dir, 'tracked_state'): [item state/evolution]`
 3. **Precede every field proposal with "Evidence:" tag** — make it explicit and easy to review:
