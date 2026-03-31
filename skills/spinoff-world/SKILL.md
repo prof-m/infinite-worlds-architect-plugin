@@ -53,7 +53,7 @@ Once all paths and names are confirmed:
 
 Before proceeding with field-by-field refinement, establish these non-negotiable accuracy guardrails:
 
-**ONLY include details explicitly stated in story text.** When updating any field—character appearances, relationships, abilities, motivations, terminology, or events—source your proposals directly from the original world or any story materials. Use the exact language where possible.
+**ONLY include details explicitly stated in the original world or requested by the user.** When updating any field—character appearances, relationships, abilities, motivations, terminology, or events—source your proposals directly from the original world JSON or the user's spinoff concept. Mark new elements (character redesigns, relationships, locations) as creative divergences from the source, not as "facts" derived from the original.
 
 **NEVER substitute genre stereotypes for missing details.** If a character's appearance isn't described, do not invent "typical" descriptions based on their role or background. Leave the field empty, uncertain, or explicitly note "appearance not described."
 
