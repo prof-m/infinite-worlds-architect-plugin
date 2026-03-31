@@ -49,6 +49,22 @@ Once all paths and names are confirmed:
 # Tracked Items
 # Trigger Events
 
+## Story Accuracy Requirements
+
+Before proceeding with field-by-field refinement, establish these non-negotiable accuracy guardrails:
+
+**ONLY include details explicitly stated in the original world or requested by the user.** When updating any field—character appearances, relationships, abilities, motivations, terminology, or events—source your proposals directly from the original world JSON or the user's spinoff concept. Mark new elements (character redesigns, relationships, locations) as creative divergences from the source, not as "facts" derived from the original.
+
+**NEVER substitute genre stereotypes for missing details.** If a character's appearance isn't described, do not invent "typical" descriptions based on their role or background. Leave the field empty, uncertain, or explicitly note "appearance not described."
+
+**NEVER invent proper nouns, named abilities, or coined terminology.** Do not create official-sounding ability names, secret project titles, or world-specific terms that don't appear in the source material. If a concept is mentioned without naming it, use the source's own language rather than creating a name.
+
+**Distinguish literal statements from sarcasm, jokes, and figurative language.** When parsing character dialogue and description text, be alert to tone. A character's sarcastic comment about their abilities is not a literal statement of fact. Self-deprecating humor should not be taken as character truth.
+
+**Do NOT sanitize morally complex elements.** If the world or characters contain manipulation, betrayal, coercion, exploitation, or other dark elements, represent them accurately. Do not soften language or omit uncomfortable truths in an attempt to make the spinoff more "wholesome."
+
+**For appearance and personality fields, prefer the source material's own descriptions verbatim.** When source text explicitly describes how a character looks, dresses, or behaves, use those exact descriptions rather than paraphrasing or embellishing them.
+
 Then, guide me strictly FIELD-BY-FIELD through refining this draft.
 Start with the Title. Present the original/proposed data for that field and ask me how I'd like to modify it. Once I answer, update the markdown file using `update_draft_section`, and wait for my approval before moving to the next field. Do not group fields together unless I explicitly ask you to.
 
