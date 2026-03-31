@@ -111,25 +111,28 @@ Every field proposal must be grounded in extraction data with explicit evidence 
 
 For each field proposal, follow this pattern:
 1. **Cite the extraction data first** — before proposing a value, identify where it comes from.
-2. **Format the citation clearly** — use one of these citation templates:
-   - `From query_story_data(extraction_dir, 'metadata'): [extracted fact]`
-   - `From query_story_data(extraction_dir, 'turn_detail', [3, 7, 12]): [specific narrative detail]`
-     (Note: Replace [3, 7, 12] with actual turn numbers where the detail appears. Citation can reference 1 or more turns as needed—cite only the turns that contain relevant evidence for the field.)
-   - `From query_story_data(extraction_dir, 'turn_index'): [turn summary or arc detail]`
-   - `From query_story_data(extraction_dir, 'tracked_state'): [item state/evolution]`
+2. **Format the citation clearly** — use one of these user-friendly citation templates:
+   - `From Story Metadata [human-readable field name]: [direct extracted value]`
+   - `From Turn #[turn_number] Outcome: [summary of fact]. Direct quote: [specific quote from turn outcome]`
+   - `From Turn #[turn_number] Secret Info: [summary of fact]. Direct quote: [specific quote from secret info]`
+   - `From Turn #[turn_number] Tracked Item [tracked item name]: [summary of fact]. Direct Citation: [item name]'s value was "[value]" on Turn #[turn_number]`
+   - `From Turn #[turn_number] Tracked Item [tracked item name]: [summary of fact]. Direct Citation: [item name]'s value changed from "[previous value]" to "[current value]"`
 3. **Precede every field proposal with "Evidence:" tag** — make it explicit and easy to review:
    ```
-   **Evidence:** From query_story_data(extraction_dir, 'metadata'): objective = "rescue the missing diplomat"
+   **Evidence:** From Story Metadata [objective]: "rescue the missing diplomat"
    
    **Proposed Field Value:** This world's Objective should focus on the mission established in the story...
    ```
 
 ### When Extraction Data Is Available
 
-Use specific extraction data directly:
-- **If metadata contains the field**: Cite it verbatim. Example: "From query_story_data(extraction_dir, 'metadata'): story_objective = 'stop the invasion'"
-- **If turn details describe the field**: Cite specific turns with direct quotes from the narrative. Example: "From query_story_data(extraction_dir, 'turn_detail', [3, 7, 12]): 'He demonstrated new combat techniques in turn 3, taught them to allies in turn 7, and used them decisively in turn 12.' This shows combat skills developing across the story."
-- **If tracked items define the field**: Cite the state evolution. Example: "From query_story_data(extraction_dir, 'tracked_state'): The 'trust_level' item shows snapshots from turn 1-5 with state 'Untrusted', then turn 6-end with state 'Trusted', indicating a critical relationship change."
+Use specific extraction data directly with human-readable citations:
+- **If metadata contains the field**: Cite it verbatim. Example: "From Story Metadata [objective]: 'stop the invasion'"
+- **If turn details describe the field**: Cite specific turns with direct quotes from the narrative. Example: 
+  "From Turn #3 Outcome, the protagonist learns new navigation techniques. Direct quote: [direct quote of the relevant part of the turn's outcome description showing the protagonist learning new navigation techniques]
+  From Turn #8 Outcome, the protagonist teaches them to the ally. Direct quote: [direct quote of the relevant part of the turn's outcome description showing the protagonist teaching the techniques to the ally]
+  From Turn #14 Outcome, the protagonist applies the new navigation techniques. Direct quote: [direct quote of the relevant part of the turn's outcome description showing the protagonist using the skill]"
+- **If tracked items define the field**: Cite the state evolution. Example: "From Turn #1 Tracked Item [trust_level]: The trust_level starts at 'Untrusted'. Direct Citation: trust_level's value was 'Untrusted' on Turn #1. From Turn #6 Tracked Item [trust_level]: The relationship changes. Direct Citation: trust_level's value changed from 'Untrusted' to 'Trusted'"
 
 **Important Note on turn_detail**: turn_index provides only 100-character action/outcome PREVIEWS, not full narrative context. For thorough field checking, use turn_detail queries instead. When checking for presence/absence of details in a field (e.g., "Does the story describe the protagonist's backstory?"), query turn_detail for full narrative context rather than relying on turn_index previews alone.
 
@@ -144,7 +147,7 @@ If a field isn't covered in extraction data:
 
 2. **Search related turn data with bounded scope** — query `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])` for specific narrative evidence before proposing a value. For gap checking, start with a representative sample: first 5 turns, last 5 turns, and any explicitly story-pivotal turns identified from turn_index. If the field is still not found after sampling, it's reasonable to conclude it's not in the story without querying all turns.
 
-3. **Cite the turn numbers examined** — even if the data is sparse, cite the exact turns you examined and their status. Example: "From query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5]): These opening turns contain the only character descriptions in the story. No further mentions found in sampled closing turns."
+3. **Cite the turn numbers examined** — even if the data is sparse, cite the exact turns you examined and their status. Example: "From Turn Detail turns [1, 2, 3, 4, 5]: These opening turns contain the only character descriptions in the story. No further mentions found in sampled closing turns."
 
 4. **Mark gaps explicitly** — if no evidence supports the field, say so: "No evidence found in query_story_data results for this field—sampled turns 1-5 and 45-50 with no mentions."
 
@@ -152,17 +155,17 @@ If a field isn't covered in extraction data:
 
 **GOOD - Extraction-Based Citation:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'metadata'): The objective is "find the hidden temple and retrieve the artifact."
+**Evidence:** From Story Metadata [objective]: "find the hidden temple and retrieve the artifact."
 
 **Proposed Field Value:** Objective = "Find the hidden temple and retrieve the artifact."
 ```
 
 **GOOD - Turn-Specific Citation with Direct Quotes:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'turn_detail', [5, 8, 14]): 
-- Turn 5: "The scout taught her how to read the stars for navigation."
-- Turn 8: "She explained the star-reading method to her companion."
-- Turn 14: "Using the navigation technique learned earlier, they found the hidden pass."
+**Evidence:** 
+From Turn #5 Outcome, the protagonist learns new navigation techniques. Direct quote: "The scout taught her how to read the stars for navigation."
+From Turn #8 Outcome, the protagonist teaches them to the ally. Direct quote: "She explained the star-reading method to her companion."
+From Turn #14 Outcome, the protagonist applies the new navigation techniques. Direct quote: "Using the navigation technique learned earlier, they found the hidden pass."
 
 **Proposed Field Value:** Main Instructions should emphasize navigation and teamwork, as these became central mechanics.
 ```
@@ -171,7 +174,7 @@ For turn_detail citations, include direct quotes from the extracted text when po
 
 **GOOD - Gap Identification:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'turn_detail', [1, 2, 3, 4, 5, 45, 46, 47, 48, 49]): Sampled turns from beginning and end of story show no explicit descriptions of the protagonist's backstory or original motivations. Turn previews indicate focus on present action rather than origin details.
+**Evidence:** From Turn Detail sampled turns [1, 2, 3, 4, 5, 45, 46, 47, 48, 49]: No explicit descriptions of the protagonist's backstory or original motivations found. Turn outcomes show focus on present action rather than origin details.
 
 **Proposed Field Value:** Background section should remain minimal, reflecting that the story focuses on present action rather than origin details. Left unfilled: Character's original motivations (not explicitly described in story).
 ```
@@ -180,9 +183,9 @@ Note: When checking for presence/absence of details, use turn_detail for full na
 
 **GOOD - Tracked Item State Evolution:**
 ```
-**Evidence:** From query_story_data(extraction_dir, 'tracked_state'): The 'Advanced Combat' tracked item shows snapshots with:
-  - Turns 1-7: state = 'Locked' (tracked_items: { 'Advanced Combat': 'Locked' })
-  - Turns 8+: state = 'Unlocked' (tracked_items: { 'Advanced Combat': 'Unlocked' })
+**Evidence:** 
+From Turn #1 Tracked Item [Advanced Combat]: The skill starts locked. Direct Citation: Advanced Combat's value was 'Locked' on Turn #1.
+From Turn #8 Tracked Item [Advanced Combat]: The skill becomes available. Direct Citation: Advanced Combat's value changed from 'Locked' to 'Unlocked'.
 
 **Proposed Field Value:** Advanced Combat Skill: Locked by default, becomes available in turn 8 based on story progression.
 ```
@@ -268,7 +271,7 @@ When you propose a field value during refinement, include the Evidence tag in yo
 Example user-facing proposal:
 - **Field:** Character Appearance
 - **Proposed Value:** [description]
-- **Evidence:** From query_story_data(extraction_dir, 'turn_detail', [3, 7, 15]): "Alice appears wearing..."
+- **Evidence:** From Turn #3 Outcome, Alice's appearance is described. Direct quote: "Alice appears wearing..."
 - **Verification:** ✓ cited from story text ✓ no fabrication ✓ gap-checked
 
 The Evidence tag helps users and reviewers see exactly where your proposal came from. It's both internal reasoning (for agent verification) and external documentation (for user transparency).
