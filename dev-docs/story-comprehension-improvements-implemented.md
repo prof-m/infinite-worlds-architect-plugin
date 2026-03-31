@@ -332,7 +332,67 @@ See `story-comprehension-improvements.md` for:
 - Proposal 2C: Agent-Based Narrative Extraction
 - Proposal 3: Safety Fallbacks
 - Proposal 4: Character Field Writing Guide
-- Proposal 5: Source-First Field Proposal Protocol
 - Proposal 7: Story-to-Lorebook Output Strategy
 
 Priority order and dependencies documented in main roadmap.
+
+---
+
+## Proposal 5: Source-First Field Proposal Protocol (✅ IMPLEMENTED)
+
+**Status**: ✅ FULLY IMPLEMENTED AND MERGED (PR #23, commit a84e40a)
+
+**What Was Implemented**
+
+Added comprehensive citation requirements to the sequel-world command to ground all field proposals in extraction data evidence.
+
+**How It Works**
+
+1. **Pre-Citation Validation** — Verify extraction_dir exists and contains required files (manifest.json, metadata.json, turn_index.json) before allowing citations
+2. **Citation Pattern** — Every field proposal must include: `Evidence: From query_story_data(extraction_dir, 'category', [params]): [supporting text]`
+3. **Four Citation Sources**:
+   - `metadata` — For story background and objective
+   - `turn_detail` — For character descriptions and turn-specific details
+   - `turn_index` — For story arc and turn summaries
+   - `tracked_state` — For tracked item state evolution
+4. **Gap-Check Rule** — Non-negotiable: No extraction evidence = no field proposal
+5. **Evidence Tag Integration** — Evidence appears in both internal reasoning and user-facing draft for transparency
+
+**Files Modified**
+
+- `skills/sequel-world/SKILL.md` — Added 200+ lines:
+  - Pre-Citation Validation section
+  - Field Proposal Citation Requirements section (with 4 citation templates and examples)
+  - Gap-Check Rule (explicit, non-negotiable)
+  - Integration with Field-Level Verification Checklist
+
+**Design Choices**
+
+1. **Validation is active, not passive**: Agents must verify extraction data before citing it
+2. **Citations are precise**: Every example shows exact query signature with extraction_dir parameter
+3. **Gap handling is explicit**: Agents cannot propose without evidence; must mark gaps
+4. **Evidence is transparent**: User can see exactly which story turn supports each field
+
+**Implementation Complexity**
+
+- Added ~200 lines of documentation
+- No MCP tool changes needed
+- Uses existing query_story_data and extract_story_data tools
+- No code changes; pure documentation/guidance
+
+**PR Details**
+
+- Branch: `feature/proposal-5-source-first-citations`
+- Initial implementation: Commits dfd789c, 3614825 (review fixes), a84e40a (API fix)
+- Review findings: 1 CRITICAL + 4 HIGH issues fixed before merge
+- Final assessment: READY TO MERGE
+
+**Token Impact**
+
+- Upfront cost: +50-100 tokens per field for citation evidence
+- Net savings: Because citations reference structured data, not raw story re-reading
+- Break-even on medium stories, savings on large stories
+
+**Next Phase**
+
+Proposal 5 enables Proposal 2C (Agent-Based Narrative Extraction) by establishing the citation pattern that narrative agents should follow. Also complements Proposal 4 (Character Field Writing Guide) by providing the source-first discipline.

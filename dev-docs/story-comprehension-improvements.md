@@ -237,22 +237,21 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Proposal 5: Source-First Field Proposal Protocol (2B Integration)
 
-**Status**: Ready to implement (after Integration Task 2)
+**Status**: ✅ FULLY IMPLEMENTED & MERGED (PR #23, commit a84e40a)
 
-**What**: Require evidence citations before each field proposal, using 2B's extraction output as primary citation source.
+**What Was Implemented:**
+- Added "Pre-Citation Validation" section to verify extraction data exists before citing
+- Added "Field Proposal Citation Requirements" section with explicit citation patterns for metadata, turn_detail, turn_index, and tracked_state
+- Added tracked_state citation example showing state evolution across turns
+- Made gap-check rule explicit: "No extraction data = no proposal"
+- Clarified Evidence tag usage as both internal reasoning and user-facing documentation
+- Files Modified: `skills/sequel-world/SKILL.md`
 
-**How**:
-- When extraction data available: cite specific extraction data (e.g., "From query_story_data(category='metadata'): objective = ...")
-- When extraction data lacks field: cite specific turn numbers from query_story_data(category='turn_detail', [N]) output
-- Modify field proposal instructions to require this format before agent commits to a field value
-
-**Dependencies**: Integration Task 2 (query_story_data available)
-
-**Complexity**: Low-Medium (prompt edit to field proposal instructions)
-
-**Expected token impact**: +50-100 tokens per field for citations; net savings because citations reference structured data, not re-reading raw files
-
-**Plugin component**: command-development
+**Key Design Points:**
+- Citations require extraction_dir parameter: `query_story_data(extraction_dir, 'category', [optional_params])`
+- Validation prevents agents from citing nonexistent data
+- All 4 query sources covered with examples: metadata, turn_detail, turn_index, tracked_state
+- Non-negotiable rule: No citation evidence = field not proposed
 
 ---
 
@@ -318,10 +317,10 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Tier 2: Core Proposals (Next Priority)
 
-| Priority | What | Status | Complexity | Deps |
-|----------|------|--------|-----------|------|
-| P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c |
-| P2b | Proposal 5: Source-First Field Proposal Protocol | Ready | Low-Medium | P1c |
+| Priority | What | Status | Complexity | Deps | Merged |
+|----------|------|--------|-----------|------|--------|
+| P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c | |
+| P2b | Proposal 5: Source-First Field Proposal Protocol | ✅ DONE | Low-Medium | P1c | PR #23 (2026-03-31) |
 | P2c | Proposal 8: Pre-Generation Story Facts Review | ✅ DONE | Medium | P1b | PR #24 (2026-03-31) |
 
 ### Tier 3: Polish & Future
@@ -335,11 +334,19 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 ### Implementation Dependencies
 
 ```
+<<<<<<< HEAD
 ✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2c)
    │
    ├─── READY: Tier 2 Proposals (P2a, P2b)
    │    ├─ P2a: Character Field Writing Guide (depends on P1c query tools)
    │    └─ P2b: Source-First Field Citations (depends on P1c guardrails)
+=======
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b)
+   │
+   ├─── READY: Tier 2 Proposals (P2a, P2c)
+   │    ├─ P2a: Character Field Writing Guide (depends on P1c query tools)
+   │    └─ P2c: Story Facts Review (depends on P1b extraction)
+>>>>>>> origin/master
    │
    └─── READY: Tier 3 Polish & Future (P3a, P3b)
         ├─ P3a: Lorebook Distribution (independent)
