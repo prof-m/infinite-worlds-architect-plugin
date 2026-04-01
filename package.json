@@ -8,12 +8,18 @@
     "@modelcontextprotocol/sdk": "^1.5.0"
   },
   "scripts": {
+    "prepare": "husky install",
     "start": "node index.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test:fast": "NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns=integration --bail",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
+  },
+  "lint-staged": {
+    "*.js": ["jest --bail --findRelatedTests"]
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "lint-staged": "^16.4.0"
   }
 }
