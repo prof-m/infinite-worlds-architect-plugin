@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { parse } from '../../lib/parsers/index.js';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const testDir = '/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const testDir = path.join(__dirname, '../fixtures/story-exports');
 
 test('parse orchestrator with TheWorldsAStageTurn4.txt (4 turns)', async () => {
   const filePath = path.join(testDir, 'TheWorldsAStageTurn4.txt');

@@ -7,9 +7,11 @@ import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
 import { extractStoryData } from '../../lib/handlers/extraction.js';
 
-const testFilesDir = '/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const testFilesDir = path.join(__dirname, '../fixtures/story-exports');
 
 test('extractStoryData - parses TheWorldsAStageTurn4.txt successfully', async (t) => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
