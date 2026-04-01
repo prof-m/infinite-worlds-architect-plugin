@@ -152,6 +152,15 @@ infinite-worlds-architect-plugin/
         generate_world.cjs   # World compilation utility
 ```
 
+## CI/CD Pipeline
+
+This project implements a two-stage CI/CD pipeline to ensure code quality:
+
+1. **Pre-Commit Hooks (I8):** Automated tests run locally before commits
+2. **GitHub Actions (I9):** Automated tests run in CI on every push/PR, with branch protection enforcing successful tests before merging
+
+Tests must pass with 80%+ code coverage. For details, see [docs/CI_CD.md](docs/CI_CD.md).
+
 ## License
 
 MIT
