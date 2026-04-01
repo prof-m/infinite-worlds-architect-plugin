@@ -2,6 +2,7 @@ export default {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/test/unit/**/*.test.js'],
   testPathIgnorePatterns: ['/node_modules/', '.claude/worktrees'],
+  cacheDirectory: '<rootDir>/.jest-cache',
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },

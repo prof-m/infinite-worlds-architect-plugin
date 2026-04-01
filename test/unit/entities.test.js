@@ -18,7 +18,17 @@ import { writeWorld } from '../../lib/helpers.js';
 let tmpDir, worldPath, baseWorld;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'test-entities-'));
+  // Use /tmp for tests (writable), falling back to project .test-tmp directory
+  let baseTmpDir = '/tmp';
+  try {
+    // Test if /tmp is writable
+    await fs.access(baseTmpDir, fs.constants.W_OK);
+  } catch (e) {
+    // Fallback to project directory
+    baseTmpDir = path.join(process.cwd(), '.test-tmp');
+    await fs.mkdir(baseTmpDir, { recursive: true });
+  }
+  tmpDir = await fs.mkdtemp(path.join(baseTmpDir, 'test-entities-'));
   worldPath = path.join(tmpDir, 'world.json');
 
   baseWorld = {
