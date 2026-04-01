@@ -31,6 +31,7 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 | I4 | Highest  | ✅ Implemented | Low | Low | Trigger phrase documentation |
 | I8 | Medium   | ✅ Implemented | Medium | High | Pre-commit hooks to run tests before commits |
 | I9 | Medium   | ✅ Implemented | Medium | High | GitHub branch protection and required status checks |
+| I10 | High   | In Progress | High | High | Comprehensive test coverage to 80%+ (parsers, extractors, handlers) |
 | I3 | Medium   | Pending | Medium | High | Incremental validation during draft workflow |
 | I5 | Medium   | Pending | Medium | Medium | Batch entity import tools |
 | I6 | Low      | Pending | High | High | World comparison analytics dashboard |
@@ -347,8 +348,19 @@ AI shows warnings (if any):
 ## I8: Pre-Commit Checks for Tests
 
 **Status:** ✅ Implemented (2026-03-31)
-**Effort:** Medium
+**Effort:** Medium  
 **Impact:** High (Prevents broken commits, improves code quality)
+
+### Implementation Summary
+
+**Completed:**
+- ✅ Husky (^9.1.7) and lint-staged (^16.4.0) installed
+- ✅ npm scripts configured: prepare, test, test:fast, test:watch
+- ✅ .husky/pre-commit hook created with timeout protection
+- ✅ .gitattributes configured for cross-platform compatibility
+- ✅ lint-staged configured for selective test running on staged files
+- ✅ All 112 tests passing with pre-commit hook verification
+- ✅ Documentation added to docs/CI_CD.md and README.md
 
 ### Current State
 
@@ -420,6 +432,20 @@ fi
 **Status:** ✅ Implemented (2026-03-31)
 **Effort:** Medium
 **Impact:** High (Ensures quality before merging, enforces CI)
+
+### Implementation Summary
+
+**Completed:**
+- ✅ GitHub Actions workflow created (.github/workflows/test.yml)
+- ✅ Workflow triggers on push and PR to master/develop branches
+- ✅ Test step runs `npm run test` with coverage reporting
+- ✅ Coverage uploaded to Codecov integration
+- ✅ Branch protection rules configured on master branch:
+  - Required status checks: Tests workflow (strict mode)
+  - Required PR reviews: 1 approval minimum
+  - Enforce on admins: enabled
+  - Dismiss stale reviews: enabled
+- ✅ All CI/CD documentation added (docs/CI_CD.md)
 
 ### Current State
 
@@ -499,6 +525,132 @@ gh api repos/owner/repo/branches/master/protection \
 - [x] PRs show check status before merge option
 - [x] Merge blocked until all checks pass
 - [x] Documentation updated with CI/CD process
+
+---
+
+## I10: Comprehensive Test Coverage to 80%+
+
+**Status:** In Progress
+**Effort:** High
+**Impact:** High (Ensures code quality, enables confident refactoring)
+
+### Current State
+
+- Current test coverage: **20.7%** (112 tests, 1,477 lines of test code)
+- Covered modules:
+  - lib/helpers.js (high coverage)
+  - lib/handlers/utility.js (75%)
+  - lib/handlers/entities.js (36%)
+  - lib/handlers/validation.js (30%)
+  - lib/handlers/draft.js (partial)
+- **Uncovered modules (0% coverage):**
+  - lib/parsers/index.js
+  - lib/parsers/phase1-combining.js
+  - lib/parsers/phase2-headers.js
+  - lib/parsers/phase3-turns.js
+  - lib/parsers/phase4-tracked-items.js
+  - lib/parsers/utils.js
+  - lib/handlers/extraction.js
+  - lib/handlers/output-writer.js
+  - lib/handlers/query.js
+
+### Proposed Solution
+
+Write comprehensive unit tests for all uncovered modules and improve coverage on partially-covered modules to reach **80%+ across the entire codebase**.
+
+### Implementation
+
+**Phase 1: Parser Module Tests**
+- Create `test/unit/parsers.test.js` (1000+ lines)
+- Test each parsing phase independently:
+  - Phase 1: Combining draft sections (60+ tests)
+  - Phase 2: Header parsing (50+ tests)
+  - Phase 3: Turn/instruction parsing (50+ tests)
+  - Phase 4: Tracked items parsing (50+ tests)
+  - Utils: Helper functions (30+ tests)
+- Test edge cases: empty inputs, malformed data, max-size inputs
+
+**Phase 2: Handler Module Coverage Improvements**
+- Improve lib/handlers/extraction.js coverage (currently 0%)
+  - Extract story data (20+ tests)
+  - Query story data (20+ tests)
+- Improve lib/handlers/output-writer.js coverage (currently 0%)
+  - Write to stdout/file (15+ tests)
+  - Format output (20+ tests)
+- Improve lib/handlers/query.js coverage (currently 0%)
+  - Query operations (25+ tests)
+  - Filter and search (20+ tests)
+
+**Phase 3: Existing Module Improvements**
+- Improve lib/handlers/validation.js (30% → 80%+)
+  - Edge cases for validation (20+ tests)
+  - Complex world structures (15+ tests)
+- Improve lib/handlers/entities.js (36% → 80%+)
+  - Entity collision handling (15+ tests)
+  - ID generation edge cases (15+ tests)
+- Improve lib/handlers/draft.js (partial → 80%+)
+  - Decompilation edge cases (15+ tests)
+  - Draft section updates (15+ tests)
+
+**Test Organization:**
+```
+test/unit/
+  ├── helpers.test.js ✅ (existing)
+  ├── draft.handlers.test.js (improve coverage)
+  ├── entities.test.js (improve coverage)
+  ├── validation.handlers.test.js (improve coverage)
+  ├── utility.handlers.test.js ✅ (existing, 75%)
+  ├── parsers.test.js (NEW - 250+ lines, comprehensive)
+  ├── extraction.handlers.test.js (NEW - 80+ lines)
+  ├── output-writer.handlers.test.js (NEW - 70+ lines)
+  └── query.handlers.test.js (NEW - 90+ lines)
+```
+
+**Target Coverage by Module:**
+| Module | Current | Target | Tests Needed |
+|--------|---------|--------|--------------|
+| lib/helpers.js | High | 80%+ | 5-10 |
+| lib/handlers/draft.js | Partial | 80%+ | 20-25 |
+| lib/handlers/entities.js | 36% | 80%+ | 15-20 |
+| lib/handlers/validation.js | 30% | 80%+ | 25-30 |
+| lib/handlers/utility.js | 75% | 80%+ | 5-10 |
+| lib/handlers/extraction.js | 0% | 80%+ | 40-50 |
+| lib/handlers/output-writer.js | 0% | 80%+ | 35-40 |
+| lib/handlers/query.js | 0% | 80%+ | 45-50 |
+| lib/parsers/index.js | 0% | 80%+ | 60+ |
+| lib/parsers/phase1-combining.js | 0% | 80%+ | 60+ |
+| lib/parsers/phase2-headers.js | 0% | 80%+ | 50+ |
+| lib/parsers/phase3-turns.js | 0% | 80%+ | 50+ |
+| lib/parsers/phase4-tracked-items.js | 0% | 80%+ | 50+ |
+| lib/parsers/utils.js | 0% | 80%+ | 30+ |
+| **TOTAL** | **20.7%** | **80%+** | **~500+ new tests** |
+
+**Acceptance Criteria:**
+- [ ] All test files created with edge case coverage
+- [ ] Parser module tests cover all 5 phases
+- [ ] Handler module tests cover extraction, output-writing, and querying
+- [ ] Coverage reports show 80%+ on all modules
+- [ ] All 600+ tests pass in CI
+- [ ] Jest coverage threshold in jest.config.js updated to 80%
+- [ ] Pre-commit hook enforces 80% coverage for new commits
+
+### Task Breakdown
+
+**Task 1: Parser Tests** (estimated 8-10 hours)
+- Create comprehensive tests for all 5 parsing phases
+- Cover normal cases, edge cases, error handling
+
+**Task 2: Handler Tests** (estimated 6-8 hours)
+- Tests for extraction, output-writer, query handlers
+- Cover all public functions and main paths
+
+**Task 3: Coverage Improvements** (estimated 4-6 hours)
+- Add edge case tests to partially-covered modules
+- Improve validation, entities, draft handler coverage
+
+**Task 4: Coverage Threshold Update** (estimated 1 hour)
+- Update jest.config.js to enforce 80% threshold
+- Verify pre-commit hook runs successfully
 
 ---
 
