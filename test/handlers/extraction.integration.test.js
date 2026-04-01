@@ -19,7 +19,7 @@ import { fileURLToPath } from 'url';
 import { extractStoryData } from '../../lib/handlers/extraction.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const testFilesDir = path.join(__dirname, '../../test-files/story-export-examples');
+const testFilesDir = path.join(__dirname, '../fixtures/story-exports');
 
 // Test story files organized by speed
 // Note: Files must start from Turn 1 for proper extraction

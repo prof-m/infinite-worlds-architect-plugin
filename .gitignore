@@ -1,7 +1,5 @@
 /node_modules/
 /test-files/
-!/test-files/story-export-examples/
-!/test-files/story-export-examples/*.txt
 .worktrees/
 .claude/
 claude-scratchpad/
