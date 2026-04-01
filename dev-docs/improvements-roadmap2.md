@@ -29,8 +29,8 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 | I1 | High     | ✅ Implemented | Medium | Medium | JSDoc types for IDE autocomplete and documentation |
 | I2 | High     | ✅ Implemented | High | High | Unit tests for lib/handlers/* modules |
 | I4 | Highest  | ✅ Implemented | Low | Low | Trigger phrase documentation |
-| I8 | Medium   | Pending | Medium | High | Pre-commit hooks to run tests before commits |
-| I9 | Medium   | Pending | Medium | High | GitHub branch protection and required status checks |
+| I8 | Medium   | ✅ Implemented | Medium | High | Pre-commit hooks to run tests before commits |
+| I9 | Medium   | ✅ Implemented | Medium | High | GitHub branch protection and required status checks |
 | I3 | Medium   | Pending | Medium | High | Incremental validation during draft workflow |
 | I5 | Medium   | Pending | Medium | Medium | Batch entity import tools |
 | I6 | Low      | Pending | High | High | World comparison analytics dashboard |
@@ -346,7 +346,7 @@ AI shows warnings (if any):
 
 ## I8: Pre-Commit Checks for Tests
 
-**Status:** Pending
+**Status:** ✅ Implemented (2026-03-31)
 **Effort:** Medium
 **Impact:** High (Prevents broken commits, improves code quality)
 
@@ -406,18 +406,18 @@ fi
 - Can be bypassed with `git commit --no-verify` (discouraged)
 
 **Acceptance Criteria:**
-- [ ] husky and lint-staged installed
-- [ ] Pre-commit hook configured
-- [ ] Tests run automatically on git commit
-- [ ] Commit blocked if tests fail
-- [ ] Can run locally and in CI
-- [ ] Documentation added to README
+- [x] husky and lint-staged installed
+- [x] Pre-commit hook configured
+- [x] Tests run automatically on git commit
+- [x] Commit blocked if tests fail
+- [x] Can run locally and in CI
+- [x] Documentation added to README
 
 ---
 
 ## I9: Pre-Merge GitHub Checks
 
-**Status:** Pending
+**Status:** ✅ Implemented (2026-03-31)
 **Effort:** Medium
 **Impact:** High (Ensures quality before merging, enforces CI)
 
@@ -492,13 +492,13 @@ gh api repos/owner/repo/branches/master/protection \
 - Prevents accidental bypasses
 
 **Acceptance Criteria:**
-- [ ] GitHub Actions workflow created and running
-- [ ] Tests pass in CI for all commits
-- [ ] Branch protection rules configured
-- [ ] Required status checks enforced
-- [ ] PRs show check status before merge option
-- [ ] Merge blocked until all checks pass
-- [ ] Documentation updated with CI/CD process
+- [x] GitHub Actions workflow created and running
+- [x] Tests pass in CI for all commits
+- [x] Branch protection rules configured
+- [x] Required status checks enforced
+- [x] PRs show check status before merge option
+- [x] Merge blocked until all checks pass
+- [x] Documentation updated with CI/CD process
 
 ---
 
