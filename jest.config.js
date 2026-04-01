@@ -1,6 +1,6 @@
 export default {
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/test/unit/**/*.test.js'],
+  testMatch: ['<rootDir>/test/**/*.test.js'],
   testPathIgnorePatterns: ['/node_modules/', '.claude/worktrees'],
   cacheDirectory: '<rootDir>/.jest-cache',
   moduleNameMapper: {
