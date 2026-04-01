@@ -14,6 +14,25 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const testFilesDir = path.join(__dirname, '../fixtures/story-exports');
 
 describe('queryStoryData', () => {
+  it('accepts MCP-style object parameters', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+    await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+
+    const result = await queryStoryData({
+      extraction_dir: tmpDir,
+      category: 'manifest',
+      turns: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.category).toBe('manifest');
+    expect(result.data.total_turns).toBe(4);
+
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
   it('queries manifest category', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
     const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
@@ -91,7 +110,7 @@ describe('queryStoryData', () => {
 
   it('returns error for missing tracked_state.json', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+  const inputFile = path.join(testFilesDir, 'TheRingOfDisTurn30.txt');
 
   // Extract first (has no tracked items)
   const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });

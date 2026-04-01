@@ -76,15 +76,15 @@ describe('extractStoryData', () => {
     fs.rmSync(tmpDir, { recursive: true });
   });
 
-  it('creates character_index.json when characterList provided', async () => {
+  it('creates character_index.json when character_list provided', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
     const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-    const characterList = [
+    const character_list = [
       { name: 'Victor', aliases: [] }
     ];
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
+    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, character_list });
     const result = JSON.parse(mcpResponse.content[0].text);
 
     expect(result.success).toBe(true);
@@ -103,7 +103,7 @@ describe('extractStoryData', () => {
     fs.rmSync(tmpDir, { recursive: true });
   });
 
-  it('does NOT create character_index.json when characterList not provided', async () => {
+  it('does NOT create character_index.json when character_list not provided', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
     const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 

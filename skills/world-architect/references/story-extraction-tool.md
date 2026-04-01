@@ -191,10 +191,10 @@ Note: This structure uses snapshots (one snapshot per state change range). Each 
 ### Extract Story Without Character Indexing
 
 ```javascript
-const result = await extractStoryData(
-  ['/path/to/export.txt'],
-  '/tmp/extraction'
-);
+const result = await extractStoryData({
+  input_paths: ['/path/to/export.txt'],
+  extraction_dir: '/tmp/extraction'
+});
 ```
 
 Returns story structure without character mention tracking.
@@ -202,14 +202,14 @@ Returns story structure without character mention tracking.
 ### Extract Story With Character Indexing
 
 ```javascript
-const resultWithCharacters = await extractStoryData(
-  ['/path/to/export.txt'],
-  '/tmp/extraction',
-  [
+const resultWithCharacters = await extractStoryData({
+  input_paths: ['/path/to/export.txt'],
+  extraction_dir: '/tmp/extraction',
+  character_list: [
     { name: 'Victor', aliases: ['The Maestro', 'V'] },
     { name: 'Alice', aliases: [] }
   ]
-);
+});
 ```
 
 Generates `character_index.json` with mention tracking for each character.
@@ -217,10 +217,10 @@ Generates `character_index.json` with mention tracking for each character.
 ### Query Story Manifest
 
 ```javascript
-const manifest = await queryStoryData(
-  '/tmp/extraction',
-  'manifest'
-);
+const manifest = await queryStoryData({
+  extraction_dir: '/tmp/extraction',
+  category: 'manifest'
+});
 ```
 
 Returns: file sources, turn ranges, detected gaps, tracked items flags.
@@ -228,11 +228,11 @@ Returns: file sources, turn ranges, detected gaps, tracked items flags.
 ### Query Last Turn Details
 
 ```javascript
-const lastTurn = await queryStoryData(
-  '/tmp/extraction',
-  'turn_detail',
-  ['last']
-);
+const lastTurn = await queryStoryData({
+  extraction_dir: '/tmp/extraction',
+  category: 'turn_detail',
+  turns: ['last']
+});
 ```
 
 Resolves "last" to highest turn number and returns full details.
