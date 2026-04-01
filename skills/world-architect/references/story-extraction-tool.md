@@ -271,9 +271,10 @@ This enables targeted queries like "where is Victor mentioned?" without re-readi
 
 - **62 parser unit tests** covering all 4 phases
 - **31 handler/validation tests** for extraction, query, and output writing
+- **19 integration tests** for MCP response format, parameter naming, and turn extraction edge cases
 - **10 integration tests** with real story exports (4, 22, 30 turns)
 - **16 character indexing tests** (finds characters, handles aliases, incomplete flag)
-- **103+ total tests** with 100% pass rate
+- **138+ total tests** with 100% pass rate
 - **Manual test harness** for comprehensive end-to-end validation
 
 ## Design Principles

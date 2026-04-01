@@ -33,6 +33,12 @@ Temporary/uncommitted files go in `claude-scratchpad`. Before creating any file,
 ## Story Data Extraction Tools
 See `skills/world-architect/references/story-extraction-tool.md` for docs on `extract_story_data` and `query_story_data` MCP tools.
 
+### Bug Fixes (PR: fix/extraction-tool-bugs)
+- **Parameter Naming**: Handlers now accept snake_case parameters (`input_paths`, `extraction_dir`) matching MCP spec
+- **MCP Response Format**: Fixed response envelope to wrap results in proper MCP content format
+- **Turn Extraction Regex**: Fixed to handle multiple consecutive newlines in turn markers
+- **Test Coverage**: Added 19 comprehensive integration tests with 100% test pass rate
+
 ## Subagent Prompt Requirements
 See [dev-docs/subagent-prompt-requirements.md](dev-docs/subagent-prompt-requirements.md) for required prompt block for implementation subagents.
 
