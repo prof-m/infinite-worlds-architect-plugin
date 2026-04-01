@@ -15,13 +15,15 @@ Before we begin, ask me for:
 
 Once all paths and names are confirmed:
 
-Extract Story Data
+## Extract Story Data
+
 Call the `extract_story_data` MCP tool to parse the story export(s) into structured JSON. This replaces manually reading the entire raw file and prevents hallucination from working with thousands of lines of unstructured text.
 - Specify an extraction directory (e.g., `extracted_story/` relative to your output directory). Ensure the extraction directory exists before calling the tool, or use an absolute path.
 - The tool will return success/failure status and create output files (manifest.json, metadata.json, turn_index.json, tracked_state.json)
-- If extraction succeeds, continue with Task 2. If it fails, warn the user and fall back to reading the raw export file directly.
+- If extraction succeeds, continue with the next step. If it fails, warn the user and fall back to reading the raw export file directly.
 
-Understand Story Context via Query Tools
+## Understand Story Context via Query Tools
+
 Instead of reading the entire export file, use `query_story_data` to load structured extraction data:
 1. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
 2. Call `query_story_data(extraction_dir, 'turn_index')` to see a summary of all turns with action/outcome previews. Use this to understand turn distribution and identify key turning points.
@@ -34,56 +36,40 @@ Check if a `draft_world.md` file already exists in the target directory. If it d
 
 Once settled, use the `decompile_json` MCP tool to read the original world JSON file and generate the draft markdown file at the chosen path.
 
+## Update Draft Markdown
+
 Update the newly generated draft markdown file (using the `update_draft_section` tool) to combine the original world's settings with the rich narrative background derived from the story extraction. The markdown file contains the headers:
-# Title
-# Description
-# Background
-# First Action
-# Objective
-# Main Instructions
-# Author Style
-# NSFW
-# Content Warnings
-# Description Request
-# Summary Request
-# Image Model
-# Image Style
-# Image Style Character Pre
-# Image Style Character Post
-# Image Style Non Character Pre
-# Image Style Non Character Post
-# Victory Condition
-# Victory Text
-# Defeat Condition
-# Defeat Text
-# Design Notes
-# Player Permissions
-# Enable AI Specific Instruction Blocks
-# Skills
-# Possible Characters
-# Other Characters
-# Extra Instruction Blocks
-# Keyword Instruction Blocks
-# Tracked Items
-# Trigger Events
-
-## Story Accuracy Requirements
-
-Before proceeding with field-by-field refinement, establish these non-negotiable accuracy guardrails:
-
-**ONLY include details explicitly stated in story text.** When updating any field—character appearances, relationships, abilities, motivations, terminology, or events—source your proposals directly from the story export (via `query_story_data` results). Use the exact language from the story where possible.
-
-**NEVER substitute genre stereotypes for missing details.** If a character's appearance isn't described, do not invent "typical" descriptions based on their role or background. Leave the field empty, uncertain, or explicitly note "appearance not described in story."
-
-**NEVER invent proper nouns, named abilities, or coined terminology.** Do not create official-sounding ability names, secret project titles, or world-specific terms that don't appear in the story text. If the story mentions a concept without naming it, use the story's own language rather than creating a name.
-
-**Distinguish literal statements from sarcasm, jokes, and figurative language.** When parsing character dialogue and narration, be alert to tone. A character's sarcastic comment about their abilities is not a literal statement of fact. Self-deprecating humor should not be taken as character truth.
-
-**Do NOT sanitize morally complex events.** If the story contains manipulation, betrayal, coercion, exploitation, or other dark elements, represent them accurately in the world description. Do not soften language or omit uncomfortable truths in an attempt to make the world more "wholesome."
-
-**For appearance fields, prefer copying the story's own descriptions verbatim.** When the story explicitly describes how a character looks, dresses, or moves, use those exact descriptions rather than paraphrasing or embellishing them.
-
-**For tracked items, preserve the exact state and descriptions from the story.** When extracting tracked item values, character motivations, secret projects, or hidden information, use only what appears explicitly in the story export. Do not invent "secret projects" a character might be working on, fabricate hidden motivations, or create mysterious "hidden tracked item" entries. If the story doesn't describe an item's state or a character's secret, leave it empty or mark it as "not described in story."
+- Title
+- Description
+- Background
+- First Action
+- Objective
+- Main Instructions
+- Author Style
+- NSFW
+- Content Warnings
+- Description Request
+- Summary Request
+- Image Model
+- Image Style
+- Image Style Character Pre
+- Image Style Character Post
+- Image Style Non Character Pre
+- Image Style Non Character Post
+- Victory Condition
+- Victory Text
+- Defeat Condition
+- Defeat Text
+- Design Notes
+- Player Permissions
+- Enable AI Specific Instruction Blocks
+- Skills
+- Possible Characters
+- Other Characters
+- Extra Instruction Blocks
+- Keyword Instruction Blocks
+- Tracked Items
+- Trigger Events
 
 ## Field-Level Verification Checklist
 
@@ -93,25 +79,31 @@ Before proposing any field value, verify:
 - Am I inventing proper nouns, ability names, or terminology not in the story?
 - Does my proposal accurately reflect the tone (literal vs sarcasm)?
 - Am I softening dark/complex elements that should be preserved?
+- **Can I cite this from extraction data?** (metadata, turn_detail, turn_index, or tracked_state)
+- **If no citation exists, should I propose this field at all?**
 
-Refer back to the Story Accuracy Requirements section above if you're uncertain about any field proposal.
-
-Then, guide me strictly FIELD-BY-FIELD through refining this draft.
+Then, guide strictly FIELD-BY-FIELD through refining this draft.
 **Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
 
-Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask me how I'd like to modify it. Once I answer, update the markdown file using `update_draft_section`, and wait for my approval before moving to the next field. Do not group fields together unless I explicitly ask you to.
+Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using `update_draft_section`, and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
 
-**Reference Guide for Field Proposals**
-When proposing field values, cite your extraction data sources:
-- For Background, Objective, and general story context: Reference `query_story_data(extraction_dir, 'metadata')`
-- For character details (appearance, status, relationships): Reference specific turn numbers from `query_story_data(extraction_dir, 'turn_detail', [turn_numbers])`
-- For tracked item state and evolution: Reference `query_story_data(extraction_dir, 'tracked_state')`
-- For turn summaries and high-level story arc: Reference `query_story_data(extraction_dir, 'turn_index')`
+## Reference Materials
 
-This keeps your field proposals grounded in structured, verified data rather than synthesized interpretations.
+**Story Accuracy & Guardrails:** Before refining fields, consult `references/story-accuracy-guardrails.md` for non-negotiable accuracy principles:
+- Only include details explicitly stated in the story
+- Never substitute genre stereotypes for missing information
+- Never invent proper nouns or terminology not in the story
+- Preserve dark/complex content accurately
+- For appearance fields, use the story's own descriptions verbatim
+
+**Citation Methodology:** For detailed guidance on citing evidence and validating extraction data, see `references/citation-methodology.md`:
+- Pre-citation validation checklist
+- Citation pattern and formats
+- Examples of correctly and incorrectly cited proposals
+- No-Citation Rule: if extraction data doesn't support it, don't propose it
 
 When the draft is completely finished and approved, use the `compile_draft` MCP tool to generate the final sequel world JSON file using the requested name in the target directory. For the complex fields, construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
 
-After the world JSON file is generated, use `compare_worlds` to compare the original world JSON with the sequel and present a summary of what evolved from the source material. Then run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.
+After the world JSON file is generated, use `compare_worlds` to compare the original world JSON with the sequel and present a summary of what evolved from the source material. Then run `validate_world` on the output file. Present any errors or warnings before considering the command complete.
