@@ -10,7 +10,7 @@
   "scripts": {
     "prepare": "husky install",
     "start": "node index.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage && node --test test/handlers/**/*.test.js test/parsers/**/*.test.js",
     "test:fast": "NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns=integration --bail",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
