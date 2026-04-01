@@ -7,17 +7,19 @@ import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
 import { queryStoryData } from '../../lib/handlers/query.js';
 import { extractStoryData } from '../../lib/handlers/extraction.js';
 
-const testFilesDir = '/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const testFilesDir = path.join(__dirname, '../fixtures/story-exports');
 
 test('queryStoryData - queries manifest category', async (t) => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query manifest
   const result = await queryStoryData(tmpDir, 'manifest', []);
@@ -35,7 +37,7 @@ test('queryStoryData - queries metadata category', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query metadata
   const result = await queryStoryData(tmpDir, 'metadata', []);
@@ -53,7 +55,7 @@ test('queryStoryData - queries turn_index category', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_index
   const result = await queryStoryData(tmpDir, 'turn_index', []);
@@ -72,7 +74,7 @@ test('queryStoryData - queries all categories successfully', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query each category
   const manifest = await queryStoryData(tmpDir, 'manifest', []);
@@ -92,7 +94,7 @@ test('queryStoryData - returns error for missing tracked_state.json', async (t) 
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first (has no tracked items)
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query tracked_state (should fail)
   const result = await queryStoryData(tmpDir, 'tracked_state', []);
@@ -108,7 +110,7 @@ test('queryStoryData - resolves "last" alias in manifest', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query with "last"
   const result = await queryStoryData(tmpDir, 'manifest', ['last']);
@@ -123,7 +125,7 @@ test('queryStoryData - resolves "last" in turn arrays', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_index to confirm total turns
   const indexResult = await queryStoryData(tmpDir, 'turn_index', []);
@@ -137,7 +139,7 @@ test('queryStoryData - returns error for invalid category', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query invalid category
   const result = await queryStoryData(tmpDir, 'invalid_category', []);
@@ -163,7 +165,7 @@ test('queryStoryData - turn_detail requires turns parameter', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_detail without turns
   const result = await queryStoryData(tmpDir, 'turn_detail', []);
@@ -179,7 +181,7 @@ test('queryStoryData - queries manifest with resolved "last"', async (t) => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query manifest
   const result = await queryStoryData(tmpDir, 'manifest', []);
@@ -196,7 +198,7 @@ test('queryStoryData - turn_detail returns partial results for missing turns', a
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_detail with mix of existing and non-existing turns
   const result = await queryStoryData(tmpDir, 'turn_detail', [1, 2, 99]);
@@ -219,7 +221,7 @@ test('queryStoryData - turn_detail returns all available turns for single missin
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_detail with only a non-existing turn
   const result = await queryStoryData(tmpDir, 'turn_detail', [100]);
@@ -240,7 +242,7 @@ test('queryStoryData - turn_detail includes all available turns with multiple mi
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_detail with all existing turns
   const result = await queryStoryData(tmpDir, 'turn_detail', [1, 2, 3, 4]);
@@ -261,7 +263,7 @@ test('queryStoryData - path traversal: accepts normal relative paths', async (t)
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query turn_detail with valid turns
   const result = await queryStoryData(tmpDir, 'turn_detail', [1, 2]);
@@ -279,7 +281,7 @@ test('queryStoryData - path traversal: rejects paths with .. sequences', async (
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Modify turn_index to inject malicious path with ..
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -308,7 +310,7 @@ test('queryStoryData - path traversal: normalizes ./ and multiple slashes', asyn
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Modify turn_index to use normalized but valid paths
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -340,7 +342,7 @@ test('queryStoryData - path traversal: rejects absolute paths outside extraction
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Modify turn_index to inject absolute path outside extraction dir
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -369,7 +371,7 @@ test('queryStoryData - path traversal: accepts absolute paths within extraction 
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Modify turn_index to use absolute path within extraction directory
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -401,7 +403,7 @@ test('queryStoryData - path traversal: rejects absolute paths with .. sequences'
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Modify turn_index to inject absolute path with .. traversal
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -432,7 +434,7 @@ test('queryStoryData - file caching: NOT used for queries with fewer than 5 turn
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Mock fs.promises.readFile to count disk reads
   const originalReadFile = fs.promises.readFile;
@@ -475,7 +477,7 @@ test('queryStoryData - file caching: IS used for queries with 5 or more turns', 
   const inputFile = largeExportPath;
 
   // Extract the large file
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Mock fs.promises.readFile to count disk reads per file
   const originalReadFile = fs.promises.readFile;
@@ -514,7 +516,7 @@ test('queryStoryData - file caching: multiple turns from same source file reuse 
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Expand the turn_index to have 5+ turns from the same source file
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -590,7 +592,7 @@ test('queryStoryData - file caching: different source files have separate cache 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Get the turn_index to understand the source file mapping
   const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -660,7 +662,7 @@ test('queryStoryData - file caching: data correctness (cached == non-cached)', a
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Extract first
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Query with caching disabled (less than 5 turns)
   const resultSmall = await queryStoryData(tmpDir, 'turn_detail', [1, 2]);
@@ -718,7 +720,7 @@ test('queryStoryData - file caching: threshold boundary (exactly 5 turns enables
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   // Extract
-  await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
   // Mock fs.promises.readFile
   const originalReadFile = fs.promises.readFile;
