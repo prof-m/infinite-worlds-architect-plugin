@@ -1,31 +1,17 @@
 #\!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-echo "🧪 Running pre-commit tests..."
+echo "🧪 Running pre-commit tests (ALL tests via Jest)..."
 
-# Run Jest unit tests via lint-staged (for staged .js files)
-echo "  → Jest unit tests"
-timeout 30 npx lint-staged
-JEST_EXIT=$?
+# Run ALL tests via npm test (which uses Jest exclusively)
+timeout 60 npm test
+TEST_EXIT=$?
 
-if [ $JEST_EXIT -eq 124 ]; then
-  echo "❌ Jest tests timed out (>30s). Investigate slow tests and retry."
+if [ $TEST_EXIT -eq 124 ]; then
+  echo "❌ Tests timed out (>60s). Investigate slow tests and retry."
   exit 1
-elif [ $JEST_EXIT -ne 0 ]; then
-  echo "❌ Jest tests failed."
-  exit 1
-fi
-
-# Run Node native tests for handlers/parsers/integration tests
-echo "  → Node test runner (handlers, parsers, integration)"
-timeout 30 node --test test/handlers/**/*.test.js test/parsers/**/*.test.js
-NODE_EXIT=$?
-
-if [ $NODE_EXIT -eq 124 ]; then
-  echo "❌ Node tests timed out (>30s). Investigate slow tests and retry."
-  exit 1
-elif [ $NODE_EXIT -ne 0 ]; then
-  echo "❌ Node tests failed."
+elif [ $TEST_EXIT -ne 0 ]; then
+  echo "❌ Tests failed. Fix failures and retry commit."
   exit 1
 fi
 
