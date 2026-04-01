@@ -15,7 +15,8 @@ test('extractStoryData - parses TheWorldsAStageTurn4.txt successfully', async (t
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const result = await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, true);
   assert.strictEqual(result.totalTurns, 4);
@@ -34,7 +35,8 @@ test('extractStoryData - parses Counsellor2_Turn22.txt successfully', async (t) 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-  const result = await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, true);
   assert.strictEqual(result.totalTurns, 22);
@@ -51,7 +53,8 @@ test('extractStoryData - parses Counsellor2_Turn22.txt successfully', async (t) 
 test('extractStoryData - returns error for invalid input file', async (t) => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = await extractStoryData(['/nonexistent/file.txt'], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: ['/nonexistent/file.txt'], extraction_dir: tmpDir });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, false);
   assert(result.error);
@@ -62,7 +65,8 @@ test('extractStoryData - returns error for invalid input file', async (t) => {
 test('extractStoryData - returns error for empty inputPaths', async (t) => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = await extractStoryData([], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [], extraction_dir: tmpDir });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, false);
   assert(result.error.includes('Input validation failed'));
@@ -78,7 +82,8 @@ test('extractStoryData - creates character_index.json when characterList provide
     { name: 'Victor', aliases: [] }
   ];
 
-  const result = await extractStoryData([inputFile], tmpDir, characterList);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, true);
 
@@ -100,7 +105,8 @@ test('extractStoryData - does NOT create character_index.json when characterList
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const result = await extractStoryData([inputFile], tmpDir);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, true);
 
@@ -119,7 +125,8 @@ test('extractStoryData - character indexing with aliases', async (t) => {
     { name: 'Counsellor', aliases: ['The Counsellor'] }
   ];
 
-  const result = await extractStoryData([inputFile], tmpDir, characterList);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, true);
 
@@ -148,7 +155,8 @@ test('extractStoryData - multiple characters in characterList', async (t) => {
     { name: 'Character2', aliases: [] }
   ];
 
-  const result = await extractStoryData([inputFile], tmpDir, characterList);
+  const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
+  const result = JSON.parse(mcpResponse.content[0].text);
 
   assert.strictEqual(result.success, true);
 
