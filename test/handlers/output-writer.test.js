@@ -2,14 +2,14 @@
  * Tests for lib/handlers/output-writer.js
  */
 
-import { test } from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { writeOutputFiles } from '../../lib/handlers/output-writer.js';
 
-test('writeOutputFiles - writes manifest.json', async (t) => {
+describe('writeOutputFiles', () => {
+  it('writes manifest.json', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = {
@@ -44,20 +44,20 @@ test('writeOutputFiles - writes manifest.json', async (t) => {
     files: ['test.txt'],
   };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, snapshots, manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, snapshots, manifest);
 
-  assert.strictEqual(result.filesWritten.includes('manifest.json'), true);
-  const manifestPath = path.join(tmpDir, 'manifest.json');
-  assert.strictEqual(fs.existsSync(manifestPath), true);
+    expect(result.filesWritten.includes('manifest.json')).toBe(true);
+    const manifestPath = path.join(tmpDir, 'manifest.json');
+    expect(fs.existsSync(manifestPath)).toBe(true);
 
-  const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  assert.strictEqual(manifestData.version, '1.0');
-  assert.strictEqual(manifestData.total_turns, 1);
+    const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    expect(manifestData.version).toBe('1.0');
+    expect(manifestData.total_turns).toBe(1);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - writes metadata.json', async (t) => {
+  it('writes metadata.json', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = {
@@ -90,17 +90,17 @@ test('writeOutputFiles - writes metadata.json', async (t) => {
     files: [],
   };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
 
-  assert.strictEqual(result.filesWritten.includes('metadata.json'), true);
-  const metadataPath = path.join(tmpDir, 'metadata.json');
-  const metadataData = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-  assert.strictEqual(metadataData.title, 'Test Story');
+    expect(result.filesWritten.includes('metadata.json')).toBe(true);
+    const metadataPath = path.join(tmpDir, 'metadata.json');
+    const metadataData = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    expect(metadataData.title).toBe('Test Story');
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - writes turn_index.json', async (t) => {
+  it('writes turn_index.json', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = { title: null, character: {} };
@@ -129,21 +129,21 @@ test('writeOutputFiles - writes turn_index.json', async (t) => {
 
   const manifest = { sourceFiles: [], headerSourceFile: '', files: [] };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
 
-  assert.strictEqual(result.filesWritten.includes('turn_index.json'), true);
-  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
-  const turnIndexData = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
-  assert.strictEqual(turnIndexData.turns.length, 2);
-  assert.strictEqual(turnIndexData.turns[0].number, 1);
-  assert.strictEqual(turnIndexData.turns[0].has_action, false);
-  assert.strictEqual(turnIndexData.turns[1].has_action, true);
-  assert.strictEqual(turnIndexData.turns[1].has_tracked_items, true);
+    expect(result.filesWritten.includes('turn_index.json')).toBe(true);
+    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+    const turnIndexData = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+    expect(turnIndexData.turns.length).toBe(2);
+    expect(turnIndexData.turns[0].number).toBe(1);
+    expect(turnIndexData.turns[0].has_action).toBe(false);
+    expect(turnIndexData.turns[1].has_action).toBe(true);
+    expect(turnIndexData.turns[1].has_tracked_items).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - writes tracked_state.json when tracked items exist', async (t) => {
+  it('writes tracked_state.json when tracked items exist', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = { title: null, character: {} };
@@ -171,18 +171,18 @@ test('writeOutputFiles - writes tracked_state.json when tracked items exist', as
 
   const manifest = { sourceFiles: [], headerSourceFile: '', files: [] };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, snapshots, manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, snapshots, manifest);
 
-  assert.strictEqual(result.filesWritten.includes('tracked_state.json'), true);
-  const trackedStatePath = path.join(tmpDir, 'tracked_state.json');
-  const trackedStateData = JSON.parse(fs.readFileSync(trackedStatePath, 'utf8'));
-  assert.strictEqual(trackedStateData.snapshots.length, 1);
-  assert.deepStrictEqual(trackedStateData.snapshots[0].tracked_items, { gold: '100' });
+    expect(result.filesWritten.includes('tracked_state.json')).toBe(true);
+    const trackedStatePath = path.join(tmpDir, 'tracked_state.json');
+    const trackedStateData = JSON.parse(fs.readFileSync(trackedStatePath, 'utf8'));
+    expect(trackedStateData.snapshots.length).toBe(1);
+    expect(trackedStateData.snapshots[0].tracked_items).toEqual({ gold: '100' });
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - omits tracked_state.json when no tracked items', async (t) => {
+  it('omits tracked_state.json when no tracked items', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = { title: null, character: {} };
@@ -201,16 +201,16 @@ test('writeOutputFiles - omits tracked_state.json when no tracked items', async 
 
   const manifest = { sourceFiles: [], headerSourceFile: '', files: [] };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
 
-  assert.strictEqual(result.filesWritten.includes('tracked_state.json'), false);
-  const trackedStatePath = path.join(tmpDir, 'tracked_state.json');
-  assert.strictEqual(fs.existsSync(trackedStatePath), false);
+    expect(result.filesWritten.includes('tracked_state.json')).toBe(false);
+    const trackedStatePath = path.join(tmpDir, 'tracked_state.json');
+    expect(fs.existsSync(trackedStatePath)).toBe(false);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - creates extraction directory if missing', async (t) => {
+  it('creates extraction directory if missing', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
   const extractionDir = path.join(tmpDir, 'nested', 'extraction', 'dir');
 
@@ -230,15 +230,15 @@ test('writeOutputFiles - creates extraction directory if missing', async (t) => 
 
   const manifest = { sourceFiles: [], headerSourceFile: '', files: [] };
 
-  const result = await writeOutputFiles(extractionDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(extractionDir, parsedHeader, parsedTurns, [], manifest);
 
-  assert.strictEqual(fs.existsSync(extractionDir), true);
-  assert(fs.statSync(extractionDir).isDirectory());
+    expect(fs.existsSync(extractionDir)).toBe(true);
+    expect(fs.statSync(extractionDir).isDirectory()).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - handles preview truncation', async (t) => {
+  it('handles preview truncation', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = { title: null, character: {} };
@@ -260,17 +260,17 @@ test('writeOutputFiles - handles preview truncation', async (t) => {
 
   const manifest = { sourceFiles: [], headerSourceFile: '', files: [] };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
 
-  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
-  const turnIndexData = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
-  assert(turnIndexData.turns[0].action_preview.length <= 100);
-  assert(turnIndexData.turns[0].outcome_preview.length <= 100);
+    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+    const turnIndexData = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+    expect(turnIndexData.turns[0].action_preview.length).toBeLessThanOrEqual(100);
+    expect(turnIndexData.turns[0].outcome_preview.length).toBeLessThanOrEqual(100);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - includes files array in manifest.json output', async (t) => {
+  it('includes files array in manifest.json output', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = {
@@ -303,20 +303,20 @@ test('writeOutputFiles - includes files array in manifest.json output', async (t
     files: ['test.txt'],
   };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
 
-  const manifestPath = path.join(tmpDir, 'manifest.json');
-  const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const manifestPath = path.join(tmpDir, 'manifest.json');
+    const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-  assert.ok(manifestData.files);
-  assert.strictEqual(Array.isArray(manifestData.files), true);
-  assert.strictEqual(manifestData.files.length, 1);
-  assert.strictEqual(manifestData.files[0], 'test.txt');
+    expect(manifestData.files).toBeDefined();
+    expect(Array.isArray(manifestData.files)).toBe(true);
+    expect(manifestData.files.length).toBe(1);
+    expect(manifestData.files[0]).toBe('test.txt');
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('writeOutputFiles - includes multiple files in manifest.json', async (t) => {
+  it('includes multiple files in manifest.json', async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
   const parsedHeader = {
@@ -362,15 +362,16 @@ test('writeOutputFiles - includes multiple files in manifest.json', async (t) =>
     files: ['file1.txt', 'file2.txt'],
   };
 
-  const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
+    const result = await writeOutputFiles(tmpDir, parsedHeader, parsedTurns, [], manifest);
 
-  const manifestPath = path.join(tmpDir, 'manifest.json');
-  const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const manifestPath = path.join(tmpDir, 'manifest.json');
+    const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-  assert.ok(manifestData.files);
-  assert.strictEqual(manifestData.files.length, 2);
-  assert.strictEqual(manifestData.files[0], 'file1.txt');
-  assert.strictEqual(manifestData.files[1], 'file2.txt');
+    expect(manifestData.files).toBeDefined();
+    expect(manifestData.files.length).toBe(2);
+    expect(manifestData.files[0]).toBe('file1.txt');
+    expect(manifestData.files[1]).toBe('file2.txt');
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });

@@ -6,12 +6,9 @@
  * 2. MCP Response Format Fix: Responses wrapped in MCP-compliant envelope format
  * 3. Turn Extraction Regex Fix: Files with multiple newlines after turn markers properly extracted
  * 4. Tracked Items Detection: Tracked and hidden tracked items properly detected
- *
- * Run: node --test test/handlers/extraction.integration.test.js
  */
 
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, it, expect, afterAll } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -81,11 +78,8 @@ function cleanupAllTempDirs() {
   createdTempDirs.length = 0;
 }
 
-// ============================================================================
-// Test Suite 1: Parameter Naming Fix (snake_case parameters)
-// ============================================================================
-
-test('Bug Fix #1: Parameter Naming - input_paths parameter received correctly', async () => {
+describe('Bug Fix #1: Parameter Naming (snake_case parameters)', () => {
+  it('input_paths parameter received correctly', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -95,19 +89,19 @@ test('Bug Fix #1: Parameter Naming - input_paths parameter received correctly', 
     extraction_dir: tmpDir
   });
 
-  // Verify response structure
-  assert(mcpResponse.content, 'Response should have content property');
-  assert(Array.isArray(mcpResponse.content), 'content should be an array');
-  assert.strictEqual(mcpResponse.content.length, 1, 'Should have one content item');
+    // Verify response structure
+    expect(mcpResponse.content).toBeDefined();
+    expect(Array.isArray(mcpResponse.content)).toBe(true);
+    expect(mcpResponse.content.length).toBe(1);
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true, 'Should succeed with snake_case parameter names');
-  assert.strictEqual(result.inputFilesProcessed, 1, 'Should process correct number of files');
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
+    expect(result.inputFilesProcessed).toBe(1);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #1: Parameter Naming - extraction_dir parameter received correctly', async () => {
+  it('extraction_dir parameter received correctly', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -116,17 +110,17 @@ test('Bug Fix #1: Parameter Naming - extraction_dir parameter received correctly
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
 
-  // Verify files are written to the correct directory (extraction_dir)
-  const manifestPath = path.join(tmpDir, 'manifest.json');
-  assert(fs.existsSync(manifestPath), 'Output files should be written to extraction_dir');
+    // Verify files are written to the correct directory (extraction_dir)
+    const manifestPath = path.join(tmpDir, 'manifest.json');
+    expect(fs.existsSync(manifestPath)).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #1: Parameter Naming - multiple files with snake_case parameters', async () => {
+  it('multiple files with snake_case parameters', async () => {
   const tmpDir = createTempDir();
   const inputFiles = [
     path.join(testFilesDir, 'TheWorldsAStageTurn4.txt'),
@@ -139,18 +133,16 @@ test('Bug Fix #1: Parameter Naming - multiple files with snake_case parameters',
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
-  assert.strictEqual(result.inputFilesProcessed, 2, 'Should process both files');
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
+    expect(result.inputFilesProcessed).toBe(2);
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });
 
-// ============================================================================
-// Test Suite 2: MCP Response Format Fix (envelope wrapper)
-// ============================================================================
-
-test('Bug Fix #2: MCP Response Format - success response has proper envelope', async () => {
+describe('Bug Fix #2: MCP Response Format (envelope wrapper)', () => {
+  it('success response has proper envelope', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -159,24 +151,24 @@ test('Bug Fix #2: MCP Response Format - success response has proper envelope', a
     extraction_dir: tmpDir
   });
 
-  // Verify MCP envelope format
-  assert(mcpResponse.content, 'Must have content property');
-  assert(Array.isArray(mcpResponse.content), 'content must be array');
-  assert.strictEqual(mcpResponse.content.length, 1);
+    // Verify MCP envelope format
+    expect(mcpResponse.content).toBeDefined();
+    expect(Array.isArray(mcpResponse.content)).toBe(true);
+    expect(mcpResponse.content.length).toBe(1);
 
-  const contentItem = mcpResponse.content[0];
-  assert.strictEqual(contentItem.type, 'text', 'Content type must be "text"');
-  assert(contentItem.text, 'Content must have text property');
-  assert(typeof contentItem.text === 'string', 'text must be a string');
+    const contentItem = mcpResponse.content[0];
+    expect(contentItem.type).toBe('text');
+    expect(contentItem.text).toBeDefined();
+    expect(typeof contentItem.text).toBe('string');
 
-  // Verify text is valid JSON
-  const parsed = JSON.parse(contentItem.text);
-  assert.strictEqual(parsed.success, true);
+    // Verify text is valid JSON
+    const parsed = JSON.parse(contentItem.text);
+    expect(parsed.success).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #2: MCP Response Format - error response has proper envelope', async () => {
+  it('error response has proper envelope', async () => {
   const tmpDir = createTempDir();
 
   // Call with invalid input that triggers validation error
@@ -185,27 +177,27 @@ test('Bug Fix #2: MCP Response Format - error response has proper envelope', asy
     extraction_dir: tmpDir
   });
 
-  // Validation errors may return directly (not wrapped in envelope)
-  // but still should be properly structured
-  assert(mcpResponse);
+    // Validation errors may return directly (not wrapped in envelope)
+    // but still should be properly structured
+    expect(mcpResponse).toBeDefined();
 
-  // If response is wrapped in envelope, verify it
-  if (mcpResponse.content) {
-    assert(Array.isArray(mcpResponse.content));
-    assert.strictEqual(mcpResponse.content[0].type, 'text');
-    const result = JSON.parse(mcpResponse.content[0].text);
-    assert.strictEqual(result.success, false);
-    assert(result.error, 'Error response must include error message');
-  } else {
-    // If validation error returns directly (legacy behavior)
-    assert.strictEqual(mcpResponse.success, false);
-    assert(mcpResponse.error, 'Error response must include error message');
-  }
+    // If response is wrapped in envelope, verify it
+    if (mcpResponse.content) {
+      expect(Array.isArray(mcpResponse.content)).toBe(true);
+      expect(mcpResponse.content[0].type).toBe('text');
+      const result = JSON.parse(mcpResponse.content[0].text);
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    } else {
+      // If validation error returns directly (legacy behavior)
+      expect(mcpResponse.success).toBe(false);
+      expect(mcpResponse.error).toBeDefined();
+    }
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #2: MCP Response Format - response JSON is valid and parseable', async () => {
+  it('response JSON is valid and parseable', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
@@ -214,18 +206,18 @@ test('Bug Fix #2: MCP Response Format - response JSON is valid and parseable', a
     extraction_dir: tmpDir
   });
 
-  const textContent = mcpResponse.content[0].text;
+    const textContent = mcpResponse.content[0].text;
 
-  // Should not throw
-  const parsed = JSON.parse(textContent);
-  assert(parsed, 'Must parse to valid object');
-  assert(typeof parsed === 'object', 'Parsed result must be object');
-  assert('success' in parsed, 'Must have success property');
+    // Should not throw
+    const parsed = JSON.parse(textContent);
+    expect(parsed).toBeDefined();
+    expect(typeof parsed).toBe('object');
+    expect('success' in parsed).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #2: MCP Response Format - response contains all expected fields', async () => {
+  it('response contains all expected fields', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -234,25 +226,22 @@ test('Bug Fix #2: MCP Response Format - response contains all expected fields', 
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
+    const result = JSON.parse(mcpResponse.content[0].text);
 
-  // Verify all expected result fields are present
-  assert('success' in result);
-  assert('totalTurns' in result);
-  assert('turnRange' in result);
-  assert('inputFilesProcessed' in result);
-  assert('filesWritten' in result);
-  assert('warnings' in result);
+    // Verify all expected result fields are present
+    expect('success' in result).toBe(true);
+    expect('totalTurns' in result).toBe(true);
+    expect('turnRange' in result).toBe(true);
+    expect('inputFilesProcessed' in result).toBe(true);
+    expect('filesWritten' in result).toBe(true);
+    expect('warnings' in result).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });
 
-// ============================================================================
-// Test Suite 3: Turn Extraction Regex Fix (multiline newlines)
-// ============================================================================
-
-// Parametrized test for Turn Extraction with multiple files
-test('Bug Fix #3: Turn Extraction - handles multiple newlines after turn marker', async () => {
+describe('Bug Fix #3: Turn Extraction (multiline newlines)', () => {
+  it('handles multiple newlines after turn marker', async () => {
   for (const filename of testStoryFiles.thorough) {
     const tmpDir = createTempDir();
     const inputFile = path.join(testFilesDir, filename);
@@ -268,43 +257,43 @@ test('Bug Fix #3: Turn Extraction - handles multiple newlines after turn marker'
       extraction_dir: tmpDir
     });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
-    assert.strictEqual(result.success, true, `${filename}: Should succeed`);
-    assert(result.totalTurns >= 5, `${filename}: Should extract at least 5 turns`);
+      const result = JSON.parse(mcpResponse.content[0].text);
+      expect(result.success).toBe(true);
+      expect(result.totalTurns).toBeGreaterThanOrEqual(5);
 
-    // Verify turn_index shows all extracted turns have content
-    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
-    assert(fs.existsSync(turnIndexPath), `${filename}: turn_index.json should exist`);
+      // Verify turn_index shows all extracted turns have content
+      const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+      expect(fs.existsSync(turnIndexPath)).toBe(true);
 
-    const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
-    assert.strictEqual(turnIndex.turns.length, result.totalTurns, `${filename}: Turn index should match reported totalTurns`);
+      const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+      expect(turnIndex.turns.length).toBe(result.totalTurns);
 
-    // Verify turns have proper structure (this is the key test for the regex fix)
-    // Some turns may not have outcome content, but the structure should be valid
-    let turnsWithOutcome = 0;
-    let turnsChecked = 0;
-    for (const turn of turnIndex.turns) {
-      // Verify turn structure is present
-      assert('number' in turn, `${filename} Turn should have number property`);
-      assert('outcome_preview' in turn, `${filename} Turn should have outcome_preview property`);
-      turnsChecked++;
+      // Verify turns have proper structure (this is the key test for the regex fix)
+      // Some turns may not have outcome content, but the structure should be valid
+      let turnsWithOutcome = 0;
+      let turnsChecked = 0;
+      for (const turn of turnIndex.turns) {
+        // Verify turn structure is present
+        expect('number' in turn).toBe(true);
+        expect('outcome_preview' in turn).toBe(true);
+        turnsChecked++;
 
-      // Count turns with actual outcome content
-      if (turn.outcome_preview !== null && turn.outcome_preview && turn.outcome_preview.length > 0) {
-        turnsWithOutcome++;
+        // Count turns with actual outcome content
+        if (turn.outcome_preview !== null && turn.outcome_preview && turn.outcome_preview.length > 0) {
+          turnsWithOutcome++;
+        }
       }
+
+      expect(turnsChecked).toBeGreaterThan(0);
+      // Some files may not have outcome sections - the key test is turn extraction works
+      // (turns are properly extracted, not truncated by regex issues)
+      // This is validated by the turn count matching and structure being valid
+
+      fs.rmSync(tmpDir, { recursive: true });
     }
+  });
 
-    assert(turnsChecked > 0, `${filename}: Should have extracted turns`);
-    // Some files may not have outcome sections - the key test is turn extraction works
-    // (turns are properly extracted, not truncated by regex issues)
-    // This is validated by the turn count matching and structure being valid
-
-    fs.rmSync(tmpDir, { recursive: true });
-  }
-});
-
-test('Bug Fix #3: Turn Extraction - multiline section headers properly parsed', async () => {
+  it('multiline section headers properly parsed', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
@@ -313,17 +302,17 @@ test('Bug Fix #3: Turn Extraction - multiline section headers properly parsed', 
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
-  assert.strictEqual(result.totalTurns, 22);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
+    expect(result.totalTurns).toBe(22);
 
-  // Verify all turns were extracted (not truncated)
-  assert(result.turnRange[1] >= 22, 'Should extract through turn 22 or higher');
+    // Verify all turns were extracted (not truncated)
+    expect(result.turnRange[1]).toBeGreaterThanOrEqual(22);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #3: Turn Extraction - outcome content is not empty for normal turns', async () => {
+  it('outcome content is not empty for normal turns', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -332,30 +321,28 @@ test('Bug Fix #3: Turn Extraction - outcome content is not empty for normal turn
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
 
-  // Check that turn structure is valid (key test for regex fix)
-  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
-  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+    // Check that turn structure is valid (key test for regex fix)
+    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+    const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
 
-  // Verify turns were properly extracted (not truncated by regex)
-  assert(turnIndex.turns.length > 0, 'Should have extracted turns');
+    // Verify turns were properly extracted (not truncated by regex)
+    expect(turnIndex.turns.length).toBeGreaterThan(0);
 
-  // If outcome previews exist, they should not be empty (no zero-length capture bug)
-  const turnsWithOutcome = turnIndex.turns.filter(t => t.outcome_preview);
-  for (const turn of turnsWithOutcome) {
-    assert(turn.outcome_preview.length > 0, `Turn ${turn.number} outcome should not be empty`);
-  }
+    // If outcome previews exist, they should not be empty (no zero-length capture bug)
+    const turnsWithOutcome = turnIndex.turns.filter(t => t.outcome_preview);
+    for (const turn of turnsWithOutcome) {
+      expect(turn.outcome_preview.length).toBeGreaterThan(0);
+    }
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });
 
-// ============================================================================
-// Test Suite 4: Tracked Items Detection
-// ============================================================================
-
-test('Bug Fix #4: Tracked Items - detected when present', async () => {
+describe('Bug Fix #4: Tracked Items Detection', () => {
+  it('detected when present', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -364,17 +351,16 @@ test('Bug Fix #4: Tracked Items - detected when present', async () => {
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
+    const result = JSON.parse(mcpResponse.content[0].text);
 
-  // Result should report whether tracked items were found
-  assert('hasTrackedItems' in result, 'Result should report hasTrackedItems');
-  assert('hasHiddenTrackedItems' in result, 'Result should report hasHiddenTrackedItems');
+    // Result should report whether tracked items were found
+    expect('hasTrackedItems' in result).toBe(true);
+    expect('hasHiddenTrackedItems' in result).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-// Parametrized test for Tracked Items with multiple files
-test('Bug Fix #4: Tracked Items - tracked_state.json created when tracked items exist', async () => {
+  it('tracked_state.json created when tracked items exist', async () => {
   for (const filename of testStoryFiles.thorough) {
     const tmpDir = createTempDir();
     const inputFile = path.join(testFilesDir, filename);
@@ -390,23 +376,23 @@ test('Bug Fix #4: Tracked Items - tracked_state.json created when tracked items 
       extraction_dir: tmpDir
     });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
-    assert.strictEqual(result.success, true, `${filename}: Extraction should succeed`);
+      const result = JSON.parse(mcpResponse.content[0].text);
+      expect(result.success).toBe(true);
 
-    // If tracked items exist, tracked_state.json should be created
-    if (result.hasTrackedItems || result.hasHiddenTrackedItems) {
-      const trackedStatePath = path.join(tmpDir, 'tracked_state.json');
-      assert(fs.existsSync(trackedStatePath), `${filename}: tracked_state.json should exist when tracked items are present`);
+      // If tracked items exist, tracked_state.json should be created
+      if (result.hasTrackedItems || result.hasHiddenTrackedItems) {
+        const trackedStatePath = path.join(tmpDir, 'tracked_state.json');
+        expect(fs.existsSync(trackedStatePath)).toBe(true);
 
-      const trackedState = JSON.parse(fs.readFileSync(trackedStatePath, 'utf8'));
-      assert(Array.isArray(trackedState.snapshots), `${filename}: tracked_state should have snapshots array`);
+        const trackedState = JSON.parse(fs.readFileSync(trackedStatePath, 'utf8'));
+        expect(Array.isArray(trackedState.snapshots)).toBe(true);
+      }
+
+      fs.rmSync(tmpDir, { recursive: true });
     }
+  });
 
-    fs.rmSync(tmpDir, { recursive: true });
-  }
-});
-
-test('Bug Fix #4: Tracked Items - turn index has_tracked_items flag correct', async () => {
+  it('turn index has_tracked_items flag correct', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -415,23 +401,23 @@ test('Bug Fix #4: Tracked Items - turn index has_tracked_items flag correct', as
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
 
-  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
-  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+    const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
 
-  // Verify turn index structure
-  assert(Array.isArray(turnIndex.turns));
-  for (const turn of turnIndex.turns) {
-    assert('has_tracked_items' in turn, `Turn ${turn.number} should have has_tracked_items flag`);
-    assert(typeof turn.has_tracked_items === 'boolean', 'has_tracked_items should be boolean');
-  }
+    // Verify turn index structure
+    expect(Array.isArray(turnIndex.turns)).toBe(true);
+    for (const turn of turnIndex.turns) {
+      expect('has_tracked_items' in turn).toBe(true);
+      expect(typeof turn.has_tracked_items).toBe('boolean');
+    }
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Bug Fix #4: Tracked Items - manifest records tracked items flags correctly', async () => {
+  it('manifest records tracked items flags correctly', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
@@ -440,23 +426,22 @@ test('Bug Fix #4: Tracked Items - manifest records tracked items flags correctly
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
 
-  const manifestPath = path.join(tmpDir, 'manifest.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const manifestPath = path.join(tmpDir, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-  // Manifest should report tracked items presence
-  assert('has_tracked_items' in manifest, 'Manifest should have has_tracked_items');
-  assert('has_hidden_tracked_items' in manifest, 'Manifest should have has_hidden_tracked_items');
-  assert(typeof manifest.has_tracked_items === 'boolean');
-  assert(typeof manifest.has_hidden_tracked_items === 'boolean');
+    // Manifest should report tracked items presence
+    expect('has_tracked_items' in manifest).toBe(true);
+    expect('has_hidden_tracked_items' in manifest).toBe(true);
+    expect(typeof manifest.has_tracked_items).toBe('boolean');
+    expect(typeof manifest.has_hidden_tracked_items).toBe('boolean');
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-// Parametrized test for Hidden Tracked Items detection with multiple files
-test('Bug Fix #4: Tracked Items - hidden tracked items detected separately', async () => {
+  it('hidden tracked items detected separately', async () => {
   for (const filename of testStoryFiles.thorough) {
     const tmpDir = createTempDir();
     const inputFile = path.join(testFilesDir, filename);
@@ -472,22 +457,20 @@ test('Bug Fix #4: Tracked Items - hidden tracked items detected separately', asy
       extraction_dir: tmpDir
     });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
-    assert.strictEqual(result.success, true, `${filename}: Extraction should succeed`);
+      const result = JSON.parse(mcpResponse.content[0].text);
+      expect(result.success).toBe(true);
 
-    // Result should distinguish between regular and hidden tracked items
-    assert(typeof result.hasTrackedItems === 'boolean', `${filename}: hasTrackedItems should be boolean`);
-    assert(typeof result.hasHiddenTrackedItems === 'boolean', `${filename}: hasHiddenTrackedItems should be boolean`);
+      // Result should distinguish between regular and hidden tracked items
+      expect(typeof result.hasTrackedItems).toBe('boolean');
+      expect(typeof result.hasHiddenTrackedItems).toBe('boolean');
 
-    fs.rmSync(tmpDir, { recursive: true });
-  }
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
 });
 
-// ============================================================================
-// Edge Case Tests
-// ============================================================================
-
-test('Edge Case: Empty tracked items section handled correctly', async () => {
+describe('Edge Case Tests', () => {
+  it('Empty tracked items section handled correctly', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -496,16 +479,16 @@ test('Edge Case: Empty tracked items section handled correctly', async () => {
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
+    const result = JSON.parse(mcpResponse.content[0].text);
 
-  // Even if tracking is empty, structure should be consistent
-  assert('hasTrackedItems' in result);
-  assert('hasHiddenTrackedItems' in result);
+    // Even if tracking is empty, structure should be consistent
+    expect('hasTrackedItems' in result).toBe(true);
+    expect('hasHiddenTrackedItems' in result).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Edge Case: Missing optional parameters handled gracefully', async () => {
+  it('Missing optional parameters handled gracefully', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -515,16 +498,16 @@ test('Edge Case: Missing optional parameters handled gracefully', async () => {
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
 
-  // Should work fine without characterList
-  assert.strictEqual(result.inputFilesProcessed, 1);
+    // Should work fine without characterList
+    expect(result.inputFilesProcessed).toBe(1);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Edge Case: All output files have correct structure', async () => {
+  it('All output files have correct structure', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
@@ -533,31 +516,31 @@ test('Edge Case: All output files have correct structure', async () => {
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
-  assert.strictEqual(result.success, true);
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(true);
 
-  // Verify all expected files exist
-  const manifestPath = path.join(tmpDir, 'manifest.json');
-  const metadataPath = path.join(tmpDir, 'metadata.json');
-  const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+    // Verify all expected files exist
+    const manifestPath = path.join(tmpDir, 'manifest.json');
+    const metadataPath = path.join(tmpDir, 'metadata.json');
+    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
 
-  assert(fs.existsSync(manifestPath), 'manifest.json should exist');
-  assert(fs.existsSync(metadataPath), 'metadata.json should exist');
-  assert(fs.existsSync(turnIndexPath), 'turn_index.json should exist');
+    expect(fs.existsSync(manifestPath)).toBe(true);
+    expect(fs.existsSync(metadataPath)).toBe(true);
+    expect(fs.existsSync(turnIndexPath)).toBe(true);
 
-  // Verify all files are valid JSON
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-  const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+    // Verify all files are valid JSON
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
 
-  assert(typeof manifest === 'object', 'manifest.json should parse to object');
-  assert(typeof metadata === 'object', 'metadata.json should parse to object');
-  assert(typeof turnIndex === 'object', 'turn_index.json should parse to object');
+    expect(typeof manifest).toBe('object');
+    expect(typeof metadata).toBe('object');
+    expect(typeof turnIndex).toBe('object');
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('Edge Case: Result includes all required response fields', async () => {
+  it('Result includes all required response fields', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
@@ -566,27 +549,25 @@ test('Edge Case: Result includes all required response fields', async () => {
     extraction_dir: tmpDir
   });
 
-  const result = JSON.parse(mcpResponse.content[0].text);
+    const result = JSON.parse(mcpResponse.content[0].text);
 
-  // Success response should have all these fields
-  assert.strictEqual(result.success, true);
-  assert(typeof result.totalTurns === 'number');
-  assert(Array.isArray(result.turnRange));
-  assert.strictEqual(result.turnRange.length, 2);
-  assert(typeof result.inputFilesProcessed === 'number');
-  assert(typeof result.hasTrackedItems === 'boolean');
-  assert(typeof result.hasHiddenTrackedItems === 'boolean');
-  assert(Array.isArray(result.filesWritten));
-  assert(Array.isArray(result.warnings));
+    // Success response should have all these fields
+    expect(result.success).toBe(true);
+    expect(typeof result.totalTurns).toBe('number');
+    expect(Array.isArray(result.turnRange)).toBe(true);
+    expect(result.turnRange.length).toBe(2);
+    expect(typeof result.inputFilesProcessed).toBe('number');
+    expect(typeof result.hasTrackedItems).toBe('boolean');
+    expect(typeof result.hasHiddenTrackedItems).toBe('boolean');
+    expect(Array.isArray(result.filesWritten)).toBe(true);
+    expect(Array.isArray(result.warnings)).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });
 
-// ============================================================================
-// Multi-File Coverage Tests - Comprehensive parametrized tests
-// ============================================================================
-
-test('Multi-File Coverage: Parameter naming works on all test files', async () => {
+describe('Multi-File Coverage Tests', () => {
+  it('Parameter naming works on all test files', async () => {
   const allFiles = [...testStoryFiles.fast, ...testStoryFiles.thorough];
   for (const filename of allFiles) {
     const tmpDir = createTempDir();
@@ -603,15 +584,15 @@ test('Multi-File Coverage: Parameter naming works on all test files', async () =
       extraction_dir: tmpDir
     });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
-    assert.strictEqual(result.success, true, `${filename}: Should process with snake_case parameters`);
-    assert.strictEqual(result.inputFilesProcessed, 1, `${filename}: Should process exactly one file`);
+      const result = JSON.parse(mcpResponse.content[0].text);
+      expect(result.success).toBe(true);
+      expect(result.inputFilesProcessed).toBe(1);
 
-    fs.rmSync(tmpDir, { recursive: true });
-  }
-});
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
 
-test('Multi-File Coverage: MCP response format correct on all test files', async () => {
+  it('MCP response format correct on all test files', async () => {
   const allFiles = [...testStoryFiles.fast, ...testStoryFiles.thorough];
   for (const filename of allFiles) {
     const tmpDir = createTempDir();
@@ -628,28 +609,28 @@ test('Multi-File Coverage: MCP response format correct on all test files', async
       extraction_dir: tmpDir
     });
 
-    // Verify MCP envelope format
-    assert(mcpResponse.content, `${filename}: Must have content property`);
-    assert(Array.isArray(mcpResponse.content), `${filename}: content must be array`);
-    assert.strictEqual(mcpResponse.content.length, 1, `${filename}: Should have one content item`);
+      // Verify MCP envelope format
+      expect(mcpResponse.content).toBeDefined();
+      expect(Array.isArray(mcpResponse.content)).toBe(true);
+      expect(mcpResponse.content.length).toBe(1);
 
-    const contentItem = mcpResponse.content[0];
-    assert.strictEqual(contentItem.type, 'text', `${filename}: Content type must be "text"`);
-    assert(contentItem.text, `${filename}: Content must have text property`);
-    assert(typeof contentItem.text === 'string', `${filename}: text must be a string`);
+      const contentItem = mcpResponse.content[0];
+      expect(contentItem.type).toBe('text');
+      expect(contentItem.text).toBeDefined();
+      expect(typeof contentItem.text).toBe('string');
 
-    // Verify text is valid JSON and contains expected fields
-    const parsed = JSON.parse(contentItem.text);
-    assert.strictEqual(parsed.success, true, `${filename}: Response should be successful`);
-    assert('success' in parsed, `${filename}: Must have success property`);
-    assert('totalTurns' in parsed, `${filename}: Must have totalTurns property`);
-    assert('turnRange' in parsed, `${filename}: Must have turnRange property`);
+      // Verify text is valid JSON and contains expected fields
+      const parsed = JSON.parse(contentItem.text);
+      expect(parsed.success).toBe(true);
+      expect('success' in parsed).toBe(true);
+      expect('totalTurns' in parsed).toBe(true);
+      expect('turnRange' in parsed).toBe(true);
 
-    fs.rmSync(tmpDir, { recursive: true });
-  }
-});
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
 
-test('Multi-File Coverage: Output file structure consistent on all test files', async () => {
+  it('Output file structure consistent on all test files', async () => {
   const allFiles = [...testStoryFiles.fast, ...testStoryFiles.thorough];
   for (const filename of allFiles) {
     const tmpDir = createTempDir();
@@ -666,40 +647,38 @@ test('Multi-File Coverage: Output file structure consistent on all test files', 
       extraction_dir: tmpDir
     });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
-    assert.strictEqual(result.success, true, `${filename}: Extraction should succeed`);
+      const result = JSON.parse(mcpResponse.content[0].text);
+      expect(result.success).toBe(true);
 
-    // Verify all expected files exist
-    const manifestPath = path.join(tmpDir, 'manifest.json');
-    const metadataPath = path.join(tmpDir, 'metadata.json');
-    const turnIndexPath = path.join(tmpDir, 'turn_index.json');
+      // Verify all expected files exist
+      const manifestPath = path.join(tmpDir, 'manifest.json');
+      const metadataPath = path.join(tmpDir, 'metadata.json');
+      const turnIndexPath = path.join(tmpDir, 'turn_index.json');
 
-    assert(fs.existsSync(manifestPath), `${filename}: manifest.json should exist`);
-    assert(fs.existsSync(metadataPath), `${filename}: metadata.json should exist`);
-    assert(fs.existsSync(turnIndexPath), `${filename}: turn_index.json should exist`);
+      expect(fs.existsSync(manifestPath)).toBe(true);
+      expect(fs.existsSync(metadataPath)).toBe(true);
+      expect(fs.existsSync(turnIndexPath)).toBe(true);
 
-    // Verify all files are valid JSON
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-    const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
+      // Verify all files are valid JSON
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+      const turnIndex = JSON.parse(fs.readFileSync(turnIndexPath, 'utf8'));
 
-    assert(typeof manifest === 'object', `${filename}: manifest.json should parse to object`);
-    assert(typeof metadata === 'object', `${filename}: metadata.json should parse to object`);
-    assert(typeof turnIndex === 'object', `${filename}: turn_index.json should parse to object`);
+      expect(typeof manifest).toBe('object');
+      expect(typeof metadata).toBe('object');
+      expect(typeof turnIndex).toBe('object');
 
-    // Verify turn counts match
-    assert.strictEqual(
-      turnIndex.turns.length,
-      result.totalTurns,
-      `${filename}: Turn index length should match reported total`
-    );
+      // Verify turn counts match
+      expect(
+        turnIndex.turns.length,
+      ).toBe(result.totalTurns);
 
-    fs.rmSync(tmpDir, { recursive: true });
-  }
-});
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
 
-// Cleanup all temp directories on test completion
-test('Cleanup: Remove all created temporary directories', () => {
-  cleanupAllTempDirs();
-  assert.strictEqual(createdTempDirs.length, 0, 'All temp directories should be cleaned up');
+  afterAll(() => {
+    cleanupAllTempDirs();
+    expect(createdTempDirs.length).toBe(0);
+  });
 });
