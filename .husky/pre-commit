@@ -3,27 +3,31 @@
 
 echo "🧪 Running pre-commit tests..."
 
-# Check if changes are documentation-only
-STAGED_FILES=$(git diff --cached --name-only 2>/dev/null)
-IS_DOC_ONLY=$(echo "$STAGED_FILES" | grep -v '\.(js|jsx|ts|tsx|cjs|mjs)$' | wc -l)
-TOTAL_FILES=$(echo "$STAGED_FILES" | wc -l)
-
-if [ "$IS_DOC_ONLY" -eq "$TOTAL_FILES" ] && [ "$TOTAL_FILES" -gt 0 ]; then
-  echo "📝 Documentation-only changes detected. Skipping tests."
-  exit 0
-fi
-
-# Use lint-staged to run tests only on staged changes (with timeout)
+# Run Jest unit tests via lint-staged (for staged .js files)
+echo "  → Jest unit tests"
 timeout 30 npx lint-staged
-EXIT_CODE=$?
+JEST_EXIT=$?
 
-if [ $EXIT_CODE -eq 124 ]; then
-  echo "⏱️  Tests timed out (>30s). Retry the commit or investigate slow tests."
+if [ $JEST_EXIT -eq 124 ]; then
+  echo "❌ Jest tests timed out (>30s). Investigate slow tests and retry."
   exit 1
-elif [ $EXIT_CODE -ne 0 ]; then
-  echo "❌ Tests failed. Commit aborted."
+elif [ $JEST_EXIT -ne 0 ]; then
+  echo "❌ Jest tests failed."
   exit 1
 fi
 
-echo "✅ All tests passed. Proceeding with commit."
+# Run Node native tests for handlers/parsers/integration tests
+echo "  → Node test runner (handlers, parsers, integration)"
+timeout 30 node --test test/handlers/**/*.test.js test/parsers/**/*.test.js
+NODE_EXIT=$?
+
+if [ $NODE_EXIT -eq 124 ]; then
+  echo "❌ Node tests timed out (>30s). Investigate slow tests and retry."
+  exit 1
+elif [ $NODE_EXIT -ne 0 ]; then
+  echo "❌ Node tests failed."
+  exit 1
+fi
+
+echo "✅ All tests passed."
 exit 0

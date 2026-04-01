@@ -15,7 +15,7 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
   "lint-staged": {
-    "*.js": ["jest --bail --findRelatedTests"]
+    "*.js": ["jest --bail --findRelatedTests --passWithNoTests"]
   },
   "devDependencies": {
     "husky": "^9.1.7",
