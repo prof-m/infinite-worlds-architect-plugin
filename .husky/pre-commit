@@ -3,8 +3,8 @@
 
 echo "🧪 Running pre-commit tests..."
 
-# Run tests on all staged changes with timeout protection
-timeout 30 npm run test:fast
+# Use lint-staged to run tests only on staged changes (with timeout)
+timeout 30 npx lint-staged
 EXIT_CODE=$?
 
 # Check exit code
