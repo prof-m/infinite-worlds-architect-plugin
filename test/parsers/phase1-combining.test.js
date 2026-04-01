@@ -87,6 +87,32 @@ Fifth turn only.
     }
   });
 
+  it('preserves multiline content for intermediate and final turns', async () => {
+    const content = `== Test Story ==
+
+-- Turn 1 --
+Outcome
+-------
+First line.
+Second line.
+
+-- Turn 2 --
+Outcome
+-------
+Third line.
+Fourth line.
+`;
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(result.turns).toHaveLength(2);
+      expect(result.turns[0].content).toContain('First line.\nSecond line.');
+      expect(result.turns[1].content).toContain('Third line.\nFourth line.');
+    } finally {
+      cleanup(filePath);
+    }
+  });
+
   it('handles multiple files', async () => {
     const file1Content = `== Test Story ==
 

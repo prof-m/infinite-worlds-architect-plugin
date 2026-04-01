@@ -8,7 +8,7 @@
  * 4. Tracked Items Detection: Tracked and hidden tracked items properly detected
  */
 
-import { describe, it, expect, afterAll } from '@jest/globals';
+import { describe, it, expect, afterEach, afterAll } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -77,6 +77,11 @@ function cleanupAllTempDirs() {
   }
   createdTempDirs.length = 0;
 }
+
+afterEach(() => {
+  cleanupAllTempDirs();
+  expect(createdTempDirs.length).toBe(0);
+});
 
 describe('Bug Fix #1: Parameter Naming (snake_case parameters)', () => {
   it('input_paths parameter received correctly', async () => {
@@ -169,32 +174,21 @@ describe('Bug Fix #2: MCP Response Format (envelope wrapper)', () => {
   });
 
   it('error response has proper envelope', async () => {
-  const tmpDir = createTempDir();
+    const tmpDir = createTempDir();
 
-  // Call with invalid input that triggers validation error
-  const mcpResponse = await extractStoryData({
-    input_paths: ['/nonexistent/file.txt'],
-    extraction_dir: tmpDir
-  });
+    // Call with invalid input that triggers validation error
+    const mcpResponse = await extractStoryData({
+      input_paths: ['/nonexistent/file.txt'],
+      extraction_dir: tmpDir
+    });
 
-    // Validation errors may return directly (not wrapped in envelope)
-    // but still should be properly structured
-    expect(mcpResponse).toBeDefined();
+    expect(mcpResponse.content).toBeDefined();
+    expect(Array.isArray(mcpResponse.content)).toBe(true);
+    expect(mcpResponse.content[0].type).toBe('text');
 
-    // If response is wrapped in envelope, verify it
-    if (mcpResponse.content) {
-      expect(Array.isArray(mcpResponse.content)).toBe(true);
-      expect(mcpResponse.content[0].type).toBe('text');
-      const result = JSON.parse(mcpResponse.content[0].text);
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    } else {
-      // If validation error returns directly (legacy behavior)
-      expect(mcpResponse.success).toBe(false);
-      expect(mcpResponse.error).toBeDefined();
-    }
-
-    fs.rmSync(tmpDir, { recursive: true });
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 
   it('response JSON is valid and parseable', async () => {
@@ -470,6 +464,24 @@ describe('Bug Fix #4: Tracked Items Detection', () => {
 });
 
 describe('Edge Case Tests', () => {
+  it('returns a structured error for files that do not start at Turn 1', async () => {
+    const tmpDir = createTempDir();
+    const inputFile = path.join(testFilesDir, testStoryFiles.edgeCase[0]);
+
+    const mcpResponse = await extractStoryData({
+      input_paths: [inputFile],
+      extraction_dir: tmpDir
+    });
+
+    expect(mcpResponse.content).toBeDefined();
+    expect(Array.isArray(mcpResponse.content)).toBe(true);
+    expect(mcpResponse.content[0].type).toBe('text');
+
+    const result = JSON.parse(mcpResponse.content[0].text);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('No Turn 1 found');
+  });
+
   it('Empty tracked items section handled correctly', async () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');

@@ -28,7 +28,9 @@ const toolHandlers = {
     modify_npc,
     modify_tracked_item,
     modify_trigger_event,
-    query_story_data: queryStoryData,
+    query_story_data: async (args) => ({
+        content: [{ type: "text", text: JSON.stringify(await queryStoryData(args)) }]
+    }),
     read_draft_section,
     scaffold_world,
     update_draft_section,
