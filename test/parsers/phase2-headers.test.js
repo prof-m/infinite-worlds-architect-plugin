@@ -1,9 +1,8 @@
-import test from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect } from '@jest/globals';
 import { parseHeaders } from '../../lib/parsers/phase2-headers.js';
 
-// Test 1: Real export header parsing (from TheWorldsAStageTurn4.txt format)
-test('parseHeaders: real export header with all sections', () => {
+describe('parseHeaders', () => {
+  it('real export header with all sections', () => {
   const headerText = `== The World is a Stage ==
 
 
@@ -44,30 +43,29 @@ Secret Information
 ------------------
 Some secret info here.`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, 'The World is a Stage');
-  assert.ok(result.storyBackground.includes('stage magician'));
-  assert.ok(result.storyBackground.includes('nefarious purposes'));
+    expect(result.title).toBe('The World is a Stage');
+    expect(result.storyBackground).toContain('stage magician');
+    expect(result.storyBackground).toContain('nefarious purposes');
 
-  assert.ok(result.character);
-  assert.strictEqual(result.character.name, 'Victor Ashecroft');
-  assert.ok(result.character.background.includes('charismatic'));
-  assert.ok(Array.isArray(result.character.skills));
-  assert.strictEqual(result.character.skills.length, 5);
+    expect(result.character).toBeTruthy();
+    expect(result.character.name).toBe('Victor Ashecroft');
+    expect(result.character.background).toContain('charismatic');
+    expect(Array.isArray(result.character.skills)).toBe(true);
+    expect(result.character.skills.length).toBe(5);
 
-  // Check first skill
-  assert.strictEqual(result.character.skills[0].name, 'Gadgetry');
-  assert.strictEqual(result.character.skills[0].rating, 4);
-  assert.strictEqual(result.character.skills[0].level, 'Highly skilled');
+    // Check first skill
+    expect(result.character.skills[0].name).toBe('Gadgetry');
+    expect(result.character.skills[0].rating).toBe(4);
+    expect(result.character.skills[0].level).toBe('Highly skilled');
 
-  // Check objective
-  assert.ok(result.objective.includes('hypnosis'));
-  assert.ok(result.objective.includes('daring heists'));
-});
+    // Check objective
+    expect(result.objective).toContain('hypnosis');
+    expect(result.objective).toContain('daring heists');
+  });
 
-// Test 2: Continuation export (no header, only Turn 1 with objective)
-test('parseHeaders: continuation export with no header section', () => {
+  it('continuation export with no header section', () => {
   const headerText = ''; // Empty header for continuation export
 
   const turn1Text = `Action
@@ -88,20 +86,19 @@ Secret Information
 ------------------
 Dragon is weak to ice magic.`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, null);
-  assert.strictEqual(result.storyBackground, null);
-  assert.strictEqual(result.character, null);
+    expect(result.title).toBeNull();
+    expect(result.storyBackground).toBeNull();
+    expect(result.character).toBeNull();
 
-  // Objective should still be parsed
-  assert.ok(result.objective);
-  assert.ok(result.objective.includes('dragon'));
-  assert.ok(result.objective.includes('kingdom'));
-});
+    // Objective should still be parsed
+    expect(result.objective).toBeTruthy();
+    expect(result.objective).toContain('dragon');
+    expect(result.objective).toContain('kingdom');
+  });
 
-// Test 3: Missing objective section
-test('parseHeaders: missing objective divider in Turn 1', () => {
+  it('missing objective divider in Turn 1', () => {
   const headerText = `== Test Story ==
 
 -- Story Background --
@@ -121,15 +118,14 @@ Secret Information
 ------------------
 No objective dividers here.`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, 'Test Story');
-  assert.ok(result.storyBackground);
-  assert.strictEqual(result.objective, null); // No objective found
-});
+    expect(result.title).toBe('Test Story');
+    expect(result.storyBackground).toBeTruthy();
+    expect(result.objective).toBeNull(); // No objective found
+  });
 
-// Test 4: Empty character section (header exists but no content)
-test('parseHeaders: empty character section', () => {
+  it('empty character section', () => {
   const headerText = `== Test Story ==
 
 -- Story Background --
@@ -150,16 +146,15 @@ Your objective for this adventure is: Test objective.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, 'Test Story');
-  assert.ok(result.storyBackground);
-  assert.strictEqual(result.character, null); // Empty character section returns null
-  assert.ok(result.objective);
-});
+    expect(result.title).toBe('Test Story');
+    expect(result.storyBackground).toBeTruthy();
+    expect(result.character).toBeNull(); // Empty character section returns null
+    expect(result.objective).toBeTruthy();
+  });
 
-// Test 5: Character with skills but no name/background
-test('parseHeaders: character with only skills subsection', () => {
+  it('character with only skills subsection', () => {
   const headerText = `== Magic System ==
 
 -- Story Background --
@@ -184,19 +179,18 @@ Your objective for this adventure is: Master all magical disciplines.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.ok(result.character);
-  assert.strictEqual(result.character.name, undefined); // Not present
-  assert.strictEqual(result.character.background, undefined); // Not present
-  assert.ok(Array.isArray(result.character.skills));
-  assert.strictEqual(result.character.skills.length, 2);
-  assert.strictEqual(result.character.skills[0].name, 'Pyromancy');
-  assert.strictEqual(result.character.skills[1].rating, 2);
-});
+    expect(result.character).toBeTruthy();
+    expect(result.character.name).toBeUndefined(); // Not present
+    expect(result.character.background).toBeUndefined(); // Not present
+    expect(Array.isArray(result.character.skills)).toBe(true);
+    expect(result.character.skills.length).toBe(2);
+    expect(result.character.skills[0].name).toBe('Pyromancy');
+    expect(result.character.skills[1].rating).toBe(2);
+  });
 
-// Test 6: Missing story background section
-test('parseHeaders: missing story background section', () => {
+  it('missing story background section', () => {
   const headerText = `== Minimal Story ==
 
 -- Character --
@@ -217,17 +211,16 @@ Your objective for this adventure is: Survive the day.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, 'Minimal Story');
-  assert.strictEqual(result.storyBackground, null); // No background section
-  assert.ok(result.character);
-  assert.strictEqual(result.character.name, 'Bob');
-  assert.ok(result.objective.includes('Survive'));
-});
+    expect(result.title).toBe('Minimal Story');
+    expect(result.storyBackground).toBeNull(); // No background section
+    expect(result.character).toBeTruthy();
+    expect(result.character.name).toBe('Bob');
+    expect(result.objective).toContain('Survive');
+  });
 
-// Test 7: Objective with multi-line text
-test('parseHeaders: objective spanning multiple lines', () => {
+  it('objective spanning multiple lines', () => {
   const headerText = '';
 
   const turn1Text = `Outcome
@@ -240,16 +233,15 @@ Your objective for this adventure is: Gather the five sacred artifacts, unite th
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.ok(result.objective);
-  assert.ok(result.objective.includes('sacred artifacts'));
-  assert.ok(result.objective.includes('apocalypse'));
-  assert.ok(result.objective.includes('eclipse'));
-});
+    expect(result.objective).toBeTruthy();
+    expect(result.objective).toContain('sacred artifacts');
+    expect(result.objective).toContain('apocalypse');
+    expect(result.objective).toContain('eclipse');
+  });
 
-// Test 8: Title with special characters and spaces
-test('parseHeaders: title with spaces and punctuation', () => {
+  it('title with spaces and punctuation', () => {
   const headerText = `==   The Final Battle: A Story of Redemption   ==
 
 -- Story Background --
@@ -267,13 +259,12 @@ Your objective for this adventure is: Win the final battle.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, 'The Final Battle: A Story of Redemption');
-});
+    expect(result.title).toBe('The Final Battle: A Story of Redemption');
+  });
 
-// Test 9: Character section with all three subsections
-test('parseHeaders: character with name, background, and multiple skills', () => {
+  it('character with name, background, and multiple skills', () => {
   const headerText = `== Character Test ==
 
 -- Story Background --
@@ -308,32 +299,30 @@ Your objective for this adventure is: Find the lost city.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.ok(result.character);
-  assert.strictEqual(result.character.name, 'Alice Wonder');
-  assert.ok(result.character.background.includes('curious'));
-  assert.ok(result.character.background.includes('explorer'));
-  assert.strictEqual(result.character.skills.length, 4);
+    expect(result.character).toBeTruthy();
+    expect(result.character.name).toBe('Alice Wonder');
+    expect(result.character.background).toContain('curious');
+    expect(result.character.background).toContain('explorer');
+    expect(result.character.skills.length).toBe(4);
 
-  // Verify all skills parsed correctly
-  const skillNames = result.character.skills.map(s => s.name);
-  assert.ok(skillNames.includes('Investigation'));
-  assert.ok(skillNames.includes('Languages'));
-});
+    // Verify all skills parsed correctly
+    const skillNames = result.character.skills.map(s => s.name);
+    expect(skillNames).toContain('Investigation');
+    expect(skillNames).toContain('Languages');
+  });
 
-// Test 10: Empty input handling
-test('parseHeaders: empty header and turn1 text', () => {
-  const result = parseHeaders('', '');
+  it('empty header and turn1 text', () => {
+    const result = parseHeaders('', '');
 
-  assert.strictEqual(result.title, null);
-  assert.strictEqual(result.storyBackground, null);
-  assert.strictEqual(result.character, null);
-  assert.strictEqual(result.objective, null);
-});
+    expect(result.title).toBeNull();
+    expect(result.storyBackground).toBeNull();
+    expect(result.character).toBeNull();
+    expect(result.objective).toBeNull();
+  });
 
-// Test 11: Objective case insensitivity for header
-test('parseHeaders: objective header with different case', () => {
+  it('objective header with different case', () => {
   const headerText = '';
 
   const turn1Text = `Outcome
@@ -346,14 +335,13 @@ YOUR OBJECTIVE FOR THIS ADVENTURE IS: Test objective here.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  // Should still match (case insensitive check in implementation)
-  assert.ok(result.objective);
-});
+    // Should still match (case insensitive check in implementation)
+    expect(result.objective).toBeTruthy();
+  });
 
-// Test 12: Whitespace handling in sections
-test('parseHeaders: sections with excess whitespace', () => {
+  it('sections with excess whitespace', () => {
   const headerText = `==  Whitespace Test  ==
 
 -- Story Background --
@@ -381,9 +369,10 @@ Your objective for this adventure is: Whitespace test objective.
 
 - - - - -`;
 
-  const result = parseHeaders(headerText, turn1Text);
+    const result = parseHeaders(headerText, turn1Text);
 
-  assert.strictEqual(result.title, 'Whitespace Test');
-  assert.ok(result.storyBackground.includes('background'));
-  assert.ok(result.objective.includes('Whitespace'));
+    expect(result.title).toBe('Whitespace Test');
+    expect(result.storyBackground).toContain('background');
+    expect(result.objective).toContain('Whitespace');
+  });
 });

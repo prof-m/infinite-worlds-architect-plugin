@@ -1,5 +1,4 @@
-import test from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { combine } from '../../lib/parsers/phase1-combining.js';
 import fs from 'fs';
 import path from 'path';
@@ -18,8 +17,9 @@ function cleanup(filePath) {
   fs.rmSync(dir, { recursive: true });
 }
 
-test('combine extracts header from newest file', async () => {
-  const content = `== Test Story ==
+describe('combine', () => {
+  it('extracts header from newest file', async () => {
+    const content = `== Test Story ==
 
 -- Story Background --
 This is a test story.
@@ -30,20 +30,20 @@ Outcome
 -------
 Turn 1 outcome.
 `;
-  const filePath = createTempFile(content);
-  try {
-    const result = await combine([filePath]);
-    assert.ok(result.header.includes('Test Story'));
-    assert.ok(result.header.includes('Story Background'));
-    assert.strictEqual(result.turns.length, 1);
-    assert.strictEqual(result.turns[0].number, 1);
-  } finally {
-    cleanup(filePath);
-  }
-});
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(result.header).toContain('Test Story');
+      expect(result.header).toContain('Story Background');
+      expect(result.turns.length).toBe(1);
+      expect(result.turns[0].number).toBe(1);
+    } finally {
+      cleanup(filePath);
+    }
+  });
 
-test('combine detects gaps in turn numbers', async () => {
-  const content = `== Test Story ==
+  it('detects gaps in turn numbers', async () => {
+    const content = `== Test Story ==
 
 -- Turn 1 --
 Outcome
@@ -60,37 +60,61 @@ Outcome
 -------
 Hundredth turn.
 `;
-  const filePath = createTempFile(content);
-  try {
-    const result = await combine([filePath]);
-    assert.ok(result.manifest.detected_gaps.length > 0);
-    assert.ok(result.manifest.detected_gaps[0].includes('2-49'));
-    assert.ok(result.manifest.detected_gaps[1].includes('51-99'));
-  } finally {
-    cleanup(filePath);
-  }
-});
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(result.manifest.detected_gaps.length).toBeGreaterThan(0);
+      expect(result.manifest.detected_gaps[0]).toContain('2-49');
+      expect(result.manifest.detected_gaps[1]).toContain('51-99');
+    } finally {
+      cleanup(filePath);
+    }
+  });
 
-test('combine throws if no Turn 1 found', async () => {
-  const content = `== Test Story ==
+  it('throws if no Turn 1 found', async () => {
+    const content = `== Test Story ==
 
 -- Turn 5 --
 Outcome
 -------
 Fifth turn only.
 `;
-  const filePath = createTempFile(content);
-  try {
-    assert.rejects(async () => {
-      await combine([filePath]);
-    }, /No Turn 1 found/);
-  } finally {
-    cleanup(filePath);
-  }
-});
+    const filePath = createTempFile(content);
+    try {
+      await expect(combine([filePath])).rejects.toThrow(/No Turn 1 found/);
+    } finally {
+      cleanup(filePath);
+    }
+  });
 
-test('combine handles multiple files', async () => {
-  const file1Content = `== Test Story ==
+  it('preserves multiline content for intermediate and final turns', async () => {
+    const content = `== Test Story ==
+
+-- Turn 1 --
+Outcome
+-------
+First line.
+Second line.
+
+-- Turn 2 --
+Outcome
+-------
+Third line.
+Fourth line.
+`;
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(result.turns).toHaveLength(2);
+      expect(result.turns[0].content).toContain('First line.\nSecond line.');
+      expect(result.turns[1].content).toContain('Third line.\nFourth line.');
+    } finally {
+      cleanup(filePath);
+    }
+  });
+
+  it('handles multiple files', async () => {
+    const file1Content = `== Test Story ==
 
 -- Story Background --
 Original background.
@@ -111,45 +135,21 @@ Outcome
 Turn 3.
 `;
 
-  const file1 = createTempFile(file1Content);
+    const file1 = createTempFile(file1Content);
 
-  try {
-    const result = await combine([file1]);
-    assert.strictEqual(result.turns.length, 3);
-    assert.strictEqual(result.turns[0].number, 1);
-    assert.strictEqual(result.turns[1].number, 2);
-    assert.strictEqual(result.turns[2].number, 3);
-  } finally {
-    cleanup(file1);
-  }
-});
+    try {
+      const result = await combine([file1]);
+      expect(result.turns.length).toBe(3);
+      expect(result.turns[0].number).toBe(1);
+      expect(result.turns[1].number).toBe(2);
+      expect(result.turns[2].number).toBe(3);
+    } finally {
+      cleanup(file1);
+    }
+  });
 
-test('combine returns correct manifest structure', async () => {
-  const content = `== Test Story ==
-
--- Turn 1 --
-Outcome
--------
-Turn 1.
-
--- Turn 2 --
-Outcome
--------
-Turn 2.
-`;
-  const filePath = createTempFile(content);
-  try {
-    const result = await combine([filePath]);
-    assert.ok(result.manifest.source_files);
-    assert.ok(result.manifest.header_source);
-    assert.strictEqual(result.manifest.total_turns, 2);
-  } finally {
-    cleanup(filePath);
-  }
-});
-
-test('combine populates manifest files array with single file', async () => {
-  const content = `== Test Story ==
+  it('returns correct manifest structure', async () => {
+    const content = `== Test Story ==
 
 -- Turn 1 --
 Outcome
@@ -161,19 +161,43 @@ Outcome
 -------
 Turn 2.
 `;
-  const filePath = createTempFile(content);
-  try {
-    const result = await combine([filePath]);
-    assert.ok(result.manifest.files);
-    assert.strictEqual(result.manifest.files.length, 1);
-    assert.strictEqual(result.manifest.files[0], filePath);
-  } finally {
-    cleanup(filePath);
-  }
-});
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(result.manifest.source_files).toBeTruthy();
+      expect(result.manifest.header_source).toBeTruthy();
+      expect(result.manifest.total_turns).toBe(2);
+    } finally {
+      cleanup(filePath);
+    }
+  });
 
-test('combine populates manifest files array with multiple files', async () => {
-  const content1 = `== Test Story ==
+  it('populates manifest files array with single file', async () => {
+    const content = `== Test Story ==
+
+-- Turn 1 --
+Outcome
+-------
+Turn 1.
+
+-- Turn 2 --
+Outcome
+-------
+Turn 2.
+`;
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(result.manifest.files).toBeTruthy();
+      expect(result.manifest.files.length).toBe(1);
+      expect(result.manifest.files[0]).toBe(filePath);
+    } finally {
+      cleanup(filePath);
+    }
+  });
+
+  it('populates manifest files array with multiple files', async () => {
+    const content1 = `== Test Story ==
 
 -- Story Background --
 Original background.
@@ -189,7 +213,7 @@ Outcome
 Turn 2.
 `;
 
-  const content2 = `== Test Story ==
+    const content2 = `== Test Story ==
 
 -- Turn 3 --
 Outcome
@@ -202,36 +226,37 @@ Outcome
 Turn 4.
 `;
 
-  const file1 = createTempFile(content1);
-  const file2 = createTempFile(content2);
+    const file1 = createTempFile(content1);
+    const file2 = createTempFile(content2);
 
-  try {
-    const result = await combine([file1, file2]);
-    assert.ok(result.manifest.files);
-    assert.strictEqual(result.manifest.files.length, 2);
-    assert.ok(result.manifest.files.includes(file1));
-    assert.ok(result.manifest.files.includes(file2));
-  } finally {
-    cleanup(file1);
-    cleanup(file2);
-  }
-});
+    try {
+      const result = await combine([file1, file2]);
+      expect(result.manifest.files).toBeTruthy();
+      expect(result.manifest.files.length).toBe(2);
+      expect(result.manifest.files).toContain(file1);
+      expect(result.manifest.files).toContain(file2);
+    } finally {
+      cleanup(file1);
+      cleanup(file2);
+    }
+  });
 
-test('combine files array contains exact filepaths', async () => {
-  const content = `== Test Story ==
+  it('files array contains exact filepaths', async () => {
+    const content = `== Test Story ==
 
 -- Turn 1 --
 Outcome
 -------
 Turn 1.
 `;
-  const filePath = createTempFile(content);
-  try {
-    const result = await combine([filePath]);
-    assert.strictEqual(typeof result.manifest.files, 'object');
-    assert.ok(Array.isArray(result.manifest.files));
-    assert.strictEqual(result.manifest.files[0], filePath);
-  } finally {
-    cleanup(filePath);
-  }
+    const filePath = createTempFile(content);
+    try {
+      const result = await combine([filePath]);
+      expect(typeof result.manifest.files).toBe('object');
+      expect(Array.isArray(result.manifest.files)).toBe(true);
+      expect(result.manifest.files[0]).toBe(filePath);
+    } finally {
+      cleanup(filePath);
+    }
+  });
 });

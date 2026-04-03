@@ -1,20 +1,19 @@
 #\!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-echo "🧪 Running pre-commit tests..."
+echo "🧪 Running pre-commit tests (ALL tests via Jest)..."
 
-# Use lint-staged to run tests only on staged changes (with timeout)
-timeout 30 npx lint-staged
-EXIT_CODE=$?
+# Run ALL tests via npm test (which uses Jest exclusively)
+timeout 60 npm test
+TEST_EXIT=$?
 
-# Check exit code
-if [ $EXIT_CODE -eq 124 ]; then
-  echo "⏱️  Tests timed out (>30s). Retry the commit or investigate slow tests."
+if [ $TEST_EXIT -eq 124 ]; then
+  echo "❌ Tests timed out (>60s). Investigate slow tests and retry."
   exit 1
-elif [ $EXIT_CODE -ne 0 ]; then
-  echo "❌ Tests failed. Commit aborted."
+elif [ $TEST_EXIT -ne 0 ]; then
+  echo "❌ Tests failed. Fix failures and retry commit."
   exit 1
 fi
 
-echo "✅ All tests passed. Proceeding with commit."
+echo "✅ All tests passed."
 exit 0

@@ -2,119 +2,122 @@
  * Tests for lib/validation.js
  */
 
-import { test } from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { validateExtractInput, validateQueryInput } from '../../lib/validation.js';
 
-test('validateExtractInput - valid paths and directory', (t) => {
+describe('validateExtractInput', () => {
+  it('valid paths and directory', () => {
   // Create temporary test files and directory
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
   const testFile = path.join(tmpDir, 'test.txt');
   fs.writeFileSync(testFile, 'test');
   const outputDir = path.join(tmpDir, 'output');
 
-  const result = validateExtractInput([testFile], outputDir);
-  assert.strictEqual(result.valid, true);
-  assert.strictEqual(result.errors.length, 0);
+    const result = validateExtractInput([testFile], outputDir);
+    expect(result.valid).toBe(true);
+    expect(result.errors.length).toBe(0);
 
-  // Cleanup
-  fs.rmSync(tmpDir, { recursive: true });
+    // Cleanup
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('missing file', () => {
+    const result = validateExtractInput(['/nonexistent/file.txt'], '/tmp/output');
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('not readable'))).toBe(true);
+  });
+
+  it('inputPaths not array', () => {
+    const result = validateExtractInput('not-an-array', '/tmp/output');
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('must be an array'))).toBe(true);
+  });
+
+  it('empty inputPaths', () => {
+    const result = validateExtractInput([], '/tmp/output');
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('cannot be empty'))).toBe(true);
+  });
+
+  it('empty string in inputPaths', () => {
+    const result = validateExtractInput([''], '/tmp/output');
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('cannot be empty string'))).toBe(true);
+  });
+
+  it('extractionDir not writable parent', () => {
+    const result = validateExtractInput(['/etc/passwd'], '/root/nonexistent/output');
+    expect(result.valid).toBe(false);
+  });
 });
 
-test('validateExtractInput - missing file', (t) => {
-  const result = validateExtractInput(['/nonexistent/file.txt'], '/tmp/output');
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('not readable')));
-});
-
-test('validateExtractInput - inputPaths not array', (t) => {
-  const result = validateExtractInput('not-an-array', '/tmp/output');
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('must be an array')));
-});
-
-test('validateExtractInput - empty inputPaths', (t) => {
-  const result = validateExtractInput([], '/tmp/output');
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('cannot be empty')));
-});
-
-test('validateExtractInput - empty string in inputPaths', (t) => {
-  const result = validateExtractInput([''], '/tmp/output');
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('cannot be empty string')));
-});
-
-test('validateExtractInput - extractionDir not writable parent', (t) => {
-  const result = validateExtractInput(['/etc/passwd'], '/root/nonexistent/output');
-  assert.strictEqual(result.valid, false);
-});
-
-test('validateQueryInput - valid extraction directory and category', (t) => {
+describe('validateQueryInput', () => {
+  it('valid extraction directory and category', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = validateQueryInput(tmpDir, 'manifest', [1, 2, 3]);
-  assert.strictEqual(result.valid, true);
-  assert.strictEqual(result.errors.length, 0);
+    const result = validateQueryInput(tmpDir, 'manifest', [1, 2, 3]);
+    expect(result.valid).toBe(true);
+    expect(result.errors.length).toBe(0);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('validateQueryInput - invalid category', (t) => {
+  it('invalid category', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = validateQueryInput(tmpDir, 'invalid_category', []);
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('Invalid category')));
+    const result = validateQueryInput(tmpDir, 'invalid_category', []);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('Invalid category'))).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('validateQueryInput - missing extraction directory', (t) => {
-  const result = validateQueryInput('/nonexistent/dir', 'manifest', []);
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('not found or not readable')));
-});
+  it('missing extraction directory', () => {
+    const result = validateQueryInput('/nonexistent/dir', 'manifest', []);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('not found or not readable'))).toBe(true);
+  });
 
-test('validateQueryInput - valid "last" turn alias', (t) => {
+  it('valid "last" turn alias', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = validateQueryInput(tmpDir, 'turn_detail', [1, 'last']);
-  assert.strictEqual(result.valid, true);
-  assert.strictEqual(result.errors.length, 0);
+    const result = validateQueryInput(tmpDir, 'turn_detail', [1, 'last']);
+    expect(result.valid).toBe(true);
+    expect(result.errors.length).toBe(0);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('validateQueryInput - turns parameter invalid type', (t) => {
+  it('turns parameter invalid type', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = validateQueryInput(tmpDir, 'turn_detail', 'not-an-array');
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('must be an array')));
+    const result = validateQueryInput(tmpDir, 'turn_detail', 'not-an-array');
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('must be an array'))).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('validateQueryInput - turns with invalid type in array', (t) => {
+  it('turns with invalid type in array', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = validateQueryInput(tmpDir, 'turn_detail', [1, 'invalid']);
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('Turn must be a number or "last"')));
+    const result = validateQueryInput(tmpDir, 'turn_detail', [1, 'invalid']);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('Turn must be a number or "last"'))).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('validateQueryInput - negative turn number', (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  it('negative turn number', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = validateQueryInput(tmpDir, 'turn_detail', [-1, 0]);
-  assert.strictEqual(result.valid, false);
-  assert(result.errors.some(e => e.includes('must be >= 1')));
+    const result = validateQueryInput(tmpDir, 'turn_detail', [-1, 0]);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('must be >= 1'))).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });

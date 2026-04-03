@@ -1,5 +1,4 @@
-import test from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect } from '@jest/globals';
 import { parseTurns } from '../../lib/parsers/phase3-turns.js';
 
 // Helper: Create a combined text with proper line numbers
@@ -7,7 +6,8 @@ function createCombinedText(turns) {
   return turns.map((t, i) => (i > 0 ? '\n' : '') + t).join('');
 }
 
-test('parseTurns - Turn 1 parsing (action is null)', () => {
+describe('parseTurns', () => {
+  it('Turn 1 parsing (action is null)', () => {
   const turnContent = `
 Outcome
 -------
@@ -27,18 +27,18 @@ List of hypnotized Justice Guardians:
     { number: 1, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 1);
-  assert.strictEqual(result[0].number, 1);
-  assert.strictEqual(result[0].action, null, 'Turn 1 should have action as null');
-  assert.ok(result[0].outcome, 'Turn 1 should have outcome');
-  assert.ok(result[0].outcome.includes('theater looms'));
-  assert.ok(result[0].secretInfo);
-  assert.ok(result[0].secretInfo.includes('backstory'));
-});
+    expect(result.length).toBe(1);
+    expect(result[0].number).toBe(1);
+    expect(result[0].action).toBeNull();
+    expect(result[0].outcome).toBeTruthy();
+    expect(result[0].outcome).toContain('theater looms');
+    expect(result[0].secretInfo).toBeTruthy();
+    expect(result[0].secretInfo).toContain('backstory');
+  });
 
-test('parseTurns - Normal turn with all sections', () => {
+  it('Normal turn with all sections', () => {
   const turnContent = `
 Action
 ------
@@ -66,19 +66,19 @@ Secret Plans:
     { number: 2, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 1);
-  assert.strictEqual(result[0].number, 2);
-  assert.ok(result[0].action);
-  assert.ok(result[0].action.includes('attacked'));
-  assert.ok(result[0].outcome);
-  assert.ok(result[0].outcome.includes('defeated'));
-  assert.ok(result[0].secretInfo);
-  assert.ok(result[0].secretInfo.includes('robot'));
-});
+    expect(result.length).toBe(1);
+    expect(result[0].number).toBe(2);
+    expect(result[0].action).toBeTruthy();
+    expect(result[0].action).toContain('attacked');
+    expect(result[0].outcome).toBeTruthy();
+    expect(result[0].outcome).toContain('defeated');
+    expect(result[0].secretInfo).toBeTruthy();
+    expect(result[0].secretInfo).toContain('robot');
+  });
 
-test('parseTurns - Empty section handling', () => {
+  it('Empty section handling', () => {
   const turnContent = `
 Action
 ------
@@ -100,17 +100,17 @@ Tracked Items
     { number: 3, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 1);
-  assert.strictEqual(result[0].number, 3);
-  assert.ok(result[0].action);
-  assert.ok(result[0].outcome);
-  assert.strictEqual(result[0].secretInfo, null, 'Empty secretInfo should be null');
-  assert.strictEqual(result[0].trackedItems, null, 'Empty trackedItems should be null');
-});
+    expect(result.length).toBe(1);
+    expect(result[0].number).toBe(3);
+    expect(result[0].action).toBeTruthy();
+    expect(result[0].outcome).toBeTruthy();
+    expect(result[0].secretInfo).toBeNull();
+    expect(result[0].trackedItems).toBeNull();
+  });
 
-test('parseTurns - Missing sections', () => {
+  it('Missing sections', () => {
   const turnContent = `
 Action
 ------
@@ -126,18 +126,18 @@ Something happened.
     { number: 4, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 1);
-  assert.strictEqual(result[0].number, 4);
-  assert.ok(result[0].action);
-  assert.ok(result[0].outcome);
-  assert.strictEqual(result[0].secretInfo, null);
-  assert.strictEqual(result[0].trackedItems, null);
-  assert.strictEqual(result[0].hiddenTrackedItems, null);
-});
+    expect(result.length).toBe(1);
+    expect(result[0].number).toBe(4);
+    expect(result[0].action).toBeTruthy();
+    expect(result[0].outcome).toBeTruthy();
+    expect(result[0].secretInfo).toBeNull();
+    expect(result[0].trackedItems).toBeNull();
+    expect(result[0].hiddenTrackedItems).toBeNull();
+  });
 
-test('parseTurns - Tracked items section (called by Phase 4)', () => {
+  it('Tracked items section (called by Phase 4)', () => {
   // Note: Phase 4 is called to parse the Tracked Items section
   // The actual parsing of items depends on Phase 4 implementation
   const turnContent = `Action
@@ -159,15 +159,15 @@ ${turnContent}`;
     { number: 5, content: turnContent, sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 1);
-  assert.strictEqual(result[0].number, 5);
-  // trackedItems may be null or an object depending on Phase 4 parsing
-  assert.ok(result[0].trackedItems === null || typeof result[0].trackedItems === 'object');
-});
+    expect(result.length).toBe(1);
+    expect(result[0].number).toBe(5);
+    // trackedItems may be null or an object depending on Phase 4 parsing
+    expect(result[0].trackedItems === null || typeof result[0].trackedItems === 'object').toBe(true);
+  });
 
-test('parseTurns - Multiple turns in sequence', () => {
+  it('Multiple turns in sequence', () => {
   const turn1Content = `
 Outcome
 -------
@@ -191,16 +191,16 @@ Found a secret.`;
     { number: 2, content: turn2Content.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 2);
-  assert.strictEqual(result[0].number, 1);
-  assert.strictEqual(result[0].action, null);
-  assert.strictEqual(result[1].number, 2);
-  assert.ok(result[1].action);
-});
+    expect(result.length).toBe(2);
+    expect(result[0].number).toBe(1);
+    expect(result[0].action).toBeNull();
+    expect(result[1].number).toBe(2);
+    expect(result[1].action).toBeTruthy();
+  });
 
-test('parseTurns - Line range tracking', () => {
+  it('Line range tracking', () => {
   const turn1Content = `
 Outcome
 -------
@@ -224,22 +224,22 @@ Second turn outcome.`;
     { number: 2, content: turn2Content.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 2);
+    expect(result.length).toBe(2);
 
-  // Verify line ranges are arrays with two numbers
-  assert.ok(Array.isArray(result[0].lineRange));
-  assert.strictEqual(result[0].lineRange.length, 2);
-  assert.ok(typeof result[0].lineRange[0] === 'number');
-  assert.ok(typeof result[0].lineRange[1] === 'number');
+    // Verify line ranges are arrays with two numbers
+    expect(Array.isArray(result[0].lineRange)).toBe(true);
+    expect(result[0].lineRange.length).toBe(2);
+    expect(typeof result[0].lineRange[0]).toBe('number');
+    expect(typeof result[0].lineRange[1]).toBe('number');
 
-  // Verify source file is tracked
-  assert.strictEqual(result[0].source, 'test.txt');
-  assert.strictEqual(result[1].source, 'test.txt');
-});
+    // Verify source file is tracked
+    expect(result[0].source).toBe('test.txt');
+    expect(result[1].source).toBe('test.txt');
+  });
 
-test('parseTurns - Hidden tracked items section', () => {
+  it('Hidden tracked items section', () => {
   const turnContent = `
 Action
 ------
@@ -259,14 +259,14 @@ Secret Knowledge: Ancient Spell
     { number: 6, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const result = parseTurns(combinedText, turns);
+    const result = parseTurns(combinedText, turns);
 
-  assert.strictEqual(result.length, 1);
-  // Hidden Tracked Items should be parsed by Phase 4
-  assert.ok(result[0].hiddenTrackedItems === null || typeof result[0].hiddenTrackedItems === 'object');
-});
+    expect(result.length).toBe(1);
+    // Hidden Tracked Items should be parsed by Phase 4
+    expect(result[0].hiddenTrackedItems === null || typeof result[0].hiddenTrackedItems === 'object').toBe(true);
+  });
 
-test('parseTurns - Warning on missing turn content', () => {
+  it('Warning on missing turn content', () => {
   const turnContent = `
 Action
 ------
@@ -282,13 +282,14 @@ Something happened.
     { number: 7, content: turnContent.trim(), sourceFile: 'test.txt', mtime: 100 }
   ];
 
-  const warnings = [];
-  const result = parseTurns(combinedText, turns, warnings);
+    const warnings = [];
+    const result = parseTurns(combinedText, turns, warnings);
 
-  assert.strictEqual(result.length, 1);
-  assert.strictEqual(result[0].lineRange[0], 0);
-  assert.strictEqual(result[0].lineRange[1], 0);
-  assert.strictEqual(warnings.length, 1);
-  assert.ok(warnings[0].includes('Could not locate content for Turn 7'));
-  assert.ok(warnings[0].includes('combined text'));
+    expect(result.length).toBe(1);
+    expect(result[0].lineRange[0]).toBe(0);
+    expect(result[0].lineRange[1]).toBe(0);
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]).toContain('Could not locate content for Turn 7');
+    expect(warnings[0]).toContain('combined text');
+  });
 });

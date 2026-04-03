@@ -16,3 +16,6 @@ claude-scratchpad/
 /.ripgreprc
 /.gitmodules
 /.gitconfig
+/coverage/
+/.jest-cache/
+cicdfailures.txt

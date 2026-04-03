@@ -2,163 +2,162 @@
  * Tests for lib/handlers/extraction.js
  */
 
-import { test } from 'node:test';
-import assert from 'node:assert';
+import { describe, it, expect } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
 import { extractStoryData } from '../../lib/handlers/extraction.js';
 
-const testFilesDir = '/home/moose/personalProjects/infinite-worlds-architect-plugin/test-files/story-export-examples';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const testFilesDir = path.join(__dirname, '../fixtures/story-exports');
 
-test('extractStoryData - parses TheWorldsAStageTurn4.txt successfully', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+describe('extractStoryData', () => {
+  it('parses TheWorldsAStageTurn4.txt successfully', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const result = await extractStoryData([inputFile], tmpDir);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
-  assert.strictEqual(result.success, true);
-  assert.strictEqual(result.totalTurns, 4);
-  assert.deepStrictEqual(result.turnRange, [1, 4]);
-  assert.strictEqual(result.inputFilesProcessed, 1);
+    expect(result.success).toBe(true);
+    expect(result.totalTurns).toBe(4);
+    expect(result.turnRange).toEqual([1, 4]);
+    expect(result.inputFilesProcessed).toBe(1);
 
-  // Verify output files exist
-  assert(fs.existsSync(path.join(tmpDir, 'manifest.json')));
-  assert(fs.existsSync(path.join(tmpDir, 'metadata.json')));
-  assert(fs.existsSync(path.join(tmpDir, 'turn_index.json')));
+    // Verify output files exist
+    expect(fs.existsSync(path.join(tmpDir, 'manifest.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'metadata.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'turn_index.json'))).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - parses Counsellor2_Turn22.txt successfully', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
+  it('parses Counsellor2_Turn22.txt successfully', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-  const result = await extractStoryData([inputFile], tmpDir);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
-  assert.strictEqual(result.success, true);
-  assert.strictEqual(result.totalTurns, 22);
-  assert.strictEqual(result.inputFilesProcessed, 1);
+    expect(result.success).toBe(true);
+    expect(result.totalTurns).toBe(22);
+    expect(result.inputFilesProcessed).toBe(1);
 
-  // Verify output files exist
-  assert(fs.existsSync(path.join(tmpDir, 'manifest.json')));
-  assert(fs.existsSync(path.join(tmpDir, 'metadata.json')));
-  assert(fs.existsSync(path.join(tmpDir, 'turn_index.json')));
+    // Verify output files exist
+    expect(fs.existsSync(path.join(tmpDir, 'manifest.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'metadata.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'turn_index.json'))).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - returns error for invalid input file', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  it('returns error for invalid input file', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = await extractStoryData(['/nonexistent/file.txt'], tmpDir);
+    const result = await extractStoryData({ input_paths: ['/nonexistent/file.txt'], extraction_dir: tmpDir });
 
-  assert.strictEqual(result.success, false);
-  assert(result.error);
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - returns error for empty inputPaths', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+  it('returns error for empty inputPaths', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-  const result = await extractStoryData([], tmpDir);
+    const result = await extractStoryData({ input_paths: [], extraction_dir: tmpDir });
 
-  assert.strictEqual(result.success, false);
-  assert(result.error.includes('Input validation failed'));
+    expect(result.success).toBe(false);
+    expect(result.error.includes('Input validation failed')).toBe(true);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - creates character_index.json when characterList provided', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+  it('creates character_index.json when character_list provided', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const characterList = [
-    { name: 'Victor', aliases: [] }
-  ];
+    const character_list = [
+      { name: 'Victor', aliases: [] }
+    ];
 
-  const result = await extractStoryData([inputFile], tmpDir, characterList);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, character_list });
 
-  assert.strictEqual(result.success, true);
+    expect(result.success).toBe(true);
 
-  // Verify character_index.json exists
-  const characterIndexPath = path.join(tmpDir, 'character_index.json');
-  assert(fs.existsSync(characterIndexPath), 'character_index.json should be created');
+    // Verify character_index.json exists
+    const characterIndexPath = path.join(tmpDir, 'character_index.json');
+    expect(fs.existsSync(characterIndexPath)).toBe(true);
 
-  // Verify character_index.json has valid structure
-  const characterIndex = JSON.parse(fs.readFileSync(characterIndexPath, 'utf-8'));
-  assert(characterIndex.characters !== undefined, 'Should have characters object');
-  assert(characterIndex.indexed_character_count !== undefined, 'Should have indexed_character_count');
-  assert(characterIndex.total_mentions !== undefined, 'Should have total_mentions');
-  assert(characterIndex.incomplete !== undefined, 'Should have incomplete flag');
+    // Verify character_index.json has valid structure
+    const characterIndex = JSON.parse(fs.readFileSync(characterIndexPath, 'utf-8'));
+    expect(characterIndex.characters).toBeDefined();
+    expect(characterIndex.indexed_character_count).toBeDefined();
+    expect(characterIndex.total_mentions).toBeDefined();
+    expect(characterIndex.incomplete).toBeDefined();
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - does NOT create character_index.json when characterList not provided', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+  it('does NOT create character_index.json when character_list not provided', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const result = await extractStoryData([inputFile], tmpDir);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
-  assert.strictEqual(result.success, true);
+    expect(result.success).toBe(true);
 
-  // Verify character_index.json does NOT exist
-  const characterIndexPath = path.join(tmpDir, 'character_index.json');
-  assert(!fs.existsSync(characterIndexPath), 'character_index.json should NOT be created without characterList');
+    // Verify character_index.json does NOT exist
+    const characterIndexPath = path.join(tmpDir, 'character_index.json');
+    expect(fs.existsSync(characterIndexPath)).toBe(false);
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - character indexing with aliases', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
+  it('character indexing with aliases', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-  const characterList = [
-    { name: 'Counsellor', aliases: ['The Counsellor'] }
-  ];
+    const characterList = [
+      { name: 'Counsellor', aliases: ['The Counsellor'] }
+    ];
 
-  const result = await extractStoryData([inputFile], tmpDir, characterList);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
 
-  assert.strictEqual(result.success, true);
+    expect(result.success).toBe(true);
 
-  // Verify character_index.json has proper alias handling
-  const characterIndexPath = path.join(tmpDir, 'character_index.json');
-  assert(fs.existsSync(characterIndexPath), 'character_index.json should be created');
+    // Verify character_index.json has proper alias handling
+    const characterIndexPath = path.join(tmpDir, 'character_index.json');
+    expect(fs.existsSync(characterIndexPath)).toBe(true);
 
-  const characterIndex = JSON.parse(fs.readFileSync(characterIndexPath, 'utf-8'));
-  if (characterIndex.characters.Counsellor) {
-    assert.deepStrictEqual(
-      characterIndex.characters.Counsellor.aliases,
-      ['The Counsellor'],
-      'Aliases should be preserved in character index'
-    );
-  }
+    const characterIndex = JSON.parse(fs.readFileSync(characterIndexPath, 'utf-8'));
+    if (characterIndex.characters.Counsellor) {
+      expect(
+        characterIndex.characters.Counsellor.aliases,
+      ).toEqual(['The Counsellor']);
+    }
 
-  fs.rmSync(tmpDir, { recursive: true });
-});
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 
-test('extractStoryData - multiple characters in characterList', async (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+  it('multiple characters in characterList', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const characterList = [
-    { name: 'Character1', aliases: [] },
-    { name: 'Character2', aliases: [] }
-  ];
+    const characterList = [
+      { name: 'Character1', aliases: [] },
+      { name: 'Character2', aliases: [] }
+    ];
 
-  const result = await extractStoryData([inputFile], tmpDir, characterList);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
 
-  assert.strictEqual(result.success, true);
+    expect(result.success).toBe(true);
 
-  const characterIndexPath = path.join(tmpDir, 'character_index.json');
-  const characterIndex = JSON.parse(fs.readFileSync(characterIndexPath, 'utf-8'));
-  assert.strictEqual(
-    characterIndex.indexed_character_count,
-    characterList.length,
-    'Should track number of indexed characters'
-  );
+    const characterIndexPath = path.join(tmpDir, 'character_index.json');
+    const characterIndex = JSON.parse(fs.readFileSync(characterIndexPath, 'utf-8'));
+    expect(
+      characterIndex.indexed_character_count,
+    ).toBe(characterList.length);
 
-  fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(tmpDir, { recursive: true });
+  });
 });
