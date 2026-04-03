@@ -22,7 +22,9 @@ const toolHandlers = {
     compile_draft,
     confirm_path,
     decompile_json,
-    extract_story_data: extractStoryData,
+    extract_story_data: async (args) => ({
+        content: [{ type: "text", text: JSON.stringify(await extractStoryData(args)) }]
+    }),
     get_diff_summary,
     modify_character,
     modify_npc,

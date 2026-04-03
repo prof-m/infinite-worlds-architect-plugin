@@ -17,8 +17,7 @@ describe('extractStoryData', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
     const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
     expect(result.success).toBe(true);
     expect(result.totalTurns).toBe(4);
@@ -37,8 +36,7 @@ describe('extractStoryData', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
     const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
     expect(result.success).toBe(true);
     expect(result.totalTurns).toBe(22);
@@ -55,8 +53,7 @@ describe('extractStoryData', () => {
   it('returns error for invalid input file', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-    const mcpResponse = await extractStoryData({ input_paths: ['/nonexistent/file.txt'], extraction_dir: tmpDir });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: ['/nonexistent/file.txt'], extraction_dir: tmpDir });
 
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
@@ -67,8 +64,7 @@ describe('extractStoryData', () => {
   it('returns error for empty inputPaths', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
 
-    const mcpResponse = await extractStoryData({ input_paths: [], extraction_dir: tmpDir });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [], extraction_dir: tmpDir });
 
     expect(result.success).toBe(false);
     expect(result.error.includes('Input validation failed')).toBe(true);
@@ -84,8 +80,7 @@ describe('extractStoryData', () => {
       { name: 'Victor', aliases: [] }
     ];
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, character_list });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, character_list });
 
     expect(result.success).toBe(true);
 
@@ -107,8 +102,7 @@ describe('extractStoryData', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
     const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
     expect(result.success).toBe(true);
 
@@ -127,8 +121,7 @@ describe('extractStoryData', () => {
       { name: 'Counsellor', aliases: ['The Counsellor'] }
     ];
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
 
     expect(result.success).toBe(true);
 
@@ -155,8 +148,7 @@ describe('extractStoryData', () => {
       { name: 'Character2', aliases: [] }
     ];
 
-    const mcpResponse = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
-    const result = JSON.parse(mcpResponse.content[0].text);
+    const result = await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir, characterList });
 
     expect(result.success).toBe(true);
 

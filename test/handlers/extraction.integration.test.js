@@ -89,17 +89,13 @@ describe('Bug Fix #1: Parameter Naming (snake_case parameters)', () => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Call with snake_case parameter name as per MCP spec
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    // Verify response structure
-    expect(mcpResponse.content).toBeDefined();
-    expect(Array.isArray(mcpResponse.content)).toBe(true);
-    expect(mcpResponse.content.length).toBe(1);
 
-    const result = JSON.parse(mcpResponse.content[0].text);
+
     expect(result.success).toBe(true);
     expect(result.inputFilesProcessed).toBe(1);
 
@@ -110,12 +106,11 @@ describe('Bug Fix #1: Parameter Naming (snake_case parameters)', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
 
     // Verify files are written to the correct directory (extraction_dir)
@@ -133,102 +128,13 @@ describe('Bug Fix #1: Parameter Naming (snake_case parameters)', () => {
   ];
 
   // Call with array of input_paths
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: inputFiles,
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
     expect(result.inputFilesProcessed).toBe(2);
-
-    fs.rmSync(tmpDir, { recursive: true });
-  });
-});
-
-describe('Bug Fix #2: MCP Response Format (envelope wrapper)', () => {
-  it('success response has proper envelope', async () => {
-  const tmpDir = createTempDir();
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
-
-  const mcpResponse = await extractStoryData({
-    input_paths: [inputFile],
-    extraction_dir: tmpDir
-  });
-
-    // Verify MCP envelope format
-    expect(mcpResponse.content).toBeDefined();
-    expect(Array.isArray(mcpResponse.content)).toBe(true);
-    expect(mcpResponse.content.length).toBe(1);
-
-    const contentItem = mcpResponse.content[0];
-    expect(contentItem.type).toBe('text');
-    expect(contentItem.text).toBeDefined();
-    expect(typeof contentItem.text).toBe('string');
-
-    // Verify text is valid JSON
-    const parsed = JSON.parse(contentItem.text);
-    expect(parsed.success).toBe(true);
-
-    fs.rmSync(tmpDir, { recursive: true });
-  });
-
-  it('error response has proper envelope', async () => {
-    const tmpDir = createTempDir();
-
-    // Call with invalid input that triggers validation error
-    const mcpResponse = await extractStoryData({
-      input_paths: ['/nonexistent/file.txt'],
-      extraction_dir: tmpDir
-    });
-
-    expect(mcpResponse.content).toBeDefined();
-    expect(Array.isArray(mcpResponse.content)).toBe(true);
-    expect(mcpResponse.content[0].type).toBe('text');
-
-    const result = JSON.parse(mcpResponse.content[0].text);
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
-  });
-
-  it('response JSON is valid and parseable', async () => {
-  const tmpDir = createTempDir();
-  const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
-
-  const mcpResponse = await extractStoryData({
-    input_paths: [inputFile],
-    extraction_dir: tmpDir
-  });
-
-    const textContent = mcpResponse.content[0].text;
-
-    // Should not throw
-    const parsed = JSON.parse(textContent);
-    expect(parsed).toBeDefined();
-    expect(typeof parsed).toBe('object');
-    expect('success' in parsed).toBe(true);
-
-    fs.rmSync(tmpDir, { recursive: true });
-  });
-
-  it('response contains all expected fields', async () => {
-  const tmpDir = createTempDir();
-  const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
-
-  const mcpResponse = await extractStoryData({
-    input_paths: [inputFile],
-    extraction_dir: tmpDir
-  });
-
-    const result = JSON.parse(mcpResponse.content[0].text);
-
-    // Verify all expected result fields are present
-    expect('success' in result).toBe(true);
-    expect('totalTurns' in result).toBe(true);
-    expect('turnRange' in result).toBe(true);
-    expect('inputFilesProcessed' in result).toBe(true);
-    expect('filesWritten' in result).toBe(true);
-    expect('warnings' in result).toBe(true);
 
     fs.rmSync(tmpDir, { recursive: true });
   });
@@ -246,13 +152,12 @@ describe('Bug Fix #3: Turn Extraction (multiline newlines)', () => {
       continue;
     }
 
-    const mcpResponse = await extractStoryData({
+    const result = await extractStoryData({
       input_paths: [inputFile],
       extraction_dir: tmpDir
     });
 
-      const result = JSON.parse(mcpResponse.content[0].text);
-      expect(result.success).toBe(true);
+        expect(result.success).toBe(true);
       expect(result.totalTurns).toBeGreaterThanOrEqual(5);
 
       // Verify turn_index shows all extracted turns have content
@@ -291,12 +196,11 @@ describe('Bug Fix #3: Turn Extraction (multiline newlines)', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
     expect(result.totalTurns).toBe(22);
 
@@ -310,12 +214,11 @@ describe('Bug Fix #3: Turn Extraction (multiline newlines)', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
 
     // Check that turn structure is valid (key test for regex fix)
@@ -340,12 +243,11 @@ describe('Bug Fix #4: Tracked Items Detection', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
 
     // Result should report whether tracked items were found
     expect('hasTrackedItems' in result).toBe(true);
@@ -365,13 +267,12 @@ describe('Bug Fix #4: Tracked Items Detection', () => {
       continue;
     }
 
-    const mcpResponse = await extractStoryData({
+    const result = await extractStoryData({
       input_paths: [inputFile],
       extraction_dir: tmpDir
     });
 
-      const result = JSON.parse(mcpResponse.content[0].text);
-      expect(result.success).toBe(true);
+        expect(result.success).toBe(true);
 
       // If tracked items exist, tracked_state.json should be created
       if (result.hasTrackedItems || result.hasHiddenTrackedItems) {
@@ -390,12 +291,11 @@ describe('Bug Fix #4: Tracked Items Detection', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
 
     const turnIndexPath = path.join(tmpDir, 'turn_index.json');
@@ -415,12 +315,11 @@ describe('Bug Fix #4: Tracked Items Detection', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
 
     const manifestPath = path.join(tmpDir, 'manifest.json');
@@ -446,13 +345,12 @@ describe('Bug Fix #4: Tracked Items Detection', () => {
       continue;
     }
 
-    const mcpResponse = await extractStoryData({
+    const result = await extractStoryData({
       input_paths: [inputFile],
       extraction_dir: tmpDir
     });
 
-      const result = JSON.parse(mcpResponse.content[0].text);
-      expect(result.success).toBe(true);
+        expect(result.success).toBe(true);
 
       // Result should distinguish between regular and hidden tracked items
       expect(typeof result.hasTrackedItems).toBe('boolean');
@@ -468,16 +366,13 @@ describe('Edge Case Tests', () => {
     const tmpDir = createTempDir();
     const inputFile = path.join(testFilesDir, testStoryFiles.edgeCase[0]);
 
-    const mcpResponse = await extractStoryData({
+    const result = await extractStoryData({
       input_paths: [inputFile],
       extraction_dir: tmpDir
     });
 
-    expect(mcpResponse.content).toBeDefined();
-    expect(Array.isArray(mcpResponse.content)).toBe(true);
-    expect(mcpResponse.content[0].type).toBe('text');
 
-    const result = JSON.parse(mcpResponse.content[0].text);
+
     expect(result.success).toBe(false);
     expect(result.error).toContain('No Turn 1 found');
   });
@@ -486,12 +381,11 @@ describe('Edge Case Tests', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
 
     // Even if tracking is empty, structure should be consistent
     expect('hasTrackedItems' in result).toBe(true);
@@ -505,12 +399,11 @@ describe('Edge Case Tests', () => {
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
   // Call without optional characterList parameter
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
 
     // Should work fine without characterList
@@ -523,12 +416,11 @@ describe('Edge Case Tests', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
     expect(result.success).toBe(true);
 
     // Verify all expected files exist
@@ -556,12 +448,11 @@ describe('Edge Case Tests', () => {
   const tmpDir = createTempDir();
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
 
-  const mcpResponse = await extractStoryData({
+  const result = await extractStoryData({
     input_paths: [inputFile],
     extraction_dir: tmpDir
   });
 
-    const result = JSON.parse(mcpResponse.content[0].text);
 
     // Success response should have all these fields
     expect(result.success).toBe(true);
@@ -591,56 +482,19 @@ describe('Multi-File Coverage Tests', () => {
       continue;
     }
 
-    const mcpResponse = await extractStoryData({
+    const result = await extractStoryData({
       input_paths: [inputFile],
       extraction_dir: tmpDir
     });
 
-      const result = JSON.parse(mcpResponse.content[0].text);
-      expect(result.success).toBe(true);
+        expect(result.success).toBe(true);
       expect(result.inputFilesProcessed).toBe(1);
 
       fs.rmSync(tmpDir, { recursive: true });
     }
   });
 
-  it('MCP response format correct on all test files', async () => {
-  const allFiles = [...testStoryFiles.fast, ...testStoryFiles.thorough];
-  for (const filename of allFiles) {
-    const tmpDir = createTempDir();
-    const inputFile = path.join(testFilesDir, filename);
 
-    if (!fs.existsSync(inputFile)) {
-      console.log(`Skipping response format test for ${filename} - file not found`);
-      fs.rmSync(tmpDir, { recursive: true });
-      continue;
-    }
-
-    const mcpResponse = await extractStoryData({
-      input_paths: [inputFile],
-      extraction_dir: tmpDir
-    });
-
-      // Verify MCP envelope format
-      expect(mcpResponse.content).toBeDefined();
-      expect(Array.isArray(mcpResponse.content)).toBe(true);
-      expect(mcpResponse.content.length).toBe(1);
-
-      const contentItem = mcpResponse.content[0];
-      expect(contentItem.type).toBe('text');
-      expect(contentItem.text).toBeDefined();
-      expect(typeof contentItem.text).toBe('string');
-
-      // Verify text is valid JSON and contains expected fields
-      const parsed = JSON.parse(contentItem.text);
-      expect(parsed.success).toBe(true);
-      expect('success' in parsed).toBe(true);
-      expect('totalTurns' in parsed).toBe(true);
-      expect('turnRange' in parsed).toBe(true);
-
-      fs.rmSync(tmpDir, { recursive: true });
-    }
-  });
 
   it('Output file structure consistent on all test files', async () => {
   const allFiles = [...testStoryFiles.fast, ...testStoryFiles.thorough];
@@ -654,13 +508,12 @@ describe('Multi-File Coverage Tests', () => {
       continue;
     }
 
-    const mcpResponse = await extractStoryData({
+    const result = await extractStoryData({
       input_paths: [inputFile],
       extraction_dir: tmpDir
     });
 
-      const result = JSON.parse(mcpResponse.content[0].text);
-      expect(result.success).toBe(true);
+        expect(result.success).toBe(true);
 
       // Verify all expected files exist
       const manifestPath = path.join(tmpDir, 'manifest.json');
