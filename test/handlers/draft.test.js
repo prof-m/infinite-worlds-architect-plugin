@@ -1,0 +1,590 @@
+/**
+ * Tests for lib/handlers/draft.js
+ * Covers parseDraft (via compile_draft), compile_draft, decompile_json,
+ * read_draft_section, update_draft_section, and get_diff_summary.
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+import {
+  compile_draft,
+  decompile_json,
+  read_draft_section,
+  update_draft_section,
+  get_diff_summary,
+} from '../../lib/handlers/draft.js';
+import { writeWorld } from '../../lib/helpers.js';
+
+let tmpDir, draftPath, worldPath;
+
+beforeEach(async () => {
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'test-draft-'));
+  draftPath = path.join(tmpDir, 'draft.md');
+  worldPath = path.join(tmpDir, 'world.json');
+});
+
+afterEach(async () => {
+  await fs.rm(tmpDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const simpleDraft = () => `# Title
+My World
+
+# Description
+A test description
+
+# Background
+A rich background
+
+# Main Instructions
+Do the right thing
+
+# Author Style
+Terse and punchy
+
+# Objective
+Save the world
+
+# First Action
+You wake up in a tavern.
+
+# NSFW
+false
+
+# Content Warnings
+None
+
+# Skills
+- Combat
+- Stealth
+
+# Player Permissions
+Can Change Name: true
+Can Change Description: false
+Can Change Skills: true
+Can Select Other Portraits: false
+Can Create New Portrait: true
+Can Change Tracked Items Starting Values: false
+
+# Enable AI Specific Instruction Blocks
+false
+`;
+
+const minimalWorld = (overrides = {}) => ({
+  title: 'Base World',
+  description: 'Base description',
+  background: 'Base background',
+  instructions: 'Base instructions',
+  authorStyle: 'Neutral',
+  possibleCharacters: [],
+  NPCs: [],
+  instructionBlocks: [],
+  loreBookEntries: [],
+  trackedItems: [],
+  triggerEvents: [],
+  ...overrides,
+});
+
+// ---------------------------------------------------------------------------
+// compile_draft — basic round-trip
+// ---------------------------------------------------------------------------
+
+describe('compile_draft', () => {
+  it('compiles a minimal draft and writes valid JSON', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+
+    expect(result.content[0].text).toContain('compiled successfully');
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.title).toBe('My World');
+    expect(world.description).toBe('A test description');
+    expect(world.background).toBe('A rich background');
+    expect(world.instructions).toBe('Do the right thing');
+    expect(world.authorStyle).toBe('Terse and punchy');
+    expect(world.objective).toBe('Save the world');
+    expect(world.firstInput).toBe('You wake up in a tavern.');
+    expect(world.nsfw).toBe(false);
+  });
+
+  it('parses skills array', async () => {
+    const draft = `# Title\nWorld\n# Background\nBg\n# Main Instructions\nInst\n# Skills\n- Combat\n- Stealth\n- Persuasion\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.skills).toEqual(['Combat', 'Stealth', 'Persuasion']);
+  });
+
+  it('parses player permissions booleans', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.canChangeCharacterName).toBe(true);
+    expect(world.canChangeCharacterDescription).toBe(false);
+    expect(world.canChangeCharacterSkills).toBe(true);
+    expect(world.canSelectOtherPortraits).toBe(false);
+    expect(world.canCreateNewPortrait).toBe(true);
+    expect(world.canChangeTrackedItemsStartingValues).toBe(false);
+  });
+
+  it('parses NSFW true', async () => {
+    const draft = `# Title\nWorld\n# Background\nBg\n# Main Instructions\nInst\n# NSFW\ntrue\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.nsfw).toBe(true);
+  });
+
+  it('parses Enable AI Specific Instruction Blocks true', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Enable AI Specific Instruction Blocks\ntrue\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.enableAISpecificInstructionBlocks).toBe(true);
+  });
+
+  it('parses Possible Characters section', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Possible Characters\n## Hero\nDescription: A brave hero\nPortrait: hero.png\nSkills:\n- Combat: 4\n- Stealth: 2\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.possibleCharacters.length).toBe(1);
+    expect(world.possibleCharacters[0].name).toBe('Hero');
+    expect(world.possibleCharacters[0].description).toBe('A brave hero');
+    expect(world.possibleCharacters[0].skills.Combat).toBe(4);
+  });
+
+  it('parses Other Characters section', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Other Characters\n## Bob\nBrief Summary: A friendly innkeeper\nCharacter Detail: Runs the local inn\nAppearance: Stout and bearded\nLocation: The Inn\nSecret Information: Knows where the treasure is\nFull List of Names: Robert, Bob\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.NPCs.length).toBe(1);
+    expect(world.NPCs[0].name).toBe('Bob');
+    expect(world.NPCs[0].one_liner).toBe('A friendly innkeeper');
+    expect(world.NPCs[0].names).toEqual(['Robert', 'Bob']);
+  });
+
+  it('parses Extra Instruction Blocks section', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Extra Instruction Blocks\n## Combat Rules\nContent: Strike fast, strike true.\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.instructionBlocks.length).toBe(1);
+    expect(world.instructionBlocks[0].name).toBe('Combat Rules');
+  });
+
+  it('parses Keyword Instruction Blocks section', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Keyword Instruction Blocks\n## Dragon Lore\nKeywords: dragon, wyrm, serpent\nContent: Dragons are ancient beings.\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.loreBookEntries.length).toBe(1);
+    expect(world.loreBookEntries[0].keywords).toContain('dragon');
+  });
+
+  it('parses Tracked Items section', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Tracked Items\n## Health\nData Type: number\nVisibility: everyone\nDescription: Player health points\nUpdate Instructions: Decrease when hit\nInitial Value: 100\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.trackedItems.length).toBe(1);
+    expect(world.trackedItems[0].name).toBe('Health');
+    expect(world.trackedItems[0].dataType).toBe('number');
+    expect(world.trackedItems[0].initialValue).toBe('100');
+  });
+
+  it('merges with existing world JSON when originalPath is provided', async () => {
+    const original = minimalWorld({ title: 'Original Title', designNotes: 'Keep this' });
+    await writeWorld(worldPath, original);
+
+    const draft = `# Title\nNew Title\n# Background\nNew background\n# Main Instructions\nNew instructions\n`;
+    await fs.writeFile(draftPath, draft);
+
+    await compile_draft({ draftPath, outputPath: worldPath, originalPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.title).toBe('New Title');
+    // Non-overridden original field should be preserved
+    expect(world.designNotes).toBe('Keep this');
+  });
+
+  it('merges possibleCharacters preserving characterId', async () => {
+    const original = minimalWorld({
+      possibleCharacters: [{ characterId: 'existing-id-123', name: 'Hero', description: 'old' }],
+    });
+    await writeWorld(worldPath, original);
+
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Possible Characters\n## Hero\nDescription: Updated description\n`;
+    await fs.writeFile(draftPath, draft);
+
+    await compile_draft({ draftPath, outputPath: worldPath, originalPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.possibleCharacters[0].characterId).toBe('existing-id-123');
+    expect(world.possibleCharacters[0].description).toBe('Updated description');
+  });
+
+  it('applies default values for missing optional fields', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.imageModel).toBe('manticore');
+    expect(world.defeatText).toBe('Your adventure ends here. Game over.');
+  });
+
+  it('throws for non-existent draft path', async () => {
+    await expect(
+      compile_draft({ draftPath: path.join(tmpDir, 'missing.md'), outputPath: worldPath })
+    ).rejects.toThrow();
+  });
+
+  it('parses image style fields', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Image Model\nflux-pro\n# Image Style\npainting\n# Image Style Character Pre\nportrait of\n# Image Style Character Post\nhigh detail\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.imageModel).toBe('flux-pro');
+    expect(world.imageStyle).toBe('painting');
+    expect(world.imageStyleCharacterPre).toBe('portrait of');
+    expect(world.imageStyleCharacterPost).toBe('high detail');
+  });
+
+  it('parses victory and defeat conditions', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Victory Condition\nDefeat the dragon\n# Victory Text\nYou win!\n# Defeat Condition\nHP reaches zero\n# Defeat Text\nYou lose!\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.victoryCondition).toBe('Defeat the dragon');
+    expect(world.victoryText).toBe('You win!');
+    expect(world.defeatCondition).toBe('HP reaches zero');
+    expect(world.defeatText).toBe('You lose!');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// decompile_json
+// ---------------------------------------------------------------------------
+
+describe('decompile_json', () => {
+  it('generates a markdown file from a world JSON', async () => {
+    const world = minimalWorld({ title: 'Test World', description: 'Desc', background: 'BG' });
+    await writeWorld(worldPath, world);
+
+    const result = await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    expect(result.content[0].text).toContain('decompiled');
+
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('# Title');
+    expect(md).toContain('Test World');
+    expect(md).toContain('# Background');
+    expect(md).toContain('BG');
+  });
+
+  it('includes table of contents', async () => {
+    await writeWorld(worldPath, minimalWorld());
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('# Table of Contents');
+    expect(md).toContain('[Title]');
+    expect(md).toContain('[Background]');
+  });
+
+  it('includes skills in output', async () => {
+    const world = minimalWorld({ skills: ['Combat', 'Stealth', 'Persuasion'] });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('- Combat');
+    expect(md).toContain('- Stealth');
+  });
+
+  it('includes NPCs in output', async () => {
+    const world = minimalWorld({
+      NPCs: [{
+        id: 'npc1', name: 'Gandalf', one_liner: 'A wizard', detail: 'Very powerful',
+        appearance: 'Long beard', location: 'Shire', secret_info: 'Knows all',
+        names: ['Gandalf', 'Mithrandir'], img_appearance: 'old man', img_clothing: 'grey robes'
+      }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('## Gandalf');
+    expect(md).toContain('A wizard');
+    expect(md).toContain('Mithrandir');
+  });
+
+  it('includes possible characters with skills', async () => {
+    const world = minimalWorld({
+      possibleCharacters: [{
+        characterId: 'c1', name: 'Warrior',
+        description: 'A strong fighter', portrait: 'warrior.png',
+        skills: { Combat: 5, Strength: 4 }
+      }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('## Warrior');
+    expect(md).toContain('Combat: 5');
+  });
+
+  it('includes tracked items', async () => {
+    const world = minimalWorld({
+      trackedItems: [{
+        id: 'ti1', name: 'Health', dataType: 'number', visibility: 'everyone',
+        description: 'HP', updateInstructions: 'Decrease on hit', initialValue: '100'
+      }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('## Health');
+    expect(md).toContain('Data Type');
+    expect(md).toContain('number');
+  });
+
+  it('includes trigger events with conditions and effects', async () => {
+    const world = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Game Start',
+        triggerConditions: [{ id: 'c1', type: 'triggerOnStartOfGame', data: true, category: 'condition' }],
+        triggerEffects: [{ id: 'e1', type: 'scriptedText', data: 'Welcome!' }],
+      }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('## Game Start');
+    expect(md).toContain('triggerOnStartOfGame');
+    expect(md).toContain('scriptedText');
+  });
+
+  it('includes instruction blocks and keyword blocks', async () => {
+    const world = minimalWorld({
+      instructionBlocks: [{ id: 'ib1', name: 'Combat Rules', content: 'Fight fairly.' }],
+      loreBookEntries: [{ id: 'lb1', name: 'Dragon Lore', keywords: ['dragon'], content: 'Dragons breathe fire.' }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('## Combat Rules');
+    expect(md).toContain('## Dragon Lore');
+    expect(md).toContain('dragon');
+  });
+
+  it('includes player permissions', async () => {
+    const world = minimalWorld({
+      canChangeCharacterName: false,
+      canSelectOtherPortraits: true,
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('Can Change Name: false');
+    expect(md).toContain('Can Select Other Portraits: true');
+  });
+
+  it('throws for non-existent world file', async () => {
+    await expect(
+      decompile_json({ inputPath: path.join(tmpDir, 'missing.json'), outputPath: draftPath })
+    ).rejects.toThrow();
+  });
+
+  it('round-trips: compile → decompile → compile preserves title', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const compiledPath = path.join(tmpDir, 'compiled.json');
+    await compile_draft({ draftPath, outputPath: compiledPath });
+
+    const decompiledPath = path.join(tmpDir, 'decompiled.md');
+    await decompile_json({ inputPath: compiledPath, outputPath: decompiledPath });
+
+    const recompiledPath = path.join(tmpDir, 'recompiled.json');
+    await compile_draft({ draftPath: decompiledPath, outputPath: recompiledPath });
+
+    const recompiled = JSON.parse(await fs.readFile(recompiledPath, 'utf-8'));
+    expect(recompiled.title).toBe('My World');
+    expect(recompiled.background).toBe('A rich background');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// read_draft_section
+// ---------------------------------------------------------------------------
+
+describe('read_draft_section', () => {
+  it('reads an existing section by name', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const result = await read_draft_section({ draftPath, sectionName: 'Title' });
+    expect(result.content[0].text).toBe('My World');
+  });
+
+  it('reads case-insensitively', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const result = await read_draft_section({ draftPath, sectionName: 'background' });
+    expect(result.content[0].text).toBe('A rich background');
+  });
+
+  it('returns not-found message for missing section', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const result = await read_draft_section({ draftPath, sectionName: 'Nonexistent Section' });
+    expect(result.content[0].text).toContain('not found');
+  });
+
+  it('reads multi-line section content', async () => {
+    const draft = `# Title\nLine 1\nLine 2\nLine 3\n\n# Background\nBG\n`;
+    await fs.writeFile(draftPath, draft);
+    const result = await read_draft_section({ draftPath, sectionName: 'Title' });
+    expect(result.content[0].text).toContain('Line 1');
+    expect(result.content[0].text).toContain('Line 2');
+    expect(result.content[0].text).toContain('Line 3');
+  });
+
+  it('throws for non-existent draft file', async () => {
+    await expect(
+      read_draft_section({ draftPath: path.join(tmpDir, 'missing.md'), sectionName: 'Title' })
+    ).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// update_draft_section
+// ---------------------------------------------------------------------------
+
+describe('update_draft_section', () => {
+  it('updates an existing section', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Updated Title' });
+
+    const result = await read_draft_section({ draftPath, sectionName: 'Title' });
+    expect(result.content[0].text).toBe('Updated Title');
+  });
+
+  it('adds a new section if it does not exist', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await update_draft_section({ draftPath, sectionName: 'Design Notes', newContent: 'Some design notes' });
+
+    const result = await read_draft_section({ draftPath, sectionName: 'Design Notes' });
+    expect(result.content[0].text).toBe('Some design notes');
+  });
+
+  it('preserves other sections when updating one', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'New Title' });
+
+    const bgResult = await read_draft_section({ draftPath, sectionName: 'Background' });
+    expect(bgResult.content[0].text).toBe('A rich background');
+  });
+
+  it('returns success confirmation', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const result = await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X' });
+    expect(result.content[0].text).toContain('Successfully updated');
+  });
+
+  it('throws for non-existent draft file', async () => {
+    await expect(
+      update_draft_section({
+        draftPath: path.join(tmpDir, 'missing.md'),
+        sectionName: 'Title',
+        newContent: 'X'
+      })
+    ).rejects.toThrow();
+  });
+
+  it('updating then reading gives correct new content', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const newContent = 'Completely new background text here.';
+    await update_draft_section({ draftPath, sectionName: 'Background', newContent });
+    const result = await read_draft_section({ draftPath, sectionName: 'Background' });
+    expect(result.content[0].text).toBe(newContent);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// get_diff_summary
+// ---------------------------------------------------------------------------
+
+describe('get_diff_summary', () => {
+  it('reports no changes when draft matches original', async () => {
+    // Write a world whose fields exactly match what parseDraft will extract from the draft.
+    // authorStyle and description must be left at their draft-parsed values (undefined → not set)
+    // so we use a minimal world that only has title/background/instructions.
+    const world = {
+      title: 'Same Title',
+      background: 'Base background',
+      instructions: 'Base instructions',
+      possibleCharacters: [],
+      NPCs: [],
+      instructionBlocks: [],
+      loreBookEntries: [],
+      trackedItems: [],
+      triggerEvents: [],
+    };
+    await writeWorld(worldPath, world);
+
+    const draft = `# Title\nSame Title\n# Background\nBase background\n# Main Instructions\nBase instructions\n`;
+    await fs.writeFile(draftPath, draft);
+
+    const result = await get_diff_summary({ originalPath: worldPath, draftPath });
+    expect(result.content[0].text).toContain('No changes detected');
+  });
+
+  it('detects a changed root field', async () => {
+    const world = minimalWorld({ title: 'Old Title' });
+    await writeWorld(worldPath, world);
+
+    const draft = `# Title\nNew Title\n# Background\nBase background\n# Main Instructions\nBase instructions\n`;
+    await fs.writeFile(draftPath, draft);
+
+    const result = await get_diff_summary({ originalPath: worldPath, draftPath });
+    expect(result.content[0].text).toContain('[title]');
+  });
+
+  it('detects added items in possibleCharacters', async () => {
+    const world = minimalWorld({ possibleCharacters: [] });
+    await writeWorld(worldPath, world);
+
+    const draft = `# Title\nBase World\n# Background\nBase background\n# Main Instructions\nBase instructions\n# Possible Characters\n## New Hero\nDescription: Brave\n`;
+    await fs.writeFile(draftPath, draft);
+
+    const result = await get_diff_summary({ originalPath: worldPath, draftPath });
+    expect(result.content[0].text).toContain('Possible Characters');
+  });
+
+  it('detects modified item content', async () => {
+    const world = minimalWorld({
+      NPCs: [{ id: 'n1', name: 'Bob', one_liner: 'Old liner', detail: '', appearance: '', location: '', secret_info: '', names: [], img_appearance: '', img_clothing: '' }],
+    });
+    await writeWorld(worldPath, world);
+
+    const draft = `# Title\nBase World\n# Background\nBase background\n# Main Instructions\nBase instructions\n# Other Characters\n## Bob\nBrief Summary: New liner\n`;
+    await fs.writeFile(draftPath, draft);
+
+    const result = await get_diff_summary({ originalPath: worldPath, draftPath });
+    expect(result.content[0].text).toContain('Bob');
+  });
+
+  it('detects changed skills', async () => {
+    const world = minimalWorld({ skills: ['Combat'] });
+    await writeWorld(worldPath, world);
+
+    const draft = `# Title\nBase World\n# Background\nBase background\n# Main Instructions\nBase instructions\n# Skills\n- Combat\n- Stealth\n`;
+    await fs.writeFile(draftPath, draft);
+
+    const result = await get_diff_summary({ originalPath: worldPath, draftPath });
+    expect(result.content[0].text).toContain('skills');
+  });
+
+  it('throws for non-existent original file', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await expect(
+      get_diff_summary({ originalPath: path.join(tmpDir, 'missing.json'), draftPath })
+    ).rejects.toThrow();
+  });
+});
