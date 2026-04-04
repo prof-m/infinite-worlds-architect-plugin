@@ -24,11 +24,14 @@ Call the `extract_story_data` MCP tool to parse the story export(s) into structu
 
 ## Understand Story Context via Query Tools
 
-Instead of reading the entire export file, use `query_story_data` to load structured extraction data:
-1. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
-2. Call `query_story_data(extraction_dir, 'turn_index')` to see a summary of all turns with action/outcome previews. Use this to understand turn distribution and identify key turning points.
-3. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', [N, ...])` passing the turn numbers you want to examine. This loads the full context/action/result text for those specific turns without loading the entire export.
-4. If tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to load the state history of tracked items across the story. (Optimization: Before querying tracked_state, check the manifest's `trackedItemsFound` flag. If false, skip the tracked_state query entirely.)
+Instead of reading the entire export file, use `query_story_data` to load structured extraction data in this order:
+
+1. Call `query_story_data(extraction_dir, 'manifest')` first to read the `trackedItemsFound` and `characterIndexingAttempted` flags. These govern all conditional queries below. Also note `filesWritten` to confirm which output files were generated.
+2. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
+3. Call `query_story_data(extraction_dir, 'turn_index')` to see a summary of all turns with action/outcome previews. Use this to understand turn distribution and identify key turning points.
+4. If `manifest.trackedItemsFound` is true, call `query_story_data(extraction_dir, 'tracked_state')` to load tracked item state history. Use the final snapshot and turn deltas to identify high-value turns for step 5.
+5. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', turns: ["1", ...])` passing turn numbers (as strings) you want to examine — target 3–7 turns maximum, identified from turn_index and tracked_state.
+6. If `manifest.characterIndexingAttempted` is true and `character_index.json` was in `filesWritten`, use the character index to identify which turns introduce each character, then use those turn numbers to refine your turn_detail queries.
 
 These queries give you structured data with far better context efficiency than reading raw story text.
 
@@ -40,13 +43,17 @@ Once settled, use the `decompile_json` MCP tool to read the original world JSON 
 
 Before filling in fields, consult `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. The key principle: always-on fields (`background`, `instructions`, `objective`) should be concise and world-framing only. Character descriptions, NPC lore, and location details belong in Keyword Instruction Blocks where they inject on-demand rather than every turn.
 
-**Distribution summary:**
+**Distribution summary (common fields):**
 - `background` ← `metadata.background` (world situation only, not character descriptions)
 - `objective` ← `metadata.character.objective` (final story objective if it evolved)
 - `instructions` ← `metadata.character.background + skills` + authoring logic
+- `description` ← synthesized from `metadata.background` + sequel premise; confirm with user
 - `Possible Characters` ← `metadata.character` (name, background, skills)
+- `Other Characters (NPCs)` ← `turn_detail` NPC introduction turns (see reference for 9-field mapping)
 - `Keyword Instruction Blocks` ← character/location/faction descriptions from `turn_detail` queries
 - `Tracked Items` ← final snapshot from `tracked_state.json` (only items still relevant to sequel)
+- `Extra Instruction Blocks` + `Trigger Events` ← story mechanics to carry forward (use sparingly)
+- `Design Notes` ← author notes only; never sent to the AI
 
 Update the newly generated draft markdown file (using the `update_draft_section` tool) to combine the original world's settings with the rich narrative background derived from the story extraction. The markdown file contains the headers:
 - Title
@@ -93,8 +100,6 @@ Before proposing any field value, verify:
 - **If no citation exists, should I propose this field at all?**
 
 Then, guide strictly FIELD-BY-FIELD through refining this draft.
-**Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
-
 Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using `update_draft_section`, and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
