@@ -1,0 +1,3 @@
+prompt = """
+Please use the scaffold-world skill to quickly generate a base world schema.
+"""
