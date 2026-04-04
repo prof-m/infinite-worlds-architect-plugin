@@ -1,3 +1,3 @@
 prompt = """
-!{agentic_workflow('sequel-world')}
+Please use the sequel-world skill to plan a sequel iteration of the world.
 """

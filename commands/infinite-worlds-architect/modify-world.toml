@@ -1,3 +1,3 @@
 prompt = """
-!{agentic_workflow('modify-world')}
+Please use the modify-world skill to update an existing world outline.
 """
