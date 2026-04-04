@@ -60,7 +60,35 @@ The `world-architect` skill provides the AI with deep knowledge of Infinite Worl
 
 Reference materials are in `skills/world-architect/references/`.
 
-## Installation
+## Installation (Gemini CLI)
+
+### Prerequisites
+
+- [Gemini CLI](https://geminicli.com) installed
+- Node.js 18+
+
+### Steps
+
+1. Clone the repository and install dependencies:
+   ```bash
+   git clone <repo-url> infinite-worlds-architect-plugin
+   cd infinite-worlds-architect-plugin
+   npm install
+   ```
+
+2. Install the extension using the Gemini CLI:
+   ```bash
+   gemini extensions install .
+   # OR for active development: gemini extensions link .
+   ```
+
+3. Restart your Gemini CLI session.
+
+### Verify Installation
+
+After restarting, type `/infinite-worlds-architect:` and you should see the available commands in autocomplete.
+
+## Installation (Claude Code)
 
 ### Prerequisites
 

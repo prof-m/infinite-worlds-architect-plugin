@@ -1,0 +1,3 @@
+prompt = """
+!{agentic_workflow('sequel-world')}
+"""
