@@ -24,14 +24,16 @@ Call the `extract_story_data` MCP tool to parse the story export(s) into structu
 
 ## Understand Story Context via Query Tools
 
-Instead of reading the entire export file, use `query_story_data` to load structured extraction data in this order:
+Instead of reading the entire export file, use `query_story_data` to load structured extraction data. First, save the result from `extract_story_data` — it contains `hasTrackedItems` (gates tracked_state queries) and `filesWritten` (check for `character_index.json` to know if character indexing succeeded).
 
-1. Call `query_story_data(extraction_dir, 'manifest')` first to read the `trackedItemsFound` and `characterIndexingAttempted` flags. These govern all conditional queries below. Also note `filesWritten` to confirm which output files were generated.
-2. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
+Then query in this order:
+
+1. Call `query_story_data(extraction_dir, 'manifest')` to read extraction provenance (source files, total turns, `has_tracked_items` flag).
+2. Call `query_story_data(extraction_dir, 'metadata')` to load `story_background`, character details, and `objective`. This gives you the high-level context.
 3. Call `query_story_data(extraction_dir, 'turn_index')` to get a listing of all turns with their turn numbers, 100-character action/outcome previews, and source file references. Note: these previews are truncated (100 chars from turns that can be 500–1000+ chars) — they show which turns exist and their line ranges, but are NOT sufficient to understand turn content or identify narrative turning points. Use `turn_detail` queries for actual content.
-4. If `manifest.trackedItemsFound` is true, call `query_story_data(extraction_dir, 'tracked_state')` to load tracked item state history. Use the final snapshot and turn deltas to identify high-value turns for step 5.
-5. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', turns: ["1", ...])` passing turn numbers (as strings) you want to examine — target 3–7 turns maximum. Use tracked_state snapshot deltas and character_index data to identify which turns are most relevant.
-6. If `manifest.characterIndexingAttempted` is true and `character_index.json` was in `filesWritten`, use the character index to identify which turns introduce each character, then use those turn numbers to refine your turn_detail queries.
+4. If `has_tracked_items` is true, call `query_story_data(extraction_dir, 'tracked_state')` to load tracked item state history. Use the final snapshot and turn deltas to identify high-value turns for step 6.
+5. If `character_index.json` was in `filesWritten` (from the extract result), read the character index to identify which turns introduce each character. Use those turn numbers to inform your turn_detail queries in step 6.
+6. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', turns: ["1", ...])` passing turn numbers (as strings) you want to examine — target 3–7 turns maximum. The response contains raw turn text — parse Outcome and Secret Information sections for narrative content.
 
 These queries give you structured data with far better context efficiency than reading raw story text.
 
@@ -44,10 +46,10 @@ Once settled, use the `decompile_json` MCP tool to read the original world JSON 
 Before filling in fields, consult `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. The key principle: always-on fields (`background`, `instructions`, `objective`) should be concise and world-framing only. Character descriptions belong in `Possible Characters` (for PCs) and `Other Characters` (for NPCs) — NOT in `background` or `instructions`. Location and faction lore belongs in Keyword Instruction Blocks where it injects on-demand rather than every turn.
 
 **Distribution summary (common fields):**
-- `background` ← `metadata.background` (initial world premise only — not updated during play, not for character descriptions)
-- `objective` ← `metadata.character.objective` (final story objective if it evolved)
+- `background` ← `metadata.story_background` (initial world premise only — not updated during play, not for character descriptions)
+- `objective` ← `metadata.objective` (root level in metadata, not under character)
 - `instructions` ← `metadata.character.background + skills` + authoring logic
-- `description` ← synthesized from `metadata.background` + sequel premise; confirm with user
+- `description` ← synthesized from `metadata.story_background` + sequel premise; confirm with user
 - `Possible Characters` ← `metadata.character` (name, background, skills)
 - `Other Characters (NPCs)` ← `turn_detail` NPC introduction turns (see reference for 9-field mapping)
 - `Keyword Instruction Blocks` ← location/faction/lore descriptions from `turn_detail` queries (NOT character descriptions — those go in Possible Characters / Other Characters)
