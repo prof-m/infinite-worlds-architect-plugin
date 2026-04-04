@@ -38,6 +38,16 @@ Once settled, use the `decompile_json` MCP tool to read the original world JSON 
 
 ## Update Draft Markdown
 
+Before filling in fields, consult `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. The key principle: always-on fields (`background`, `instructions`, `objective`) should be concise and world-framing only. Character descriptions, NPC lore, and location details belong in Keyword Instruction Blocks where they inject on-demand rather than every turn.
+
+**Distribution summary:**
+- `background` ← `metadata.background` (world situation only, not character descriptions)
+- `objective` ← `metadata.character.objective` (final story objective if it evolved)
+- `instructions` ← `metadata.character.background + skills` + authoring logic
+- `Possible Characters` ← `metadata.character` (name, background, skills)
+- `Keyword Instruction Blocks` ← character/location/faction descriptions from `turn_detail` queries
+- `Tracked Items` ← final snapshot from `tracked_state.json` (only items still relevant to sequel)
+
 Update the newly generated draft markdown file (using the `update_draft_section` tool) to combine the original world's settings with the rich narrative background derived from the story extraction. The markdown file contains the headers:
 - Title
 - Description
@@ -103,6 +113,12 @@ For complex fields (like Skills, Possible Characters, Other Characters, Instruct
 - Citation pattern and formats
 - Examples of correctly and incorrectly cited proposals
 - No-Citation Rule: if extraction data doesn't support it, don't propose it
+
+**Context Distribution Strategy:** For guidance on distributing extracted story state across world field types, see `references/story_context_distribution.md`:
+- Tier strategy: which data belongs in always-on fields vs. keyword blocks vs. tracked items
+- Loading sequence: when to query manifest, turn_index, tracked_state, and turn_detail
+- Field assignment quick reference table
+- Anti-patterns: what NOT to put in `background` and `instructions`
 
 When the draft is completely finished and approved, use the `compile_draft` MCP tool to generate the final sequel world JSON file using the requested name in the target directory. For the complex fields, construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
 
