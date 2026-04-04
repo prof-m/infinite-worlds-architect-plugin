@@ -39,7 +39,7 @@ Populated from `metadata.json`. Load this first — it provides framing that eve
 | `metadata.title` | → `title` (as starting point) |
 | `metadata.background` + sequel premise | → `description` (user-facing blurb; draft then confirm with user) |
 
-**Rule**: Keep `background` focused on the world situation and story starting state. Do NOT embed individual character descriptions here — those belong in keyword blocks.
+**Rule**: `background` is for the world situation at the **very beginning** of the story — it is not updated after the first turn. Be judicious: only include the initial premise and setting, not ongoing story developments. Do NOT embed individual character descriptions here — player character descriptions belong in `possibleCharacters`, NPC descriptions in `NPCs`.
 
 ### Tier 2: Conditionally Loaded Data
 
@@ -47,24 +47,23 @@ Check the manifest flags (Tier 0) before querying these:
 
 | Data | Condition to load | Use for |
 |---|---|---|
-| `turn_index.json` | Always (lightweight) | Scan turn distribution, identify key turning points, decide which turns to deep-dive |
+| `turn_index.json` | Always (lightweight) | Lists all turns with turn numbers, line ranges, and source files. Contains 100-char action/outcome **previews** (truncated — NOT summaries). Use for enumerating which turns exist and their source locations, not for understanding turn content |
 | `tracked_state.json` | Only if `manifest.trackedItemsFound === true` | Tracked item final values → `trackedItems` initial values in the sequel world |
 | `character_index.json` | Only if `manifest.characterIndexingAttempted === true` **and** `character_index.json` was in `filesWritten` | Find which turns introduce or focus on specific characters |
 
-**Optimization**: If `trackedItemsFound` is false, skip `query_story_data(extraction_dir, 'tracked_state')` entirely. If `characterIndexingAttempted` is false (or character_index was not generated), identify character-focused turns from `turn_index` actionPreview/outcomePreview text instead.
+**Optimization**: If `trackedItemsFound` is false, skip `query_story_data(extraction_dir, 'tracked_state')` entirely. If `characterIndexingAttempted` is false (or character_index was not generated), you will need to use `turn_detail` queries to find character introductions — the 100-char turn_index previews are not sufficient to reliably identify them.
 
 ### Tier 3: Selectively Loaded Turn Detail
 
-Use `turn_index.json` to identify which turns deserve full detail queries. Do not query all turns.
+Do not query all turns. Use `tracked_state` snapshot deltas and `character_index` data to decide which turns to query. `turn_index` only tells you which turns exist and their line ranges — its 100-char previews are too short to identify content.
 
 **High-value turns to query:**
 - Turn 1 (character and world establishment)
 - First turn where each major character is introduced (use character_index if available)
 - Turns where tracked item values change dramatically (visible in tracked_state snapshots)
 - The last 1–2 turns (final state of the story world)
-- Any turn flagged as a major turning point from turn_index previews
 
-**Target**: 3–7 `turn_detail` queries maximum. More than that indicates the agent should be using turn_index summaries rather than full text.
+**Target**: 3–7 `turn_detail` queries maximum.
 
 **Turn number format**: Pass turn numbers as **strings** in the `turns` array:
 ```
@@ -94,21 +93,23 @@ NPCs require populating 9 distinct fields. Use `turn_detail` queries for the tur
 
 The most token-efficient field type. Content only injects when the AI encounters a matching keyword in the context window.
 
+**Note**: Character descriptions (appearance, personality, motivations) belong in `possibleCharacters` for PCs and `NPCs` for non-player characters — NOT in keyword blocks. Use keyword blocks for contextual information that should only inject when relevant.
+
 **Use keyword blocks for:**
-- Character personality, appearance, motivations — keyword: character name + common aliases
 - Location descriptions — keyword: place name and common variants
 - Faction/group details — keyword: faction name, group title
 - Secret lore only relevant in specific situations — keyword: situation-specific terms
+- Supplementary relationship context between characters — keyword: both character names
 
 **Populating from extraction data:**
-- Character blocks: Source from `turn_detail` queries for introduction turns + `tracked_state` for final character-related item values
 - Location blocks: Source from `turn_detail` outcomeDescription text where setting is described
-- If `character_index.json` exists, use it to find the exact turns where each character is introduced
+- Faction/lore blocks: Source from `turn_detail` SecretInfo sections for hidden world details
+- If `character_index.json` exists, use it to find the exact turns where relevant locations/events appear
 
 **Pattern:**
 ```
-Keyword Block: "[Character Name]"
-Keywords: ["CharacterName", "known alias", "their title"]
+Keyword Block: "[Location Name]"
+Keywords: ["LocationName", "the tavern", "alternate reference"]
 Content: Description synthesized from cited turn_detail text
 ```
 
@@ -145,7 +146,8 @@ Use sparingly for phase-specific content activated via trigger events.
    → background, objective, character, instructions framing
 
 2. ALWAYS (lightweight): query_story_data(extraction_dir, 'turn_index')
-   → scan turn distribution, identify key turns to deep-dive
+   → enumerate which turns exist and their line ranges/source files
+   → 100-char previews only — NOT usable as summaries or for identifying turning points
 
 3. CONDITIONAL: if manifest.trackedItemsFound
    → query_story_data(extraction_dir, 'tracked_state')
@@ -174,8 +176,8 @@ Use sparingly for phase-specific content activated via trigger events.
 | `objective` | `metadata.character.objective` (last-turn objective if evolved) | 1 |
 | `instructions` | `metadata.character.background + skills` + manual authoring | 1 |
 | `possibleCharacters` | `metadata.character` | 1 |
-| `loreBookEntries` (characters) | `turn_detail` intro turns + `tracked_state` | 3 + 4 |
-| `loreBookEntries` (locations) | `turn_detail` setting descriptions | 3 |
+| `loreBookEntries` (locations) | `turn_detail` setting descriptions | 4 |
+| `loreBookEntries` (factions/lore) | `turn_detail` SecretInfo sections | 4 |
 | `trackedItems` | `tracked_state` final snapshot | 2 (conditional) |
 | `NPCs` | `turn_detail` NPC introduction turns (see Tier 3b for field mapping) | 3b |
 | `instructionBlocks` | Story mechanics (if carried forward) | 6 |
@@ -186,12 +188,14 @@ Use sparingly for phase-specific content activated via trigger events.
 
 ## Anti-Patterns to Avoid
 
-**Do not** embed NPC or character descriptions in `background`. Background is for world state, not a character roster. Character details belong in keyword blocks where they inject on-demand.
+**Do not** embed NPC or character descriptions in `background`. Background is for the initial world premise only. Player character descriptions belong in `possibleCharacters`; NPC descriptions belong in `NPCs`. Location and faction lore belongs in keyword blocks where it injects on-demand.
 
-**Do not** query `turn_detail` for every turn. Use `turn_index` summaries to identify which turns contain relevant information before querying full detail.
+**Do not** query `turn_detail` for every turn. Use `tracked_state` snapshot deltas and `character_index` data to identify which turns are worth querying. `turn_index` only lists which turns exist — its 100-char previews are not sufficient to identify relevant content.
 
 **Do not** carry forward all tracked items from the source story. Only bring forward items that are still mechanically meaningful in the sequel premise. Items tied to resolved plot threads should be dropped or redesigned.
 
-**Do not** put all story context in `instructions`. Instructions are for AI decision-making logic, not narrative history. Use `background` for the story state and keyword blocks for character/location lore.
+**Do not** put all story context in `instructions`. Instructions are for AI decision-making logic, not narrative history. Use `background` only for the initial story premise, and keyword blocks for character/location lore.
+
+**Do not** treat `background` as an ongoing state field. It holds the world situation at the **very beginning** of the story and is not updated during play. Be judicious — only the initial premise and setting belong here, not story developments or evolved state.
 
 **Do not** check manifest flags without first querying the manifest. The manifest query must happen before any conditional loading decisions.
