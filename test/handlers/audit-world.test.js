@@ -122,10 +122,28 @@ describe('audit_world - tracked items', () => {
     expect(text).toContain('No matching reference');
   });
 
+  it('does not flag item referenced in always-on field (instructions)', async () => {
+    await writeWorld(worldPath, base({
+      trackedItems: [{ id: 'ti1', name: 'Gold Coins', description: '', updateInstructions: '', initialValue: '0' }],
+      instructions: 'Track Gold Coins when player finds treasure.',
+    }));
+    const text = (await audit_world({ path: worldPath })).content[0].text;
+    expect(text).not.toContain('No matching reference');
+  });
+
   it('does not flag item referenced in an instruction block', async () => {
     await writeWorld(worldPath, base({
       trackedItems: [{ id: 'ti1', name: 'Gold Coins', description: '', updateInstructions: '', initialValue: '0' }],
       instructionBlocks: [{ id: 'ib1', name: 'Economy', content: 'Track Gold Coins when the player earns money.' }],
+    }));
+    const text = (await audit_world({ path: worldPath })).content[0].text;
+    expect(text).not.toContain('No matching reference');
+  });
+
+  it('does not flag item referenced in a lore entry', async () => {
+    await writeWorld(worldPath, base({
+      trackedItems: [{ id: 'ti1', name: 'Reputation', description: '', updateInstructions: '', initialValue: '0' }],
+      loreBookEntries: [{ id: 'lb1', name: 'Faction', keywords: ['faction'], content: 'Adjust Reputation based on faction interactions.' }],
     }));
     const text = (await audit_world({ path: worldPath })).content[0].text;
     expect(text).not.toContain('No matching reference');
@@ -178,6 +196,18 @@ describe('audit_world - trigger dependencies', () => {
     }));
     const text = (await audit_world({ path: worldPath })).content[0].text;
     expect(text).toContain('Max chain depth: 0');
+  });
+
+  it('flags >10 triggerOnEvent conditions with platform limit warning', async () => {
+    const triggers = Array.from({ length: 11 }, (_, i) => ({
+      id: `t${i}`, name: `T${i}`,
+      triggerConditions: [{ id: `c${i}`, type: 'triggerOnEvent', data: `event${i}`, category: 'condition' }],
+      triggerEffects: [],
+    }));
+    await writeWorld(worldPath, base({ triggerEvents: triggers }));
+    const text = (await audit_world({ path: worldPath })).content[0].text;
+    expect(text).toContain('platform limit is 10');
+    expect(text).toContain('11 triggerOnEvent');
   });
 
   it('reports max chain depth', async () => {
