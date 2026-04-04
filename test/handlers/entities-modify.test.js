@@ -98,7 +98,6 @@ describe('add_trigger - new array format', () => {
 
     const world = await readWorld();
     expect(world.triggerEvents[0].canTriggerMoreThanOnce).toBe(true);
-    expect(result => result); // just ensuring no throw
   });
 
   it('sets prerequisites and blockers when provided', async () => {
