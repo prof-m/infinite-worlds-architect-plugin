@@ -101,35 +101,42 @@ Located in `lib/handlers/`:
 ```json
 {
   "version": "1.0",
-  "sourceFiles": [
+  "source_files": [
     {
       "path": "string",
       "turns": "number[]",
       "mtime": "string"
     }
   ],
-  "totalTurns": "number",
-  "detectedGaps": ["number[]"],
-  "trackedItemsFound": "boolean",
-  "characterIndexingAttempted": "boolean"
+  "header_source": "string",
+  "total_turns": "number",
+  "has_tracked_items": "boolean",
+  "has_hidden_tracked_items": "boolean",
+  "files": "string[]"
 }
 ```
+
+Note: There is no manifest flag for character indexing. To determine whether character indexing succeeded, check the `filesWritten` array returned by `extract_story_data` for `character_index.json`.
 
 ### metadata.json
 
 ```json
 {
   "title": "string",
-  "background": "string",
+  "story_background": "string",
+  "objective": "string",
   "character": {
     "name": "string",
     "background": "string",
-    "skills": "string[]",
-    "objective": "string"
+    "skills": [
+      { "name": "string", "rating": "string", "level": "number" }
+    ]
   },
-  "turnCount": "number"
+  "total_turns": "number"
 }
 ```
+
+Note: `objective` is at the root of metadata, not nested under `character`. `character.skills` is an array of `{ name, rating, level }` objects, not plain strings.
 
 ### turn_index.json
 
@@ -137,15 +144,20 @@ Located in `lib/handlers/`:
 {
   "turns": [
     {
-      "turnNumber": "number",
-      "actionPreview": "string (100 chars)",
-      "outcomePreview": "string (100 chars)",
-      "lineRange": { "start": "number", "end": "number" },
-      "sourceFile": "string"
+      "number": "number",
+      "has_action": "boolean",
+      "action_preview": "string (100 chars, or null if no action)",
+      "outcome_preview": "string (100 chars)",
+      "has_secret_info": "boolean",
+      "has_tracked_items": "boolean",
+      "line_range": ["number", "number"],
+      "source_file": "string"
     }
   ]
 }
 ```
+
+Note: `action_preview` and `outcome_preview` are 100-character truncated previews, not summaries. They indicate which turns exist and their line ranges; use `turn_detail` queries to read actual turn content. `line_range` is a two-element array `[start, end]`.
 
 ### tracked_state.json
 
