@@ -2,10 +2,11 @@
 
 ## Status Summary
 
-**Latest Update (2026-03-31)**: 
+**Latest Update (2026-04-05)**: 
 - ✅ **Proposal 1** (Anti-Fabrication Guard Rails) - FULLY IMPLEMENTED (PR #22)
 - ✅ **Integration Tasks 1 & 2** (Extract & Query Story Data) - FULLY IMPLEMENTED (PR #21)
 - ✅ **Proposal 5** (Source-First Field Proposal Protocol) - FULLY IMPLEMENTED (PR #23)
+- ✅ **Proposal 7** (Story Context Distribution Strategy) - FULLY IMPLEMENTED (PR #35)
 - ✅ **Proposal 2B** (Story State Extraction) - FULLY IMPLEMENTED & INTEGRATED (PR #10, original implementation)
 - ❌ **Proposal 8** (Pre-Generation Story Facts Review) - SHELVED, blocked on Proposal 2C completion (PR #24 closed)
 
@@ -18,11 +19,9 @@
 1. [Completed Work Summary](#completed-work-summary)
 2. [Proposal 2B: Story State Extraction (Foundation)](#proposal-2b-story-state-extraction-foundation)
 3. [Proposal 2C: Agent-Based Narrative Extraction (Refined)](#proposal-2c-agent-based-narrative-extraction-refined-based-on-2b-implementation)
-4. [Remaining Proposals (3, 4, 5, 7, 8)](#remaining-proposals-3-4-5-7-8)
+4. [Remaining Proposals (3, 4, 8)](#remaining-proposals-3-4-8)
    - [Proposal 3: Safety Fallbacks](#proposal-3-safety-fallbacks-manual-processing--summary-validation)
    - [Proposal 4: Character Field Writing Guide](#proposal-4-character-field-writing-guide-2b-integration)
-   - [Proposal 5: Source-First Field Proposal Protocol](#proposal-5-source-first-field-proposal-protocol-2b-integration)
-   - [Proposal 7: Story Context Distribution Strategy](#proposal-7-story-context-distribution-strategy-2b-integration)
    - [Proposal 8: Pre-Generation Story Facts Review](#proposal-8-pre-generation-story-facts-review-2b-integration)
 5. [Prioritized Implementation Order](#prioritized-implementation-order)
 
@@ -41,6 +40,16 @@
 - Task 2: Use `query_story_data` queries instead of raw story file reading
 - Result: ~10x token efficiency gain (16K+ lines → 500-1K tokens)
 - Files: `skills/sequel-world/SKILL.md`
+
+**✅ Proposal 5: Source-First Field Proposal Protocol** (PR #23, merged 2026-03-31)
+- Added Pre-Citation Validation and Field Proposal Citation Requirements
+- Enforced gap-check rule: No extraction data = no proposal
+- Files: `skills/sequel-world/SKILL.md`
+
+**✅ Proposal 7: Story Context Distribution Strategy** (PR #35, merged 2026-04-05)
+- Documented 6 tiers for context output, determining exactly how to distribute 2B's extracted states
+- Shifted away from monolithic instructions into intelligent distribution
+- Files: `skills/world-architect/references/story_context_distribution.md`
 
 **See `story-comprehension-improvements-implemented.md` for complete implementation details, error diagnosis context, design notes, and review findings.**
 
@@ -259,7 +268,7 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Proposal 7: Story Context Distribution Strategy (2B Integration)
 
-**Status**: Ready to implement (independent of integration tasks)
+**Status**: ✅ FULLY IMPLEMENTED & MERGED (PR #35)
 
 **What**: Create reference doc + guidance defining tier strategy for distributing extracted story state across field types.
 
@@ -328,6 +337,8 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 | P1a | Proposal 1: Anti-Fabrication Guard Rails | ✅ DONE | PR #22 (2026-03-31) |
 | P1b | Integration Task 1: Call extract_story_data | ✅ DONE | PR #21 (2026-03-31) |
 | P1c | Integration Task 2: Use query_story_data | ✅ DONE | PR #21 (2026-03-31) |
+| P2b | Proposal 5: Source-First Field Proposal Protocol | ✅ DONE | PR #23 (2026-03-31) |
+| P3a | Proposal 7: Story Context Distribution Strategy | ✅ DONE | PR #35 (2026-04-05) |
 
 **All foundation tasks complete.** Core story comprehension improvements integrated into sequel-world and spinoff-world commands.
 
@@ -336,31 +347,32 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 | Priority | What | Status | Complexity | Deps | Merged |
 |----------|------|--------|-----------|------|--------|
 | P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c | |
-| P2b | Proposal 5: Source-First Field Proposal Protocol | ✅ DONE | Low-Medium | P1c | PR #23 (2026-03-31) |
 | P2c | Proposal 2C: Agent-Based Narrative Extraction | Design | Medium | P1c | (Required before P8) |
 
 ### Tier 3: Polish & Future
 
 | Priority | What | Status | Complexity | Deps |
 |----------|------|--------|-----------|------|
-| P3a | Proposal 7: Story Context Distribution Strategy | Ready | Low-Medium | None |
 | P3b | Proposal 3: Safety Fallbacks | Ready | Low | None |
 | P3c | Proposal 8: Pre-Generation Story Facts Review | ❌ BLOCKED | Medium | P2c (2C required) |
 
 ### Implementation Dependencies
 
 ```
-✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b: Proposal 5)
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b: Proposal 5) + Tier 3 (P3a: Proposal 7)
    │
    ├─── NEXT: Tier 2 Core Proposals
    │    ├─ P2a: Character Field Writing Guide (Ready, depends on P1c query tools)
-   │    └─ P2c: Agent-Based Narrative Extraction (Design phase, depends on P1c)
+   │    ├─ COST/QUALITY ANALYSIS (Test P2a efficiency vs hypothetical P2c)
+   │    └─ P2c: Agent-Based Narrative Extraction (Design phase, blocked pending analysis)
    │         └─ REQUIRED BY: P3c (Proposal 8 cannot proceed without 2C)
    │
-   └─── READY: Tier 3 Polish & Future (P3a, P3b)
-        ├─ P3a: Lorebook Distribution (Independent)
+   └─── READY: Tier 3 Polish & Future (P3b)
         ├─ P3b: Safety Fallbacks (Independent)
         └─ P3c: Story Facts Review (BLOCKED on P2c completion)
 ```
+
+**Strategic Note on Proposal 4 vs 2C:**
+We are pursuing a **cost-conscious approach** to narrative extraction. Proposal 4 provides a low-cost, just-in-time extraction method by teaching the agent to synthesize fields directly from targeted 2B queries. Once Proposal 4 is implemented, we will perform a cost/quality analysis of this approach versus the hypothetical Proposal 2C method (which extracts everything but incurs higher upfront token costs). If the "cheap" P4 approach requires excessive repeated queries or user corrections, P2C will become the next priority. Otherwise, P2C remains an optional high-fidelity tier.
 
 **Key Blocker**: Proposal 8 (Pre-Generation Story Facts Review) is deferred pending Proposal 2C implementation. PR #24 closure (2026-03-31) revealed that without 2C's narrative extraction, Proposal 8 cannot be implemented without unresolved design ambiguities.

@@ -1,7 +1,7 @@
 # Story Comprehension Improvements — Implementation Complete
 
-**Date**: 2026-03-31  
-**Status**: Proposals 1 + Integration Tasks 1 & 2 fully implemented and merged to master
+**Date**: 2026-04-05
+**Status**: Proposal 2B, Proposal 1, Integration Tasks 1 & 2, Proposal 5, and Proposal 7 fully implemented and merged to master
 
 ---
 
@@ -10,9 +10,12 @@
 This document archives the implementation details for completed proposals from the story-comprehension-improvements roadmap. See the main roadmap document for remaining proposals and overall context.
 
 **Completed:**
+- ✅ Proposal 2B: Story State Extraction (Foundation) (PR #10)
 - ✅ Proposal 1: Anti-Fabrication Guard Rails (PR #22)
 - ✅ Integration Task 1: Call extract_story_data (PR #21)
 - ✅ Integration Task 2: Use query_story_data (PR #21)
+- ✅ Proposal 5: Source-First Field Proposal Protocol (PR #23)
+- ✅ Proposal 7: Story Context Distribution Strategy (PR #35)
 
 ---
 
@@ -334,3 +337,36 @@ Added comprehensive citation requirements to the sequel-world command to ground 
 **Next Phase**
 
 Proposal 5 enables Proposal 2C (Agent-Based Narrative Extraction) by establishing the citation pattern that narrative agents should follow. Also complements Proposal 4 (Character Field Writing Guide) by providing the source-first discipline.
+
+---
+
+## Proposal 7: Story Context Distribution Strategy (✅ IMPLEMENTED)
+
+**Status**: ✅ FULLY IMPLEMENTED AND MERGED (PR #35, commit 3a48f58)
+
+**What Was Implemented**
+
+Added a comprehensive reference document defining a tier-based strategy for distributing extracted story state (from 2B) efficiently across the various world fields.
+
+**How It Works**
+
+Created the `story_context_distribution.md` reference guide that establishes 6 structured tiers for context distribution logic:
+1. **Tier 1**: Always-On (Metadata & Objectives)
+2. **Tier 2**: Dynamic Narrative (Tracked Items via `tracked_state`)
+3. **Tier 3**: Conditional Lore (Important characters and locations)
+4. **Tier 4**: Pure Lore (Secondary details)
+5. **Tier 5**: Ephemeral (Turn summaries not strictly required moving forward)
+6. **Tier 6**: Mechanics & Instructions (Event and condition triggers)
+
+It includes specific mappings connecting extracted JSON schemas from `2B` directly to sequel-play world templates, and established new anti-patterns (e.g., stopping agents from cramming lore into instructions or background logic fields).
+
+**Files Modified**
+
+- `skills/world-architect/references/story_context_distribution.md` — Core reference document (New).
+- `skills/sequel-world/SKILL.md` (and spinoffs) — Updated prompts to refer to this distribution strategy if relevant context blocks need to be formulated.
+
+**Design Choices**
+
+1. **Strategic Placement**: Avoids stuffing everything into `instructions` or `background`. Instead, uses flexible "keyword blocks" or targeted states where applicable.
+2. **Selective Execution**: Guides agents to stop reading `turn_index` previews for context, forcing reliance on the highly targeted `tracked_state` snapshot data.
+3. **Cost Savings**: Significant reduction in generated token context during sequels by ensuring 2B data is only requested and stored organically where it belongs.
