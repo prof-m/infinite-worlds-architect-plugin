@@ -749,10 +749,16 @@ describe('queryStoryData', () => {
 
     await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
-    // Write a synthetic character_index.json
+    // Write a synthetic character_index.json using the real indexer output structure:
+    // characters[name] = { aliases?: string[], mentions: [{turn, lines, context}] }
     const characterIndex = {
       characters: {
-        Victor: { name: 'Victor', mentions: [1, 3], allNames: ['Victor'] },
+        Victor: {
+          mentions: [
+            { turn: 1, lines: [5, 12], context: 'Victor enters the room' },
+            { turn: 3, lines: [45], context: 'Victor nods' },
+          ],
+        },
       },
       indexed_character_count: 1,
       total_mentions: 2,
@@ -769,6 +775,8 @@ describe('queryStoryData', () => {
     expect(result.category).toBe('character_index');
     expect(result.data.characters).toBeDefined();
     expect(result.data.characters.Victor).toBeDefined();
+    expect(result.data.characters.Victor.mentions[0].turn).toBe(1);
+    expect(result.data.characters.Victor.mentions[0].lines).toEqual([5, 12]);
     expect(result.data.indexed_character_count).toBe(1);
 
     fs.rmSync(tmpDir, { recursive: true });
@@ -780,7 +788,7 @@ describe('queryStoryData', () => {
 
     await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
 
-    // Write a synthetic character_index.json
+    // Write a synthetic character_index.json using the real indexer output structure
     const characterIndex = { characters: {}, indexed_character_count: 0, total_mentions: 0, incomplete: false };
     fs.writeFileSync(
       path.join(tmpDir, 'character_index.json'),
@@ -791,6 +799,38 @@ describe('queryStoryData', () => {
 
     expect(result.success).toBe(true);
     expect(result.category).toBe('character_index');
+
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('character_index: round-trip via real extraction with character_list', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+    // Extract with a character_list so character_index.json is produced by the real indexer
+    await extractStoryData({
+      input_paths: [inputFile],
+      extraction_dir: tmpDir,
+      character_list: [{ name: 'Actor' }],
+    });
+
+    const result = await queryStoryData(tmpDir, 'character_index', []);
+
+    expect(result.success).toBe(true);
+    expect(result.category).toBe('character_index');
+    expect(result.data.characters).toBeDefined();
+    expect(result.data.indexed_character_count).toBe(1);
+    expect(result.data.incomplete).toBeDefined();
+
+    // Verify the real mention structure: each entry must have turn, lines[], context
+    for (const char of Object.values(result.data.characters)) {
+      expect(Array.isArray(char.mentions)).toBe(true);
+      for (const mention of char.mentions) {
+        expect(typeof mention.turn).toBe('number');
+        expect(Array.isArray(mention.lines)).toBe(true);
+        expect(typeof mention.context).toBe('string');
+      }
+    }
 
     fs.rmSync(tmpDir, { recursive: true });
   });

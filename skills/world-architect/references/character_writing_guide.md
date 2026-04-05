@@ -29,19 +29,29 @@ For each character you are writing (process one at a time):
 query_story_data(extraction_dir, 'character_index')
 ```
 
-This returns every turn in which the character appears (`mentions` array). Record:
-- The **first turn number** (introduction / appearance)
-- The full list of turns (for cross-referencing with `tracked_state`)
+This returns `data.characters[<name>].mentions` — an array of objects, one per turn the character appears in:
 
-If `character_index` is absent (legacy extraction), fall back to `turn_index` keyword search and note the limitation.
+```json
+{
+  "turn": 3,
+  "lines": [45, 52],
+  "context": "Victor nods and steps forward..."
+}
+```
+
+To get the turn number for a mention, read `mention.turn` (not the mention element itself). Record:
+- The **first turn number**: `mentions[0].turn` (first occurrence — for physical description and introduction)
+- The **complete set of turn numbers**: `mentions.map(m => m.turn)` (for cross-referencing with `tracked_state`)
+
+If `character_index` is absent (legacy extraction without `character_list`), fall back to `turn_index` keyword search and note the limitation.
 
 ### Step B — Check mechanical history in tracked_state
 
 ```
-query_story_data(extraction_dir, 'tracked_state')
+query_story_data(extraction_dir, 'tracked_state', mentions.map(m => m.turn))
 ```
 
-Review the `snapshots` array for any entry linked to this character: stat changes, objective shifts, relationship flags, secret information. Each snapshot's `from_turn` / `to_turn` range identifies which turns caused the change — these are your **pivotal turns**.
+Pass the character's mention turns from Step A as the `turns` filter so only snapshots covering those turns are returned, rather than the entire state history. Review the filtered `snapshots` array for entries linked to this character: stat changes, objective shifts, relationship flags, secret information. Each snapshot's `from_turn` / `to_turn` range identifies which turns caused the change — these are your **pivotal turns**.
 
 Compile a short list: `[first_turn, ...pivotal_turns]`. Cap this list at the minimum required to write the profile accurately. Six turns is already generous; aim for two to four.
 
@@ -101,9 +111,18 @@ Leave the field empty rather than fabricate plausible-sounding content.
 ## Quick Reference
 
 ```
-1. query character_index → get first turn + pivotal turns
-2. query tracked_state   → get mechanical history + pivotal turn numbers
-3. query turn_detail([T_first, T_pivot1, ...]) → read targeted narrative
+1. query character_index
+   → data.characters[name].mentions → array of {turn, lines, context}
+   → first_turn = mentions[0].turn
+   → mention_turns = mentions.map(m => m.turn)
+
+2. query tracked_state(mention_turns)
+   → snapshots filtered to character's active turns
+   → identify pivotal turns (from_turn / to_turn where state changed)
+
+3. query turn_detail([first_turn, ...pivotal_turns])
+   → targeted narrative: appearance, relationships, arc rationale
+
 4. Write profile fields citing only what the above queries returned
 5. Leave any unconfirmed detail blank
 ```

@@ -70,7 +70,7 @@ Start with the Title. Present the original/proposed data for that field and ask 
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
 
-**Character fields (Possible Characters / Other Characters):** Before generating these sections, read `references/character_writing_guide.md` (relative to the world-architect skill). This guide establishes the required just-in-time extraction method and enforces the no-hallucination accuracy guardrails. Follow the per-character workflow in that guide for every character you write.
+**Character fields (Possible Characters / Other Characters):** Source all character details — appearance, relationships, abilities, motivations — exclusively from the original world JSON already loaded. Do not invent traits not present in the source. If a detail is absent, leave the field empty or note it as undescribed. See the Story Accuracy Requirements section above.
 
 When the draft is completely finished and approved, use the `compile_draft` MCP tool to generate the final spinoff world JSON file using the requested name in the target directory. For the complex fields, construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
 
