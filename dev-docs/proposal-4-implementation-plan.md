@@ -5,19 +5,31 @@ Implement Proposal 4 to create a cost-conscious, "just-in-time" narrative extrac
 
 ## Scope of Work
 
-The implementing agent must perform two primary tasks:
+The implementing agent must perform three primary tasks:
 
-1. **Create the Character Writing Guide Reference Document**
-2. **Integrate the Guide into the Core Commands**
+1. **Expose `character_index` to the MCP Tool Interface** (Code Change)
+2. **Create the Character Writing Guide Reference Document** (Documentation)
+3. **Integrate the Guide into the Core Commands** (Prompt Update)
 
 ---
 
-### Step 1: Create `skills/world-architect/references/character_writing_guide.md`
+### Step 1: Expose `character_index` to the MCP Tool
+
+**Critical Context:** The 2B extraction already generates `character_index.json`, but currently, `query_story_data` does not allow querying it. The agent cannot follow the cost-conscious strategy without it.
+
+**Required Changes:**
+- Update `lib/validation.js` to add `'character_index'` to `VALID_CATEGORIES`.
+- Update `lib/handlers/query.js` `queryStoryData` function to handle the `character_index` case. It should read `character_index.json` from the extraction directory and return its parsed data. Catch `ENOENT` and return a clean failure/warning if the index isn't present in legacy extractions.
+- Update `lib/tools.js` to add `character_index` to the enum list of accepted categories for the `query_story_data` tool definition.
+
+---
+
+### Step 2: Create `skills/world-architect/references/character_writing_guide.md`
 
 Create a new reference document that teaches the agent how to populate character-related fields efficiently. 
 
 The guide MUST emphasize the following cost-conscious workflow:
-- **Identification:** Start with 2B's `character_index.json` to see where the character appears in the story.
+- **Identification:** Start with 2B's `query_story_data(..., 'character_index')` to see precisely which turns the character appears in the story.
 - **State History:** Consult `tracked_state.json` to extract any mechanical changes, objective shifts, or secret information tied to that character.
 - **Selective Narrative Extraction (turn_detail):** DO NOT query every turn where the character is mentioned. Agents must pinpoint the *first occurrence* (for physical description and introduction) and *key pivotal turns* (where `tracked_state` shows major status shifts). Use `query_story_data(extraction_dir, 'turn_detail', [T1, T2])` to extract deep narrative text (relationships, appearance, tone) ONLY from these high-signal turns.
 
@@ -29,7 +41,7 @@ The guide MUST emphasize the following cost-conscious workflow:
 
 ---
 
-### Step 2: Integrate into Core Commands
+### Step 3: Integrate into Core Commands
 
 Update the primary templates to ensure agents read and follow the new guide.
 
@@ -46,6 +58,7 @@ Update the primary templates to ensure agents read and follow the new guide.
 ## Verification Plan
 
 To verify implementation, the agent should:
-1. Run a test case using the `sequel-world` command on a medium-sized test export.
-2. Observe the agent's query pattern: It should query the metadata and tracked_state first, and then explicitly use `query_story_data(..., 'turn_detail', [...])` with a very small, selective list of turn numbers when writing character profiles.
-3. Validate that character descriptions still adhere to Proposal 1 guardrails (no fabricated appearances).
+1. Run `npm test` to ensure that adding `character_index` to the query module does not break existing `query_story_data` validation tests.
+2. Ensure the `character_index` query correctly fetches data or returns a graceful error when the file doesn't exist.
+3. Observe an agent's query pattern in a real test: It should query the `character_index` and `tracked_state` first, and then explicitly use `query_story_data(..., 'turn_detail', [...])` with a very small, selective list of turn numbers when writing character profiles.
+4. Validate that character descriptions still adhere to Proposal 1 guardrails (no fabricated appearances).
