@@ -726,6 +726,75 @@ describe('queryStoryData', () => {
     fs.rmSync(tmpDir, { recursive: true });
   });
 
+  // character_index category tests
+  it('character_index: returns error when character_index.json is absent', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+    // Extract first (no character data — character_index.json will not be written)
+    await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+
+    const result = await queryStoryData(tmpDir, 'character_index', []);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/No character index found/);
+    expect(result.category).toBe('character_index');
+
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('character_index: returns data when character_index.json exists', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+    await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+
+    // Write a synthetic character_index.json
+    const characterIndex = {
+      characters: {
+        Victor: { name: 'Victor', mentions: [1, 3], allNames: ['Victor'] },
+      },
+      indexed_character_count: 1,
+      total_mentions: 2,
+      incomplete: false,
+    };
+    fs.writeFileSync(
+      path.join(tmpDir, 'character_index.json'),
+      JSON.stringify(characterIndex, null, 2),
+    );
+
+    const result = await queryStoryData(tmpDir, 'character_index', []);
+
+    expect(result.success).toBe(true);
+    expect(result.category).toBe('character_index');
+    expect(result.data.characters).toBeDefined();
+    expect(result.data.characters.Victor).toBeDefined();
+    expect(result.data.indexed_character_count).toBe(1);
+
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
+  it('character_index: accepts MCP-style object parameters', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'));
+    const inputFile = path.join(testFilesDir, 'TheWorldsAStageTurn4.txt');
+
+    await extractStoryData({ input_paths: [inputFile], extraction_dir: tmpDir });
+
+    // Write a synthetic character_index.json
+    const characterIndex = { characters: {}, indexed_character_count: 0, total_mentions: 0, incomplete: false };
+    fs.writeFileSync(
+      path.join(tmpDir, 'character_index.json'),
+      JSON.stringify(characterIndex, null, 2),
+    );
+
+    const result = await queryStoryData({ extraction_dir: tmpDir, category: 'character_index' });
+
+    expect(result.success).toBe(true);
+    expect(result.category).toBe('character_index');
+
+    fs.rmSync(tmpDir, { recursive: true });
+  });
+
   it('file caching: threshold boundary (exactly 5 turns enables cache)', async () => {
   // Use file with at least 5 turns
   const inputFile = path.join(testFilesDir, 'Counsellor2_Turn22.txt');
