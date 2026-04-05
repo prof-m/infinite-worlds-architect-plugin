@@ -1,4 +1,4 @@
-# Story-to-Lorebook Output Strategy
+# Story Context Distribution Strategy
 
 When building a sequel world from story extraction data, not all extracted information belongs in always-on fields. This guide defines how to distribute story state across the different world field types to maximize context efficiency and minimize AI confusion.
 
@@ -126,8 +126,8 @@ Content: Description synthesized from cited turn_detail text
 Populate tracked items in the sequel world based on the **final state** from `tracked_state.json`.
 
 - Use the last snapshot (`snapshots[snapshots.length - 1]`) for final values. Each snapshot covers a turn range (`from_turn`/`to_turn`); the last snapshot holds the state that persisted to story end.
-- If the original world JSON is available, use its tracked item visibility settings (`everyone`, `ai_only`, `player_only`, `nobody`) as defaults. Otherwise, recommend `"everyone"` or `"player_only"` for `tracked_items` and `"ai_only"` or `"nobody"` for `hidden_tracked_items` — confirm with the author.
-- `hidden_tracked_items` may be `null` (check before iterating)
+- If the original world JSON is available, use its tracked item visibility settings (`everyone`, `ai_only`, `player_only`, `nobody`) as defaults. Otherwise, recommend `"everyone"` or `"player_only"` for `trackedItems`.
+- **CRITICAL**: Before defaulting or populating `hidden_tracked_items`, verify that `has_hidden_tracked_items` is true from the manifest. If it is mathematically false or `hidden_tracked_items` is `null`/empty, do not invent or carry forward hidden tracked items. Recommend `"ai_only"` or `"nobody"` visibilities only if hidden tracked items legitimately existed and are being brought forward.
 - Set `initialValue` to the final story value as the sequel's starting point
 - Each tracked item also requires `dataType` (text/number/xml), `description`, `updateInstructions`, and other fields — see `schema.md` for the complete list. Confirm these with the author for each carried-forward item.
 - Only carry forward tracked items that remain relevant to the sequel premise

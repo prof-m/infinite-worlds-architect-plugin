@@ -22,7 +22,7 @@
    - [Proposal 3: Safety Fallbacks](#proposal-3-safety-fallbacks-manual-processing--summary-validation)
    - [Proposal 4: Character Field Writing Guide](#proposal-4-character-field-writing-guide-2b-integration)
    - [Proposal 5: Source-First Field Proposal Protocol](#proposal-5-source-first-field-proposal-protocol-2b-integration)
-   - [Proposal 7: Story-to-Lorebook Output Strategy](#proposal-7-story-to-lorebook-output-strategy-2b-integration)
+   - [Proposal 7: Story Context Distribution Strategy](#proposal-7-story-context-distribution-strategy-2b-integration)
    - [Proposal 8: Pre-Generation Story Facts Review](#proposal-8-pre-generation-story-facts-review-2b-integration)
 5. [Prioritized Implementation Order](#prioritized-implementation-order)
 
@@ -257,7 +257,7 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ---
 
-### Proposal 7: Story-to-Lorebook Output Strategy (2B Integration)
+### Proposal 7: Story Context Distribution Strategy (2B Integration)
 
 **Status**: Ready to implement (independent of integration tasks)
 
@@ -343,7 +343,7 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 | Priority | What | Status | Complexity | Deps |
 |----------|------|--------|-----------|------|
-| P3a | Proposal 7: Story-to-Lorebook Output Strategy | Ready | Low-Medium | None |
+| P3a | Proposal 7: Story Context Distribution Strategy | Ready | Low-Medium | None |
 | P3b | Proposal 3: Safety Fallbacks | Ready | Low | None |
 | P3c | Proposal 8: Pre-Generation Story Facts Review | ❌ BLOCKED | Medium | P2c (2C required) |
 

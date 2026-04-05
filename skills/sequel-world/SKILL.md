@@ -43,19 +43,7 @@ Once settled, use the `decompile_json` MCP tool to read the original world JSON 
 
 ## Update Draft Markdown
 
-Before filling in fields, consult `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. The key principle: always-on fields (`background`, `instructions`, `objective`) should be concise and world-framing only. Character descriptions belong in `Possible Characters` (for PCs) and `Other Characters` (for NPCs) — NOT in `background` or `instructions`. Location and faction lore belongs in Keyword Instruction Blocks where it injects on-demand rather than every turn.
-
-**Distribution summary (common fields):**
-- `background` ← `metadata.story_background` (initial world premise only — not updated during play, not for character descriptions)
-- `objective` ← `metadata.objective` (root level in metadata, not under character)
-- `instructions` ← `metadata.character.background + skills` + authoring logic
-- `description` ← synthesized from `metadata.story_background` + sequel premise; confirm with user
-- `Possible Characters` ← `metadata.character` (name, background, skills)
-- `Other Characters (NPCs)` ← `turn_detail` NPC introduction turns (see reference for 9-field mapping)
-- `Keyword Instruction Blocks` ← location/faction/lore descriptions from `turn_detail` queries (NOT character descriptions — those go in Possible Characters / Other Characters)
-- `Tracked Items` ← final snapshot from `tracked_state.json` (only items still relevant to sequel)
-- `Extra Instruction Blocks` + `Trigger Events` ← story mechanics to carry forward (use sparingly)
-- `Design Notes` ← author notes only; never sent to the AI
+Before filling in fields, you MUST read `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. Do not distribute extracted data into fields until you have read and understood the distribution strategy document.
 
 Update the newly generated draft markdown file (using the `update_draft_section` tool) to combine the original world's settings with the rich narrative background derived from the story extraction. The markdown file contains the headers:
 - Title
