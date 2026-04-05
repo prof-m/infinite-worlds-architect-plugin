@@ -24,18 +24,9 @@ Call the `extract_story_data` MCP tool to parse the story export(s) into structu
 
 ## Understand Story Context via Query Tools
 
-Instead of reading the entire export file, use `query_story_data` to load structured extraction data. First, save the result from `extract_story_data` — it contains `hasTrackedItems` (gates tracked_state queries) and `filesWritten` (check for `character_index.json` to know if character indexing succeeded).
+Instead of reading the entire export file, you will use `query_story_data` to load structured extraction data. 
 
-Then query in this order:
-
-1. Call `query_story_data(extraction_dir, 'manifest')` to read extraction provenance (source files, total turns, `has_tracked_items` flag).
-2. Call `query_story_data(extraction_dir, 'metadata')` to load `story_background`, character details, and `objective`. This gives you the high-level context.
-3. Call `query_story_data(extraction_dir, 'turn_index')` to get a listing of all turns with their turn numbers, 100-character action/outcome previews, and source file references. Note: these previews are truncated (100 chars from turns that can be 500–1000+ chars) — they show which turns exist and their line ranges, but are NOT sufficient to understand turn content or identify narrative turning points. Use `turn_detail` queries for actual content.
-4. If `has_tracked_items` is true, call `query_story_data(extraction_dir, 'tracked_state')` to load tracked item state history. Use the final snapshot and turn deltas to identify high-value turns for step 6.
-5. If `character_index.json` was in `filesWritten` (from the extract result), read the character index to identify which turns introduce each character. Use those turn numbers to inform your turn_detail queries in step 6.
-6. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', turns: ["1", ...])` passing turn numbers (as strings) you want to examine — target 3–7 turns maximum. The response contains raw turn text — parse Outcome and Secret Information sections for narrative content.
-
-These queries give you structured data with far better context efficiency than reading raw story text.
+⚠️ **CRITICAL INSTRUCTION**: To prevent context bloat and hallucination, you MUST follow the exact 6-step "Loading Sequence Reference" found in `references/story_context_distribution.md` when querying this data. Do not query `turn_detail` or `tracked_state` without following the filtering conditionals in that guide.
 
 Check if a `draft_world.md` file already exists in the target directory. If it does, ask me if I want to overwrite it or write to a new file name. If I say a new file name, prompt me for it.
 
