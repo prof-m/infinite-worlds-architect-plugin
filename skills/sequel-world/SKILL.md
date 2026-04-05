@@ -106,6 +106,8 @@ For complex fields (like Skills, Possible Characters, Other Characters, Instruct
 - Field assignment quick reference table
 - Anti-patterns: what NOT to put in `background` and `instructions`
 
+**Character Writing Guide:** Before generating the `possibleCharacters` (Possible Characters) or `NPCs` (Other Characters) sections, read `references/character_writing_guide.md`. This guide establishes the required just-in-time extraction method — query `character_index` and `tracked_state` first, then call `turn_detail` only for the targeted first-occurrence and pivotal turns. It acts as a firewall against token-expensive over-querying and enforces the no-hallucination rules from `story-accuracy-guardrails.md`.
+
 When the draft is completely finished and approved, use the `compile_draft` MCP tool to generate the final sequel world JSON file using the requested name in the target directory. For the complex fields, construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
 
 After the world JSON file is generated, use `compare_worlds` to compare the original world JSON with the sequel and present a summary of what evolved from the source material. Then run `validate_world` on the output file. Present any errors or warnings before considering the command complete.
