@@ -15,17 +15,18 @@ Parses story export files and writes structured JSON output.
 **Parameters:**
 - `input_paths` (string[]): Array of file paths to story exports
 - `extraction_dir` (string): Directory where output JSON files will be written
-- `characters` (optional, Character[]): Array of character definitions for optional character indexing
+- `character_list` (optional, Character[]): Array of character definitions for optional character indexing (alias: `characterList`)
   - Each character has `name` (string) and `aliases` (string[])
 
 **Returns:**
 ```json
 {
   "success": boolean,
-  "turnCount": number,
+  "totalTurns": number,
   "turnRange": { "min": number, "max": number },
-  "trackedItemsFound": boolean,
-  "characterIndexingCompleted": boolean,
+  "inputFilesProcessed": number,
+  "hasTrackedItems": boolean,
+  "hasHiddenTrackedItems": boolean,
   "filesWritten": string[],
   "warnings": string[]
 }

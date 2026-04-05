@@ -13,7 +13,7 @@ Before proposing field citations, verify that extraction data is available:
 3. **Check for file-specific availability** — Before proposing a citation in a specific category, verify the required file exists:
    - For metadata citations: Verify metadata.json exists
    - For turn_detail citations: Verify turn_index.json AND the source story file exist
-   - For tracked_state citations: Verify tracked_state.json exists AND manifest.json indicates trackedItemsFound: true
+   - For tracked_state citations: Verify tracked_state.json exists AND manifest.json indicates has_tracked_items: true
    - If any required file is missing, mark that citation category as unavailable and skip proposing fields that depend on it.
 
 4. **Check for corruption or incomplete data** — If a file exists but is not readable or appears corrupted (invalid JSON, empty, etc.), treat it as extraction failure and inform the user.
