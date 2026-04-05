@@ -1,7 +1,7 @@
 # Story Comprehension Improvements — Implementation Complete
 
 **Date**: 2026-04-05
-**Status**: Proposal 1, Integration Tasks 1 & 2, Proposal 5, and Proposal 7 fully implemented and merged to master
+**Status**: Proposal 2B, Proposal 1, Integration Tasks 1 & 2, Proposal 5, and Proposal 7 fully implemented and merged to master
 
 ---
 
@@ -10,6 +10,7 @@
 This document archives the implementation details for completed proposals from the story-comprehension-improvements roadmap. See the main roadmap document for remaining proposals and overall context.
 
 **Completed:**
+- ✅ Proposal 2B: Story State Extraction (Foundation) (PR #10)
 - ✅ Proposal 1: Anti-Fabrication Guard Rails (PR #22)
 - ✅ Integration Task 1: Call extract_story_data (PR #21)
 - ✅ Integration Task 2: Use query_story_data (PR #21)
