@@ -142,7 +142,7 @@ Modified sequel-world command to load extraction data via query_story_data calls
 **MAJOR REDUCTION**: ~10x reduction in token usage
 - Before: Load 16K+ lines of raw story text into context
 - After: Load 500-1K tokens of structured JSON via query tools
-- Tracked items loaded selectively (check manifest's `trackedItemsFound` flag first)
+- Tracked items loaded selectively (check manifest's `has_tracked_items` flag first)
 
 **Files Modified**
 

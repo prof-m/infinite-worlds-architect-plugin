@@ -24,19 +24,17 @@ Call the `extract_story_data` MCP tool to parse the story export(s) into structu
 
 ## Understand Story Context via Query Tools
 
-Instead of reading the entire export file, use `query_story_data` to load structured extraction data:
-1. Call `query_story_data(extraction_dir, 'metadata')` to load story background, character details, and objective. This gives you the high-level context.
-2. Call `query_story_data(extraction_dir, 'turn_index')` to see a summary of all turns with action/outcome previews. Use this to understand turn distribution and identify key turning points.
-3. For specific narrative deep-dives, call `query_story_data(extraction_dir, 'turn_detail', [N, ...])` passing the turn numbers you want to examine. This loads the full context/action/result text for those specific turns without loading the entire export.
-4. If tracked items were found, call `query_story_data(extraction_dir, 'tracked_state')` to load the state history of tracked items across the story. (Optimization: Before querying tracked_state, check the manifest's `trackedItemsFound` flag. If false, skip the tracked_state query entirely.)
+Instead of reading the entire export file, you will use `query_story_data` to load structured extraction data. 
 
-These queries give you structured data with far better context efficiency than reading raw story text.
+⚠️ **CRITICAL INSTRUCTION**: To prevent context bloat and hallucination, you MUST follow the exact 6-step "Loading Sequence Reference" found in `references/story_context_distribution.md` when querying this data. Do not query `turn_detail` or `tracked_state` without following the filtering conditionals in that guide.
 
 Check if a `draft_world.md` file already exists in the target directory. If it does, ask me if I want to overwrite it or write to a new file name. If I say a new file name, prompt me for it.
 
 Once settled, use the `decompile_json` MCP tool to read the original world JSON file and generate the draft markdown file at the chosen path.
 
 ## Update Draft Markdown
+
+Before filling in fields, you MUST read `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. Do not distribute extracted data into fields until you have read and understood the distribution strategy document.
 
 Update the newly generated draft markdown file (using the `update_draft_section` tool) to combine the original world's settings with the rich narrative background derived from the story extraction. The markdown file contains the headers:
 - Title
@@ -83,8 +81,6 @@ Before proposing any field value, verify:
 - **If no citation exists, should I propose this field at all?**
 
 Then, guide strictly FIELD-BY-FIELD through refining this draft.
-**Optional Diagnostic Insight**: If you need to understand the extraction metadata (source files processed, total turns extracted, tracked items flags, deduplication notes), optionally query `query_story_data(extraction_dir, 'manifest')` to get extraction diagnostics without reading raw files. This helps ground your understanding of what the extraction discovered.
-
 Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using `update_draft_section`, and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
@@ -103,6 +99,12 @@ For complex fields (like Skills, Possible Characters, Other Characters, Instruct
 - Citation pattern and formats
 - Examples of correctly and incorrectly cited proposals
 - No-Citation Rule: if extraction data doesn't support it, don't propose it
+
+**Context Distribution Strategy:** For guidance on distributing extracted story state across world field types, see `references/story_context_distribution.md`:
+- Tier strategy: which data belongs in always-on fields vs. keyword blocks vs. tracked items
+- Loading sequence: when to query manifest, turn_index, tracked_state, and turn_detail
+- Field assignment quick reference table
+- Anti-patterns: what NOT to put in `background` and `instructions`
 
 When the draft is completely finished and approved, use the `compile_draft` MCP tool to generate the final sequel world JSON file using the requested name in the target directory. For the complex fields, construct the proper, valid JSON arrays behind the scenes based on the draft and pass them directly as arguments to the `compile_draft` tool.
 
