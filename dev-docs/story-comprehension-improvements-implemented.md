@@ -1,7 +1,7 @@
 # Story Comprehension Improvements — Implementation Complete
 
 **Date**: 2026-04-05
-**Status**: Proposal 2B, Proposal 1, Integration Tasks 1 & 2, Proposal 5, and Proposal 7 fully implemented and merged to master
+**Status**: Proposal 2B, Proposal 1, Integration Tasks 1 & 2, Proposal 5, Proposal 7, Proposal 4, and Sequel Tracked Items Starting Values fully implemented and merged to master
 
 ---
 
@@ -16,6 +16,8 @@ This document archives the implementation details for completed proposals from t
 - ✅ Integration Task 2: Use query_story_data (PR #21)
 - ✅ Proposal 5: Source-First Field Proposal Protocol (PR #23)
 - ✅ Proposal 7: Story Context Distribution Strategy (PR #35)
+- ✅ Proposal 4: Character Field Writing Guide (PR #37)
+- ✅ Sequel Tracked Items Starting Values (PR #38)
 
 ---
 
@@ -271,8 +273,6 @@ Both PRs received high marks from independent review:
 See `story-comprehension-improvements.md` for:
 - Proposal 2C: Agent-Based Narrative Extraction (HIGH PRIORITY - blocks Proposal 8)
 - Proposal 3: Safety Fallbacks
-- Proposal 4: Character Field Writing Guide
-- Proposal 7: Story-to-Lorebook Output Strategy
 - Proposal 8: Pre-Generation Story Facts Review (BLOCKED on P2c)
 
 Priority order and dependencies documented in main roadmap.
@@ -370,3 +370,80 @@ It includes specific mappings connecting extracted JSON schemas from `2B` direct
 1. **Strategic Placement**: Avoids stuffing everything into `instructions` or `background`. Instead, uses flexible "keyword blocks" or targeted states where applicable.
 2. **Selective Execution**: Guides agents to stop reading `turn_index` previews for context, forcing reliance on the highly targeted `tracked_state` snapshot data.
 3. **Cost Savings**: Significant reduction in generated token context during sequels by ensuring 2B data is only requested and stored organically where it belongs.
+
+---
+
+## Proposal 4: Character Field Writing Guide (✅ IMPLEMENTED)
+
+**Status**: ✅ FULLY IMPLEMENTED AND MERGED (PR #37, 2026-04-06)
+
+**What Was Implemented**
+
+Implemented a cost-conscious, "just-in-time" narrative extraction process for character fields, exposing a new `character_index` query category and creating a comprehensive character writing guide.
+
+**How It Works**
+
+1. **`character_index` MCP exposure**: The 2B extraction already generated `character_index.json`, but agents could not query it. Updated `lib/validation.js`, `lib/handlers/query.js`, and `lib/tools.js` to add `character_index` as a valid query category. Gracefully handles `ENOENT` for legacy extractions without this file.
+
+2. **Character Writing Guide**: Created `skills/world-architect/references/character_writing_guide.md` with four sections:
+   - Cost-Conscious Extraction Policy — selective `turn_detail` parsing rule to minimize token usage
+   - Identity & Appearance — derived only from actual story text; no hallucination or genre stereotypes
+   - Relationships & Factions — tracked via targeted turn sections where major interactions occur
+   - Arc Progression & Status — relies on `tracked_state` for mechanical data, supplemented by targeted `turn_detail` reads
+
+3. **Integration into core commands**: Updated `skills/sequel-world/SKILL.md` and `skills/spinoff-world/SKILL.md` to reference the guide before generating `possibleCharacters` and `NPCs` sections.
+
+**Key Design: The Just-In-Time Extraction Pattern**
+
+- Start with `query_story_data(..., 'character_index')` to identify exactly which turns each character appears in
+- Consult `tracked_state.json` for mechanical changes before loading any turn text
+- Load `turn_detail` only for the character's *first occurrence* (physical description/introduction) and *key pivotal turns* (where `tracked_state` shows major status shifts)
+- Never query every turn a character appears in
+
+**Files Modified**
+
+- `lib/validation.js` — Added `'character_index'` to `VALID_CATEGORIES`
+- `lib/handlers/query.js` — Added `character_index` case with graceful ENOENT handling
+- `lib/tools.js` — Added `character_index` to enum list for `query_story_data` tool definition
+- `skills/world-architect/references/character_writing_guide.md` — New reference document
+- `skills/sequel-world/SKILL.md` — Reference to character writing guide in field walkthrough
+- `skills/spinoff-world/SKILL.md` — Reference to character writing guide in field walkthrough
+
+**Token Impact**
+
+- Guide cost: +200-300 tokens upfront
+- Savings: Prevents token-expensive blanket extraction across all character turns
+- Net positive ROI via error reduction in 5+ character fields per character
+
+---
+
+## Sequel Tracked Items Starting Values (✅ IMPLEMENTED)
+
+**Status**: ✅ FULLY IMPLEMENTED AND MERGED (PR #38, 2026-04-06)
+
+**What Was Implemented**
+
+Enhanced the sequel-world command to default tracked items forward from the original world with their final story values as starting values, sourced from `tracked_state.json`.
+
+**How It Works**
+
+When the original world has tracked items, the sequel-world command now:
+1. Sources the last snapshot from `tracked_state.json` for each tracked item's final story value
+2. Defaults all tracked items forward into the sequel with that final value as the starting value
+3. Preserves all other metadata from the original world JSON: `dataType`, `visibility`, `description`, `updateInstructions`
+4. Prompts the author to confirm, drop, or modify each item — nothing is auto-dropped
+
+**Design Choices**
+
+- **Author is always in control**: Every item is presented for confirmation; no silent defaults
+- **State continuity**: Final story values carry forward naturally, avoiding sequel worlds that reset characters to story-start state
+- **Metadata preservation**: Only the `startingValue` field is updated from extraction data; all other item properties are taken from the original world
+
+**Files Modified**
+
+- `skills/sequel-world/SKILL.md` — Added 15-line tracked items defaulting section
+
+**Token Impact**
+
+- Minimal upfront cost: +15 lines of guidance in prompt
+- Prevents common error of ignoring tracked item state evolution across story arcs

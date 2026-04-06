@@ -1,5 +1,7 @@
 # Proposal 4 (Character Field Writing Guide) Implementation Plan
 
+**Status: Implemented in PR #37** (branch `feature/sequel-tracked-items-starting-values`, merged 2026-04-06)
+
 ## Objective
 Implement Proposal 4 to create a cost-conscious, "just-in-time" narrative extraction process for character fields. Instead of executing an expensive blanket extraction of all characters across the entire story (Proposal 2C), this implementation will instruct the agent to leverage deterministic 2B extraction data to query narrative details only when necessary and specifically for the characters being processed.
 

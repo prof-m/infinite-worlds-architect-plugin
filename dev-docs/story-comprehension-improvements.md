@@ -2,11 +2,13 @@
 
 ## Status Summary
 
-**Latest Update (2026-04-05)**: 
+**Latest Update (2026-04-06)**: 
 - ✅ **Proposal 1** (Anti-Fabrication Guard Rails) - FULLY IMPLEMENTED (PR #22)
 - ✅ **Integration Tasks 1 & 2** (Extract & Query Story Data) - FULLY IMPLEMENTED (PR #21)
 - ✅ **Proposal 5** (Source-First Field Proposal Protocol) - FULLY IMPLEMENTED (PR #23)
 - ✅ **Proposal 7** (Story Context Distribution Strategy) - FULLY IMPLEMENTED (PR #35)
+- ✅ **Proposal 4** (Character Field Writing Guide) - FULLY IMPLEMENTED (PR #37)
+- ✅ **Sequel Tracked Items Starting Values** - FULLY IMPLEMENTED (PR #38)
 - ✅ **Proposal 2B** (Story State Extraction) - FULLY IMPLEMENTED & INTEGRATED (PR #10, original implementation)
 - ❌ **Proposal 8** (Pre-Generation Story Facts Review) - SHELVED, blocked on Proposal 2C completion (PR #24 closed)
 
@@ -226,21 +228,22 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 ### Proposal 4: Character Field Writing Guide (2B Integration)
 
-**Status**: Ready to implement (after Integration Task 2)
+**Status**: ✅ FULLY IMPLEMENTED & MERGED (PR #37, 2026-04-06)
 
-**What**: Create reference doc + integrate into command to guide agent on synthesizing extraction data to field values.
+**What Was Implemented**:
+- Created `skills/world-architect/references/character_writing_guide.md` — comprehensive guide teaching cost-conscious, just-in-time extraction for character fields
+- Exposed `character_index` category in `query_story_data` MCP tool (updated `lib/validation.js`, `lib/handlers/query.js`, `lib/tools.js`)
+- Integrated guide reference into `skills/sequel-world/SKILL.md` and `skills/spinoff-world/SKILL.md`
 
-**How**:
-- Create `skills/world-architect/references/character_writing_guide.md`
-- Guide teaches: Identity, Appearance (ONLY from story text via 2B's turn_detail), Relationships, Arc Progression (from tracked_state), Status Changes (from turn_detail)
-- Integrate into sequel-world/spinoff-world command prompts as reference material
-- Emphasis: Use 2B's extraction data as ground truth; only read raw story text for narrative understanding (descriptions, relationships, events)
+**Key Design Points**:
+- Agents start with `query_story_data(..., 'character_index')` to identify which turns each character appears in
+- Consult `tracked_state.json` for mechanical changes before loading any turn text
+- Only load `turn_detail` for the character's *first occurrence* and *key pivotal turns* — never all turns
+- Guide acts as a firewall against token-expensive over-querying
 
-**Dependencies**: Integration Task 2 (query_story_data available)
+**Dependencies**: Integration Task 2 (query_story_data available) — DONE
 
-**Complexity**: Medium (reference doc + prompt integration)
-
-**Expected token impact**: +200-300 tokens for guide; prevents fabrication errors across 5+ character fields per character. Net savings vs. current approach.
+**Files Modified**: `lib/validation.js`, `lib/handlers/query.js`, `lib/tools.js`, `skills/sequel-world/SKILL.md`, `skills/spinoff-world/SKILL.md`, `skills/world-architect/references/character_writing_guide.md` (new)
 
 **Plugin component**: command-development
 
@@ -342,11 +345,12 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 
 **All foundation tasks complete.** Core story comprehension improvements integrated into sequel-world and spinoff-world commands.
 
-### Tier 2: Core Proposals (Next Priority)
+### Tier 2: Core Proposals (✅ COMPLETE)
 
 | Priority | What | Status | Complexity | Deps | Merged |
 |----------|------|--------|-----------|------|--------|
-| P2a | Proposal 4: Character Field Writing Guide | Ready | Medium | P1c | |
+| P2a | Proposal 4: Character Field Writing Guide | ✅ DONE | Medium | P1c | PR #37 (2026-04-06) |
+| P2b-ext | Sequel Tracked Items Starting Values | ✅ DONE | Low | P1c | PR #38 (2026-04-06) |
 | P2c | Proposal 2C: Agent-Based Narrative Extraction | Design | Medium | P1c | (Required before P8) |
 
 ### Tier 3: Polish & Future
@@ -359,11 +363,13 @@ If 2C is never implemented, the sequel-world command still works fully with 2B a
 ### Implementation Dependencies
 
 ```
-✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + Tier 2 (P2b: Proposal 5) + Tier 3 (P3a: Proposal 7)
+✅ COMPLETED: Tier 1 Foundation (P1, P1a, P1b, P1c) + (P2b: Proposal 5) + (P3a: Proposal 7)
+✅ COMPLETED: Tier 2 Core Proposals
+   ├─ P2a: Proposal 4 Character Field Writing Guide (PR #37, 2026-04-06)
+   └─ P2b-ext: Sequel Tracked Items Starting Values (PR #38, 2026-04-06)
    │
-   ├─── NEXT: Tier 2 Core Proposals
-   │    ├─ P2a: Character Field Writing Guide (Ready, depends on P1c query tools)
-   │    ├─ COST/QUALITY ANALYSIS (Test P2a efficiency vs hypothetical P2c)
+   ├─── NEXT: Tier 2 Remaining
+   │    ├─ COST/QUALITY ANALYSIS (Evaluate P4 approach vs hypothetical P2c)
    │    └─ P2c: Agent-Based Narrative Extraction (Design phase, blocked pending analysis)
    │         └─ REQUIRED BY: P3c (Proposal 8 cannot proceed without 2C)
    │
