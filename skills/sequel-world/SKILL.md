@@ -69,6 +69,21 @@ Update the newly generated draft markdown file (using the `update_draft_section`
 - Tracked Items
 - Trigger Events
 
+## Tracked Items — Sequel Defaults
+
+When you reach the **Tracked Items** field during the field-by-field review, apply the following behaviour automatically:
+
+**If the original world JSON has tracked items:**
+
+1. **Default to carrying all of them forward.** Present the full list of tracked items from the original world as the proposed starting point for the sequel.
+2. **Import final story values as starting values.** For each tracked item, set `initialValue` to the final value from the last snapshot in `tracked_state.json` (i.e. `snapshots[snapshots.length - 1]`). This gives the sequel world an accurate starting state that reflects where the story ended.
+3. **Preserve metadata from the original world JSON.** Where the original world JSON is available, carry forward each item's `dataType`, `visibility`, `description`, and `updateInstructions` unchanged as defaults. The author can modify any of these during review.
+4. **Ask the author to confirm, drop, or modify each item.** After presenting the full list with imported values, ask the author which items to keep, which to drop (because they are no longer relevant to the sequel premise), and which to redesign. Do not automatically drop any item — always let the author decide.
+
+**If the original world JSON is unavailable** (only `tracked_state.json` is available): present the tracked items and their final values, but note that `dataType`, `visibility`, `description`, and `updateInstructions` will need to be filled in manually.
+
+**If `has_tracked_items` is false** (no tracked items in the original world): propose no tracked items by default. You may suggest adding some if the sequel premise warrants it, but do not invent items based on story content alone.
+
 ## Field-Level Verification Checklist
 
 Before proposing any field value, verify:
