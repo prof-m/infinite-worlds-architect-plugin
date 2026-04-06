@@ -125,12 +125,12 @@ Content: Description synthesized from cited turn_detail text
 
 Populate tracked items in the sequel world based on the **final state** from `tracked_state.json`.
 
-- Use the last snapshot (`snapshots[snapshots.length - 1]`) for final values. Each snapshot covers a turn range (`from_turn`/`to_turn`); the last snapshot holds the state that persisted to story end.
+- Use the last snapshot (the one with the highest `to_turn` value) for final values. Each snapshot covers a turn range (`from_turn`/`to_turn`); the last snapshot holds the state that persisted to story end.
 - If the original world JSON is available, use its tracked item visibility settings (`everyone`, `ai_only`, `player_only`, `nobody`) as defaults. Otherwise, recommend `"everyone"` or `"player_only"` for `trackedItems`.
 - **CRITICAL**: Before defaulting or populating `hidden_tracked_items`, verify that `has_hidden_tracked_items` is true from the manifest. If it is mathematically false or `hidden_tracked_items` is `null`/empty, do not invent or carry forward hidden tracked items. Recommend `"ai_only"` or `"nobody"` visibilities only if hidden tracked items legitimately existed and are being brought forward.
 - Set `initialValue` to the final story value as the sequel's starting point
 - Each tracked item also requires `dataType` (text/number/xml), `description`, `updateInstructions`, and other fields — see `schema.md` for the complete list. Confirm these with the author for each carried-forward item.
-- Only carry forward tracked items that remain relevant to the sequel premise
+- Present all tracked items from the source world as the starting proposal. Flag any items that appear tied to resolved plot threads or mechanics no longer relevant to the sequel premise — the author decides what to keep, modify, or drop.
 
 ### Tier 6: Extra Instruction Blocks (`instructionBlocks`) and Triggers (`triggerEvents`)
 
@@ -205,7 +205,7 @@ Use sparingly for phase-specific content activated via trigger events.
 
 **Do not** query `turn_detail` for every turn. Use `tracked_state` snapshot deltas and `character_index` data to identify which turns are worth querying. `turn_index` only lists which turns exist — its 100-char previews are not sufficient to identify relevant content.
 
-**Do not** carry forward all tracked items from the source story. Only bring forward items that are still mechanically meaningful in the sequel premise. Items tied to resolved plot threads should be dropped or redesigned.
+**Do not** silently discard tracked items from the source story. Present all of them as the starting proposal, flag items tied to resolved plot threads, and let the author decide what to keep or drop.
 
 **Do not** put all story context in `instructions`. Instructions are for AI decision-making logic, not narrative history. Use `background` only for the initial story premise, and keyword blocks for character/location lore.
 
