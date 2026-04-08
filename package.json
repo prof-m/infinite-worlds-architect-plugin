@@ -8,7 +8,8 @@
     "@modelcontextprotocol/sdk": "^1.5.0"
   },
   "scripts": {
-    "prepare": "husky install",
+    "prepare": "husky install && npm run build:commands",
+    "build:commands": "node scripts/build-commands.js",
     "start": "node index.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:fast": "NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns=integration --bail",

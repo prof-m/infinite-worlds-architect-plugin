@@ -1,6 +1,10 @@
 #\!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+echo "🔄 Syncing Gemini Extension commands..."
+npm run build:commands
+git add commands/infinite-worlds-architect/*.toml
+
 echo "🧪 Running pre-commit tests (ALL tests via Jest)..."
 
 # Run ALL tests via npm test (which uses Jest exclusively)
