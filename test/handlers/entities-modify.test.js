@@ -92,7 +92,7 @@ describe('add_trigger - new array format', () => {
       path: worldPath,
       name: 'Repeating',
       conditions: [{ type: 'triggerOnEvent', data: 'every_battle' }],
-      effects: [{ type: 'giveGuidance', data: 'Fight well' }],
+      effects: [{ type: 'effectTellAIWhatToDo', data: 'Fight well' }],
       canTriggerMoreThanOnce: true,
     });
 
