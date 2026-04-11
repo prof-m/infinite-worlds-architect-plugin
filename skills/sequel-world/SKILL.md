@@ -17,6 +17,14 @@ Once all paths and names are confirmed:
 
 ## Extract Story Data
 
+**Before calling `extract_story_data`, ask the user for the character list to index.**
+
+Character indexing is optional but strongly recommended — it enables targeted `query_story_data` lookups by character name during the character-writing step. The `character_list` parameter accepts an array of `{ name, aliases }` objects.
+
+1. If the original world JSON is available, read its `possibleCharacters` and `npcs` (or `otherCharacters`) fields to extract candidate names. Present this suggested list to the user and ask them to confirm, add, remove, or correct any entries (including aliases that appear in the story but not in the world JSON). Wait for the user's response before proceeding.
+2. If the original world JSON is unavailable, ask the user directly: "Which character names (and any aliases) should be indexed in the story?" Wait for the user's response before proceeding.
+3. Once the user has confirmed the character list (or opted out of indexing), pass the confirmed list as `character_list` to `extract_story_data`. If the user opts out, omit `character_list` entirely.
+
 Call the `extract_story_data` MCP tool to parse the story export(s) into structured JSON. This replaces manually reading the entire raw file and prevents hallucination from working with thousands of lines of unstructured text.
 - Specify an extraction directory (e.g., `extracted_story/` relative to your output directory). Ensure the extraction directory exists before calling the tool, or use an absolute path.
 - The tool will return success/failure status and create output files (manifest.json, metadata.json, turn_index.json, tracked_state.json)
