@@ -21,9 +21,10 @@ Once all paths and names are confirmed:
 
 Character indexing is optional but strongly recommended — it enables targeted `query_story_data` lookups by character name during the character-writing step. The `character_list` parameter accepts an array of `{ name, aliases }` objects.
 
-1. If the original world JSON is available, read its `possibleCharacters` and `npcs` (or `otherCharacters`) fields to extract candidate names. Present this suggested list to the user and ask them to confirm, add, remove, or correct any entries (including aliases that appear in the story but not in the world JSON). Wait for the user's response before proceeding.
-2. If the original world JSON is unavailable, ask the user directly: "Which character names (and any aliases) should be indexed in the story?" Wait for the user's response before proceeding.
-3. Once the user has confirmed the character list (or opted out of indexing), pass the confirmed list as `character_list` to `extract_story_data`. If the user opts out, omit `character_list` entirely.
+- If the original world JSON is available, read its `possibleCharacters` and `NPCs` fields to extract candidate names. Present this suggested list to the user and ask them to confirm, add, remove, or correct any entries (including aliases that appear in the story but not in the world JSON). Inform the user they may say "skip" or "none" to proceed without character indexing. Wait for my response.
+- If the original world JSON is unavailable, ask the user directly: "Which character names (and any aliases) should be indexed in the story? Say 'none' to skip character indexing." Wait for my response.
+
+Pass only the user-confirmed list as `character_list` to `extract_story_data`. Do not include any names the user did not explicitly confirm or leave unchanged. If the user said "skip" or "none", omit `character_list` entirely.
 
 Call the `extract_story_data` MCP tool to parse the story export(s) into structured JSON. This replaces manually reading the entire raw file and prevents hallucination from working with thousands of lines of unstructured text.
 - Specify an extraction directory (e.g., `extracted_story/` relative to your output directory). Ensure the extraction directory exists before calling the tool, or use an absolute path.
@@ -76,22 +77,6 @@ Update the newly generated draft markdown file (using the `update_draft_section`
 - Keyword Instruction Blocks
 - Tracked Items
 - Trigger Events
-
-## Tracked Items — Sequel Defaults
-
-When you reach the **Tracked Items** field during the field-by-field review, apply the following behaviour automatically:
-
-**If the original world JSON has tracked items** (non-empty `trackedItems` array):
-
-1. **Default to proposing all of them.** Present the full list of tracked items from the original world as the starting point for the sequel. Flag any items that appear tied to resolved plot threads or mechanics that no longer apply to the sequel premise — but do not drop any item automatically. The author makes the final call on what to keep, modify, or remove.
-2. **Import final story values as starting values.** For each tracked item, set `initialValue` to the value from the last snapshot in `tracked_state.json` (the snapshot with the highest `to_turn` value). Each snapshot contains a `tracked_items` object mapping item names to their current string values — use those values directly. For `xml` dataType items, note to the author that the imported value should be checked for validity before accepting it.
-3. **Preserve all metadata from the original world JSON.** Carry forward each item's `dataType`, `visibility`, `description`, `updateInstructions`, `autoUpdate`, and `initialValueBasedOnPC` unchanged as defaults. The author can modify any of these during review.
-4. **Handle hidden tracked items separately.** Only propose hidden tracked items if `has_hidden_tracked_items` is true in the manifest. If so, import their final values from the `hidden_tracked_items` object in the last snapshot and recommend `ai_only` or `nobody` visibility. If `has_hidden_tracked_items` is false or the field is null/absent, do not carry forward any hidden tracked items.
-5. **Ask the author to confirm, modify, or drop each item.** Present the full list (regular and hidden, where applicable) with their imported values and any relevance flags, then ask the author which items to keep, which to modify, and which to drop.
-
-**If the original world JSON is unavailable** (only `tracked_state.json` is available): present the tracked item names and their final values from the last snapshot, but note that `dataType`, `visibility`, `description`, `updateInstructions`, `autoUpdate`, and `initialValueBasedOnPC` will need to be specified manually. Follow the same hidden tracked items handling above.
-
-**If the original world JSON has no tracked items** (empty or absent `trackedItems` array): propose no tracked items by default. You may suggest adding some if the sequel premise warrants it, but do not invent items based on story content alone.
 
 ## Field-Level Verification Checklist
 
