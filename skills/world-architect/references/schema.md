@@ -141,8 +141,8 @@ Each object in `triggerEffects` contains:
 | Effect | Field | Data Type | Description |
 | :--- | :--- | :--- | :--- |
 | Show Message | `scriptedText` | string | Appends text to outcomeDescription. |
-| AI Guidance | `giveGuidance` | string | Instructs AI for next turn only. |
-| Secret Info | `addSecretInfo` | string | Adds hidden info to secretInfo. |
+| AI Guidance | `effectTellAIWhatToDo` | string | Instructs AI for next turn only. |
+| Secret Info | `effectGiveInfo` | string | Adds hidden info to secretInfo. |
 | Change Background | `changeAdventureBackground` | string | Modifies displayed story background. |
 | Change Main Instructions | `changeInstructions` | string | Fully replaces primary instruction block. |
 | Modify Instruction Block | `changeInstructionBlock` | object {id, content} | Replaces content of a specific Extra Instruction Block. |
@@ -152,7 +152,7 @@ Each object in `triggerEffects` contains:
 | Change Victory Condition | `changeVictoryCondition` | object {condition, text, alreadyFired} | Modifies victory rules. |
 | Change Defeat Condition | `changeDefeatCondition` | object {condition, text, alreadyFired} | Modifies defeat rules. |
 | Change First Action | `changeFirstAction` | string | Modifies initial turn action. |
-| Modify Player Character | `changeName`/`changeDescription`/`changeSkill` | various; changeSkill: {name, amount, minmax, increase} | Modifies active player character. |
+| Modify Player Character | `changeName`/`changeDescription`/`effectChangePCSkill` | various; effectChangePCSkill: {name, amount, minmax, increase} | Modifies active player character. |
 | Set Tracked Item Values | `setTrackedItemsValue` | array | Batch update tracked items. Text/XML: set/add/subtract(remove)/replace; Numbers: set/add/subtract. |
 | Fire Random Trigger | `randomTriggers` | string[] | Randomly fires one of specified trigger IDs (ignores their conditions except "trigger once"). |
 | Modify Keyword Block | `changeLorebook` | object {id, keywords[], content} | Modifies a keyword instruction block. |
