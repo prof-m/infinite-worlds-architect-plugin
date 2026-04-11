@@ -96,6 +96,30 @@ Before proposing any field value, verify:
 - **Can I cite this from extraction data?** (metadata, turn_detail, turn_index, or tracked_state)
 - **If no citation exists, should I propose this field at all?**
 
+**Mandatory Evidence Block — Required for EVERY Field Proposal (No Exceptions)**
+
+Every field proposal, without exception, must be presented in this exact format:
+
+```
+**Evidence:** [cite the extraction data source — e.g., "From Story Metadata [objective]: '...'" or "From Turn #N Outcome: '...'"]
+
+**Proposed Field Value:** [value]
+
+**Verification:** ✓ cited from story data  ✓ no fabrication  ✓ gap-checked
+```
+
+If you cannot produce an Evidence citation for a field, you MUST say so explicitly:
+
+```
+**Evidence:** No evidence found in story data — sampled turns [list] with no mentions.
+
+**Proposed Field Value:** [leave empty or write "Not described in story"]
+
+**Verification:** ✗ no citation — field left blank per No-Citation Rule
+```
+
+Do NOT silently propose a field value without the Evidence block. This applies to every field in the list — including long or complex fields such as Main Instructions, Extra Instruction Blocks, and Keyword Instruction Blocks. After a session resume or any extended gap, re-read `references/citation-methodology.md` before continuing field-by-field refinement if you are uncertain whether the evidence requirement is still active. It is always active.
+
 Then, guide strictly FIELD-BY-FIELD through refining this draft.
 Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using `update_draft_section`, and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
 
