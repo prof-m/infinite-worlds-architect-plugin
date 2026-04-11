@@ -62,6 +62,8 @@ describe('Constants', () => {
   test('VALID_EFFECT_TYPES contains expected values', () => {
     expect(VALID_EFFECT_TYPES).toContain('scriptedText');
     expect(VALID_EFFECT_TYPES).toContain('effectTellAIWhatToDo');
+    expect(VALID_EFFECT_TYPES).toContain('effectGiveInfo');
+    expect(VALID_EFFECT_TYPES).toContain('effectChangePCSkill');
     expect(VALID_EFFECT_TYPES).toContain('endsGame');
     expect(VALID_EFFECT_TYPES.length).toBeGreaterThan(5);
   });
