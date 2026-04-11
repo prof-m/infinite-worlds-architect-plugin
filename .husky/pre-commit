@@ -1,6 +1,15 @@
 #\!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+echo "🔄 Syncing Gemini Extension commands..."
+npm run build:commands
+BUILD_EXIT=$?
+if [ $BUILD_EXIT -ne 0 ]; then
+  echo "❌ Command sync failed. Check SKILL.md files and retry."
+  exit 1
+fi
+git add commands/infinite-worlds-architect/*.toml
+
 echo "🧪 Running pre-commit tests (ALL tests via Jest)..."
 
 # Run ALL tests via npm test (which uses Jest exclusively)
