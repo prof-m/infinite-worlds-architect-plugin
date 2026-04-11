@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import yaml from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,19 +24,19 @@ let successCount = 0;
 
 for (const skill of skills) {
     const skillMdPath = path.join(skillsDir, skill, 'SKILL.md');
-    
+
     if (!fs.existsSync(skillMdPath)) {
         continue;
     }
 
     const content = fs.readFileSync(skillMdPath, 'utf8');
 
-    // Simple robust Regex to extract the frontmatter block
+    // Split frontmatter from body using the --- delimiters
     const fmRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
     const match = content.match(fmRegex);
 
     if (!match) {
-        console.warn(`WARNING: Invalid frontmatter in ${skillMdPath}`);
+        console.warn(`WARNING: Invalid or missing frontmatter in ${skillMdPath}`);
         continue;
     }
 
@@ -45,29 +46,45 @@ for (const skill of skills) {
     // Safely trim leading newlines from the body
     markdownBody = markdownBody.replace(/^\n+/, '');
 
-    // Extract name and description from the raw frontmatter text via regex
-    // We assume the description is contained on a single line and wrapped in quotes or naked
-    const nameMatch = frontmatterRaw.match(/^name:\s*(.+)$/m);
-    let descMatch = frontmatterRaw.match(/^description:\s*(.+)$/m);
+    // Use js-yaml to robustly parse the frontmatter block, handling multi-line
+    // values, quoted strings, YAML escape sequences, and block scalars correctly.
+    let frontmatter;
+    try {
+        frontmatter = yaml.load(frontmatterRaw);
+    } catch (e) {
+        console.warn(`WARNING: Could not parse YAML frontmatter in ${skillMdPath}: ${e.message}`);
+        continue;
+    }
 
-    if (!nameMatch) {
+    if (!frontmatter || !frontmatter.name) {
         console.warn(`WARNING: Missing 'name:' field in ${skillMdPath}`);
         continue;
     }
-    
-    let commandName = nameMatch[1].trim().replace(/^["']|["']$/g, '');
-    let description = descMatch ? descMatch[1].trim().replace(/^["']|["']$/g, '') : "No description provided.";
 
-    // Use JSON.stringify to safely format the strings as TOML basic strings
-    // JSON strings perfectly map to TOML basic strings (handles \n, \t, and escaping " characters).
+    const rawCommandName = String(frontmatter.name).trim();
+    const description = frontmatter.description
+        ? String(frontmatter.description).trim()
+        : 'No description provided.';
+
+    // Sanitize commandName against path traversal (e.g. "../" in the name field).
+    // path.basename strips all directory components, leaving only the final filename segment.
+    const commandName = path.basename(rawCommandName);
+    if (commandName !== rawCommandName) {
+        console.warn(`WARNING: Unsafe name field "${rawCommandName}" in ${skillMdPath} — skipping.`);
+        continue;
+    }
+
+    // Use JSON.stringify to safely format the strings as TOML basic strings.
+    // JSON and TOML basic strings share the same escape rules, so this handles
+    // embedded newlines, tabs, and quotes safely without any custom escaping.
     const safeDesc = JSON.stringify(description);
     const safePrompt = JSON.stringify(markdownBody);
 
     const tomlContent = `description = ${safeDesc}\nprompt = ${safePrompt}\n`;
-    
+
     const outPath = path.join(commandsDir, `${commandName}.toml`);
     fs.writeFileSync(outPath, tomlContent, 'utf8');
-    
+
     console.log(`✅ Synced ${commandName}.toml`);
     successCount++;
 }
