@@ -8,6 +8,43 @@ Programmatically parses Infinite Worlds story export files into structured JSON 
 
 ## Tools
 
+### `get_character_list`
+
+Reads a world JSON file and returns its NPCs as a character list ready to pass directly to `extract_story_data`'s `character_list` parameter. Use this before calling `extract_story_data` to build the character index without manually parsing the world JSON.
+
+**Parameters:**
+- `path` (string, required): Absolute path to the world JSON file
+
+**Returns (as JSON text in MCP response):**
+```json
+{
+  "character_list": [
+    { "name": "CharacterName", "aliases": ["Alias1", "Alias2"] }
+  ]
+}
+```
+
+Each entry corresponds to one NPC from the world's `NPCs` array:
+- `name`: the NPC's primary `name` field
+- `aliases`: the NPC's `names` array with the primary name removed (no duplicates). Empty array if the NPC has no `names` array or it is empty.
+
+Returns `{ "character_list": [] }` if the world has no NPCs or the `NPCs` field is absent.
+
+**Usage example — call before `extract_story_data`:**
+
+```javascript
+// Step 1: get the character list from the world JSON
+const charListResponse = await getCharacterList({ path: '/path/to/world.json' });
+const { character_list } = JSON.parse(charListResponse.content[0].text);
+
+// Step 2: pass it directly into extract_story_data — no manual parsing needed
+const result = await extractStoryData({
+  input_paths: ['/path/to/story-export.txt'],
+  extraction_dir: '/path/to/extraction/',
+  character_list,
+});
+```
+
 ### `extract_story_data`
 
 Parses story export files and writes structured JSON output.

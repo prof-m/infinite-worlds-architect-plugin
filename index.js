@@ -5,7 +5,7 @@ import { tools } from "./lib/tools.js";
 import { get_diff_summary, compile_draft, decompile_json, read_draft_section, update_draft_section } from "./lib/handlers/draft.js";
 import { add_instruction_block, add_trigger, add_character, add_npc, add_tracked_item, modify_character, modify_npc, modify_tracked_item, modify_trigger_event } from "./lib/handlers/entities.js";
 import { validate_world, audit_world } from "./lib/handlers/validation.js";
-import { confirm_path, scaffold_world, compare_worlds } from "./lib/handlers/utility.js";
+import { confirm_path, scaffold_world, compare_worlds, getCharacterList } from "./lib/handlers/utility.js";
 import { extractStoryData } from "./lib/handlers/extraction.js";
 import { queryStoryData } from "./lib/handlers/query.js";
 
@@ -25,6 +25,7 @@ const toolHandlers = {
     extract_story_data: async (args) => ({
         content: [{ type: "text", text: JSON.stringify(await extractStoryData(args)) }]
     }),
+    get_character_list: async (args) => getCharacterList(args),
     get_diff_summary,
     modify_character,
     modify_npc,
