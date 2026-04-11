@@ -14,6 +14,10 @@ if (!fs.existsSync(commandsDir)) {
     fs.mkdirSync(commandsDir, { recursive: true });
 }
 
+// Skills that provide context/knowledge to the AI but are not user-invokable
+// slash commands. They should not be generated as TOML command files.
+const SKILLS_ONLY = new Set(['world-architect']);
+
 console.log('Synchronizing SKILL.md files to Gemini Extension commands...');
 
 const skills = fs.readdirSync(skillsDir, { withFileTypes: true })
@@ -21,11 +25,18 @@ const skills = fs.readdirSync(skillsDir, { withFileTypes: true })
     .map(dirent => dirent.name);
 
 let successCount = 0;
+let errorCount = 0;
 
 for (const skill of skills) {
     const skillMdPath = path.join(skillsDir, skill, 'SKILL.md');
 
     if (!fs.existsSync(skillMdPath)) {
+        continue;
+    }
+
+    // Skip skills that are AI context documents, not slash commands.
+    if (SKILLS_ONLY.has(skill)) {
+        console.log(`⏭️  Skipping ${skill} (skill-only, not a command).`);
         continue;
     }
 
@@ -53,11 +64,13 @@ for (const skill of skills) {
         frontmatter = yaml.load(frontmatterRaw);
     } catch (e) {
         console.warn(`WARNING: Could not parse YAML frontmatter in ${skillMdPath}: ${e.message}`);
+        errorCount++;
         continue;
     }
 
     if (!frontmatter || !frontmatter.name) {
         console.warn(`WARNING: Missing 'name:' field in ${skillMdPath}`);
+        errorCount++;
         continue;
     }
 
@@ -71,6 +84,7 @@ for (const skill of skills) {
     const commandName = path.basename(rawCommandName);
     if (commandName !== rawCommandName) {
         console.warn(`WARNING: Unsafe name field "${rawCommandName}" in ${skillMdPath} — skipping.`);
+        errorCount++;
         continue;
     }
 
@@ -90,3 +104,13 @@ for (const skill of skills) {
 }
 
 console.log(`\nSuccessfully built ${successCount} commands.`);
+
+// Exit non-zero if every eligible skill failed — this ensures the pre-commit
+// exit guard catches not just crashes but also "all files were malformed" cases.
+const eligibleCount = skills.filter(s =>
+    fs.existsSync(path.join(skillsDir, s, 'SKILL.md')) && !SKILLS_ONLY.has(s)
+).length;
+if (successCount === 0 && eligibleCount > 0) {
+    console.error(`❌ No commands were successfully built (${errorCount} error(s)). Check SKILL.md files.`);
+    process.exit(1);
+}
