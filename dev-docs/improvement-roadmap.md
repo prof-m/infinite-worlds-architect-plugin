@@ -52,8 +52,8 @@ The wiki documents **9 condition types** and **15 effect types**. The plugin's r
 
 **All 15 Effect Types:**
 1. `scriptedText` — Appends to outcomeDescription
-2. `giveGuidance` — AI instruction for next turn
-3. `addSecretInfo` — Adds to secretInfo
+2. `effectTellAIWhatToDo` — AI instruction for next turn
+3. `effectGiveInfo` — Adds to secretInfo
 4. `changeAdventureBackground` — Modifies background
 5. `changeInstructions` — Replaces main instructions
 6. `changeInstructionBlock` — Modifies specific EIB {id, content}
@@ -63,7 +63,7 @@ The wiki documents **9 condition types** and **15 effect types**. The plugin's r
 10. `changeVictoryCondition` — {condition, text, alreadyFired}
 11. `changeDefeatCondition` — {condition, text, alreadyFired}
 12. `changeFirstAction` — Modifies initial action
-13. `changeName`/`changeDescription`/`changeSkill` — Player character mods
+13. `changeName`/`changeDescription`/`effectChangePCSkill` — Player character mods
 14. `setTrackedItemsValue` — Batch item updates (set/add/subtract/replace)
 15. `randomTriggers` — Fires random trigger from list
 16. `changeLorebook` — Modifies keyword block {id, keywords[], content}
@@ -107,7 +107,7 @@ Implemented in PR #3. Performs 8 analysis types: token cost estimation, instruct
 2. **Skill Leveling (XP) System**
    - Per-skill tracked items: `xp_[skill_name]` (number, ai_only, 0-100)
    - Update instructions for XP gain based on usage/difficulty/success
-   - Trigger per skill: fires when XP >= 100, resets XP by 100, `changeSkill` +1
+   - Trigger per skill: fires when XP >= 100, resets XP by 100, `effectChangePCSkill` +1
    - Instruction block explaining the leveling mechanic
 
 3. **Every-N-Turns Trigger Pattern**
