@@ -17,12 +17,17 @@ Once all paths and names are confirmed:
 
 ## Extract Story Data
 
-**Before calling `extract_story_data`, ask the user for the character list to index.**
+**Before calling `extract_story_data`, prompt the user for the character list to index.**
 
-Character indexing is optional but strongly recommended — it enables targeted `query_story_data` lookups by character name during the character-writing step. The `character_list` parameter accepts an array of `{ name, aliases }` objects.
+Ask the user the following (word it naturally):
 
-- If the original world JSON is available, read its `possibleCharacters` and `NPCs` fields to extract candidate names. Present this suggested list to the user and ask them to confirm, add, remove, or correct any entries (including aliases that appear in the story but not in the world JSON). Inform the user they may say "skip" or "none" to proceed without character indexing. Wait for my response.
-- If the original world JSON is unavailable, ask the user directly: "Which character names (and any aliases) should be indexed in the story? Say 'none' to skip character indexing." Wait for my response.
+> "Before I extract the story data, I'd like to build a character index so I can look up each character's story appearances by name during the character-writing step — this prevents me from having to scan the entire story and significantly reduces the chance of errors. It's optional, but strongly recommended for any story with named NPCs.
+>
+> I've found the following NPCs in the original world JSON: [list names extracted from the `NPCs` array — each entry is an object; use the `name` field of each object]. You don't need to include every minor NPC — just the ones who matter to the story. Feel free to add, remove, or correct any names, and provide any aliases a character goes by in the story (e.g. nicknames or titles used in the dialogue).
+>
+> Reply with the confirmed list, or say 'skip' to proceed without character indexing."
+
+Wait for the user's response before proceeding.
 
 Pass only the user-confirmed list as `character_list` to `extract_story_data`. Do not include any names the user did not explicitly confirm or leave unchanged. If the user said "skip" or "none", omit `character_list` entirely.
 
