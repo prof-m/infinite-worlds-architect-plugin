@@ -19,13 +19,13 @@ Once all paths and names are confirmed:
 
 **Before calling `extract_story_data`, prompt the user for the character list to index.**
 
-If the original world JSON path is available, call the `get_character_list` MCP tool with that path to automatically retrieve the NPC list. This avoids manually reading and parsing the world JSON.
+Call the `get_character_list` MCP tool with the original world JSON path to automatically retrieve the NPC list. This avoids manually reading and parsing the world JSON.
 
-Ask the user the following (word it naturally), substituting in the names returned by `get_character_list` (or noting that no world JSON was provided):
+Ask the user the following (word it naturally), substituting in the names returned by `get_character_list`:
 
 > "Before I extract the story data, I'd like to build a character index so I can look up each character's story appearances by name during the character-writing step — this prevents me from having to scan the entire story and significantly reduces the chance of errors. It's optional, but strongly recommended for any story with named NPCs.
 >
-> I've found the following NPCs in the original world JSON: [list the `name` values from the `character_list` returned by `get_character_list`, or note 'no world JSON available' if the tool was not called]. You don't need to include every minor NPC — just the ones who matter to the story. Feel free to add, remove, or correct any names, and provide any aliases a character goes by in the story (e.g. nicknames or titles used in the dialogue).
+> I've found the following NPCs in the original world JSON: [list the `name` values from the `character_list` returned by `get_character_list`]. You don't need to include every minor NPC — just the ones who matter to the story. Feel free to add, remove, or correct any names, and provide any aliases a character goes by in the story (e.g. nicknames or titles used in the dialogue).
 >
 > Reply with the confirmed list, or say 'skip' to proceed without character indexing."
 
