@@ -97,6 +97,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `confirm_path` — Locate a file or directory and return its absolute path for confirmation.
 - `decompile_json` — Generate a human-readable Markdown draft from a world JSON file.
 - `get_diff_summary` — Compare original world JSON with current draft and return a summary of changes.
+- `get_character_list` — Read a world JSON file and return its NPCs as a `character_list` array (each entry: `{ name, aliases }`) ready to pass directly to `extract_story_data`. Use this before calling `extract_story_data` to populate the character index without manually parsing the world JSON.
 - `modify_character` — Modify an existing Player Character by name. Only provided fields are updated.
 - `modify_npc` — Modify an existing NPC by name. Only provided fields are updated.
 - `modify_tracked_item` — Modify an existing Tracked Item by name. Only provided fields are updated.
