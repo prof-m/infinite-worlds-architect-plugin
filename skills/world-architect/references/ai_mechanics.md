@@ -83,9 +83,9 @@ When a trigger fires, all of its effects execute. Effects can modify nearly ever
 
 1. **Show Message** (`scriptedText`, string): Appends the specified text directly to `outcomeDescription`. Use for scripted narrative beats. Example: `"A thunderous explosion shakes the ground beneath your feet."`.
 
-2. **AI Guidance** (`giveGuidance`, string): Provides a one-turn instruction to the AI. The guidance is only active for the immediate next turn, then discarded. Example: `"The merchant should act suspicious and evasive this turn."`.
+2. **AI Guidance** (`effectTellAIWhatToDo`, string): Provides a one-turn instruction to the AI. The guidance is only active for the immediate next turn, then discarded. Example: `"The merchant should act suspicious and evasive this turn."`.
 
-3. **Secret Info** (`addSecretInfo`, string): Adds hidden information to `secretInfo`, invisible to the player but available to the AI for future decision-making. Example: `"The NPC is secretly an undercover agent."`.
+3. **Secret Info** (`effectGiveInfo`, string): Adds hidden information to `secretInfo`, invisible to the player but available to the AI for future decision-making. Example: `"The NPC is secretly an undercover agent."`.
 
 4. **Change Background** (`changeAdventureBackground`, string): Replaces the displayed story background. Example: `"The kingdom has fallen into civil war."`.
 
@@ -105,7 +105,7 @@ When a trigger fires, all of its effects execute. Effects can modify nearly ever
 
 12. **Change First Action** (`changeFirstAction`, string): Modifies the initial turn action (`firstInput`). Only meaningful for triggers that fire at game start.
 
-13. **Modify Player Character** (`changeName`/`changeDescription`/`changeSkill`, various): Modifies the active player character. `changeName` (string) updates the name. `changeDescription` (string) updates the description. `changeSkill` (object `{name, amount, minmax, increase}`) modifies a skill: `name` identifies the skill, `amount` is the target/delta value, `minmax` constrains the range, and `increase` (boolean) determines whether to add or set.
+13. **Modify Player Character** (`changeName`/`changeDescription`/`effectChangePCSkill`, various): Modifies the active player character. `changeName` (string) updates the name. `changeDescription` (string) updates the description. `effectChangePCSkill` (object `{name, amount, minmax, increase}`) modifies a skill: `name` identifies the skill, `amount` is the target/delta value, `minmax` constrains the range, and `increase` (boolean) determines whether to add or set.
 
 14. **Set Tracked Item Values** (`setTrackedItemsValue`, array): Batch update tracked items. Each entry specifies the item and an operation:
     - **Numbers**: `set` (absolute value), `add` (increase by), `subtract` (decrease by).
