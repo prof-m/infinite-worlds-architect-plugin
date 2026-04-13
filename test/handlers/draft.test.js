@@ -654,6 +654,28 @@ describe('update_draft_section', () => {
     const w2 = JSON.parse(await fs.readFile(out2, 'utf-8'));
     expect(w1.title).toBe(w2.title);
     expect(w1.background).toBe(w2.background);
+    // Strengthened: full structural equality — evidence comments must not leak
+    // into ANY field of the compiled JSON.
+    expect(w1).toEqual(w2);
+  });
+
+  it('case 10b: parity holds with blank lines between header and evidence comment', async () => {
+    const draftPlain = `# Title\nMy World\n\n# Background\nA rich background\n`;
+    const draftBlankThenEvidence = `# Title\n\n<!-- evidence: CARRY_FORWARD: tolerant parser -->\nMy World\n\n# Background\n<!-- evidence: CARRY_FORWARD: tolerant parser -->\nA rich background\n`;
+
+    const pA = path.join(tmpDir, 'plain.md');
+    const pB = path.join(tmpDir, 'blank.md');
+    await fs.writeFile(pA, draftPlain);
+    await fs.writeFile(pB, draftBlankThenEvidence);
+
+    const oA = path.join(tmpDir, 'plain.json');
+    const oB = path.join(tmpDir, 'blank.json');
+    await compile_draft({ draftPath: pA, outputPath: oA });
+    await compile_draft({ draftPath: pB, outputPath: oB });
+
+    const wA = JSON.parse(await fs.readFile(oA, 'utf-8'));
+    const wB = JSON.parse(await fs.readFile(oB, 'utf-8'));
+    expect(wA).toEqual(wB);
   });
 
   // Case 11: compile audit reports sections missing evidence
@@ -676,6 +698,68 @@ describe('update_draft_section', () => {
 
   // Case 12: fixture drafts — existing tests updated above with CARRY_FORWARD evidence
   // (documented here as a reminder; the actual fixture updates are the tests above which now pass evidence)
+  // Regression: bare story-citation prefixes must be rejected (BLOCKER fix)
+  it('regression: bare "From Turn #" with no content is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'From Turn #' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('regression: bare "From Story Metadata" with no content is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'From Story Metadata' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('regression: bare "From Turn Detail" with short content is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'From Turn Detail: x' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  // Case-sensitivity: lowercased prefixes must not match
+  it('case-sensitivity: lowercase "carry_forward:" prefix is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'carry_forward: this is a long enough explanation' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('case-sensitivity: lowercase "from turn #" prefix is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'from turn #5: hero defeats dragon' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  // Round-trip: evidence containing both \n and --> survives encode → file → parseDraft decode
+  it('round-trip: evidence with both newline and --> is encoded on disk and decoded by parseDraft', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    const ev = 'From Turn #3 Outcome: line one --> arrow\nline two';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Arrow Title', evidence: ev });
+
+    // Raw file: must be encoded (no literal newline mid-comment, no literal -->)
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('<!-- evidence: From Turn #3 Outcome: line one --&gt; arrow\\nline two -->');
+    expect(raw).not.toContain('line one --> arrow');
+
+    // Compile: Title now has evidence, so it must not appear in the audit list,
+    // and the parsed Title content must not contain leaked comment text.
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    const auditMatch = result.content[0].text.match(/Evidence audit:[^\n]*/);
+    if (auditMatch) {
+      expect(auditMatch[0]).not.toContain('Title');
+    }
+
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.title).toBe('Arrow Title');
+    expect(world.title).not.toContain('evidence:');
+    expect(world.title).not.toContain('--&gt;');
+  });
+
   it('case 12: USER_DIRECTED prefix with sufficient chars is accepted', async () => {
     await fs.writeFile(draftPath, simpleDraft());
     const ev = 'USER_DIRECTED: rewrite the objective to use phrase "hidden temple"';
