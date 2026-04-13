@@ -156,14 +156,26 @@ Before proposing each field, combine the accuracy guardrails with citation disci
 
 This rule applies to ALL fields: appearance, personality, skills, relationships, status. No exceptions.
 
+## Tool Enforcement: The `evidence` Parameter
+
+The `update_draft_section` MCP tool natively enforces these rules via a required `evidence` parameter. Every time you write a section to the draft, you must provide one of the four accepted formats.
+
+1. **Story Citation:** `From Turn #...`, `From Story Metadata...`, `From Turn Detail...`, or `From Turn #N Tracked Item...`
+   - Use when populating fields derived from extraction data.
+2. **User Directed:** `USER_DIRECTED: <paraphrase of instruction>`
+   - Use when the author explicitly overrides story data or provides a custom value (e.g., "Make the title 'My Cool Sequel'").
+3. **Carry Forward:** `CARRY_FORWARD: <reason>`
+   - Use when importing data unchanged from the original world JSON (e.g., preserving player permissions).
+4. **Gap Found:** `NO_STORY_EVIDENCE: sampled turns [list], nothing relevant found`
+   - Use when a field is left empty or marked "not described" because no story data supported populating it. This fulfills the No-Citation Rule.
+
 ## Field Proposal Citation Formats
 
-When proposing field values, use the human-readable citation formats defined above:
+When proposing field values in conversation with the author, use these human-readable citation formats that match the tool requirements:
 - **Story Metadata citations:** "From Story Metadata [field name]: [value]"
-- **Turn Outcome citations:** "From Turn #[number] Outcome: [summary]. Direct quote: [quote from turn outcome]"
-- **Secret Info citations:** "From Turn #[number] Secret Info: [summary]. Direct quote: [quote from secret info]"
-- **Tracked Item citations:** "From Turn #[number] Tracked Item [name]: [summary]. Direct Citation: [item name]'s value was '[value]' on Turn #[number]"
-- **Turn summaries:** "From Turn #[number] Outcome/Secret Info: [specific narrative detail]. Direct quote: [quote]"
+- **Turn Outcome citations:** "From Turn #[number] Outcome: [summary]"
+- **Secret Info citations:** "From Turn #[number] Secret Info: [summary]"
+- **Tracked Item citations:** "From Turn #[number] Tracked Item [name]: [summary]"
 
 Do NOT reference MCP function syntax (query_story_data, extraction_dir) in field proposals. Use the human-readable citation formats above to document where evidence comes from. This keeps your field proposals grounded in structured, verified data and transparent to users.
 
