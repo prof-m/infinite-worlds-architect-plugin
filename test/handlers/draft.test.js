@@ -899,6 +899,38 @@ describe('compile_draft audit scope', () => {
     const result = await compile_draft({ draftPath, outputPath: worldPath });
     expect(result.content[0].text).toContain('story_grounded marker');
   });
+
+  it('audit: Table of Contents section is not reported as missing evidence even on a grounded draft', async () => {
+    // A grounded draft that includes a # Table of Contents section (as decompile_json always produces)
+    // but has NO evidence comment on that section. All other sections DO have evidence comments.
+    const draft = [
+      '<!-- draft_mode: story_grounded -->',
+      '# Table of Contents',
+      '- [Title](#title)',
+      '- [Background](#background)',
+      '',
+      '# Title',
+      '<!-- evidence: CARRY_FORWARD: brought forward from original world -->',
+      'My World',
+      '',
+      '# Background',
+      '<!-- evidence: CARRY_FORWARD: brought forward from original world -->',
+      'A rich background',
+      '',
+      '# Main Instructions',
+      '<!-- evidence: CARRY_FORWARD: brought forward from original world -->',
+      'Do the right thing',
+      '',
+    ].join('\n');
+
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+
+    // The Table of Contents section has no evidence comment but must NOT be flagged
+    expect(result.content[0].text).not.toContain('Table of Contents');
+    // With only ToC lacking evidence (and ToC skipped), the audit section must be absent entirely
+    expect(result.content[0].text).not.toContain('Evidence audit');
+  });
 });
 
 
