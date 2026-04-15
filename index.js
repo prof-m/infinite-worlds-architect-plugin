@@ -2,7 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { tools } from "./lib/tools.js";
-import { get_diff_summary, compile_draft, decompile_json, read_draft_section, update_draft_section } from "./lib/handlers/draft.js";
+import { get_diff_summary, compile_draft, decompile_json, enable_story_grounded_mode, read_draft_section, update_draft_section } from "./lib/handlers/draft.js";
 import { add_instruction_block, add_trigger, add_character, add_npc, add_tracked_item, modify_character, modify_npc, modify_tracked_item, modify_trigger_event } from "./lib/handlers/entities.js";
 import { validate_world, audit_world } from "./lib/handlers/validation.js";
 import { confirm_path, scaffold_world, compare_worlds, getCharacterList } from "./lib/handlers/utility.js";
@@ -22,6 +22,7 @@ const toolHandlers = {
     compile_draft,
     confirm_path,
     decompile_json,
+    enable_story_grounded_mode,
     extract_story_data: async (args) => ({
         content: [{ type: "text", text: JSON.stringify(await extractStoryData(args)) }]
     }),

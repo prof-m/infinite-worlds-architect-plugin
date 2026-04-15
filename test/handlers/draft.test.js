@@ -11,6 +11,7 @@ import os from 'os';
 import {
   compile_draft,
   decompile_json,
+  enable_story_grounded_mode,
   read_draft_section,
   update_draft_section,
   get_diff_summary,
@@ -75,6 +76,8 @@ Can Change Tracked Items Starting Values: false
 # Enable AI Specific Instruction Blocks
 false
 `;
+
+const simpleDraftGrounded = () => '<!-- draft_mode: story_grounded -->\n' + simpleDraft();
 
 const minimalWorld = (overrides = {}) => ({
   title: 'Base World',
@@ -457,6 +460,8 @@ describe('read_draft_section', () => {
 // ---------------------------------------------------------------------------
 
 describe('update_draft_section', () => {
+  const validEvidence = 'CARRY_FORWARD: test fixture placeholder evidence';
+
   it('updates an existing section', async () => {
     await fs.writeFile(draftPath, simpleDraft());
     await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Updated Title' });
@@ -492,7 +497,7 @@ describe('update_draft_section', () => {
       update_draft_section({
         draftPath: path.join(tmpDir, 'missing.md'),
         sectionName: 'Title',
-        newContent: 'X'
+        newContent: 'X',
       })
     ).rejects.toThrow();
   });
@@ -504,7 +509,447 @@ describe('update_draft_section', () => {
     const result = await read_draft_section({ draftPath, sectionName: 'Background' });
     expect(result.content[0].text).toBe(newContent);
   });
+
+  describe('update_draft_section (story_grounded mode)', () => {
+  // Case 1: missing evidence throws
+  it('case 1: throws when evidence is missing (undefined)', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  // Case 2: empty / whitespace-only evidence throws
+  it('case 2: throws when evidence is empty string', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: '' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('case 2b: throws when evidence is whitespace-only', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: '   ' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  // Case 3: unknown prefix throws, message lists valid prefixes
+  it('case 3: throws on unknown prefix, message names valid kinds', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'because I said so' })
+    ).rejects.toThrow(/From Turn #/);
+  });
+
+  // Case 4: short prefixed evidence (< 10 non-ws chars after prefix) throws
+  it('case 4: throws when USER_DIRECTED value is too short', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'USER_DIRECTED: x' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('case 4b: throws when CARRY_FORWARD value is too short', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'CARRY_FORWARD: abc' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  // Case 5: story citation accepted; file contains evidence comment
+  it("case 5: story citation 'From Turn #' is accepted; draft file contains evidence comment", async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = "From Turn #5 Outcome: 'The hero defeats the dragon'";
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Dragon Story', evidence: ev });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`<!-- evidence: ${ev} -->`);
+    expect(raw).toMatch(/# Title\n<!-- evidence: From Turn #5/);
+  });
+
+  it('case 5b: From Story Metadata prefix is accepted', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'From Story Metadata [title]: "A Great Adventure"';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'A Great Adventure', evidence: ev });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`<!-- evidence: ${ev} -->`);
+  });
+
+  it('case 5c: From Turn Detail prefix is accepted', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'From Turn Detail turns [1, 2, 3]: opening scene described';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: ev });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`<!-- evidence: ${ev} -->`);
+  });
+
+  // Case 6: multi-line evidence is persisted on a single line
+  it('case 6: multi-line evidence is encoded to single line in the comment', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'From Turn #1 Outcome: line one\nsecond line';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: ev });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('<!-- evidence: From Turn #1 Outcome: line one\\nsecond line -->');
+  });
+
+  // Case 7: --> in evidence is escaped on write
+  it('case 7: --> in evidence is escaped on write and parseDraft decodes it', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'From Turn #2 Outcome: "see diagram --> box"';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: ev });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).not.toContain('see diagram --> box');
+    expect(raw).toContain('see diagram --&gt; box');
+  });
+
+  // Case 8: replacement — updating a section that already has an evidence comment replaces it
+  it('case 8: updating a section with an existing evidence comment replaces it (no duplicate)', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev1 = 'From Turn #1 Outcome: first citation';
+    const ev2 = 'From Turn #2 Outcome: second updated citation';
+
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'First', evidence: ev1 });
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Second', evidence: ev2 });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    const titleEvidenceCount = (raw.match(/# Title\n<!-- evidence:/g) || []).length;
+    expect(titleEvidenceCount).toBe(1);
+    expect(raw).toContain(ev2);
+    expect(raw).not.toContain(ev1);
+  });
+
+  // Case 9: new section gets evidence comment
+  it('case 9: appending a net-new section writes the evidence comment', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'NO_STORY_EVIDENCE: sampled turns [1-5], no design notes found';
+    await update_draft_section({ draftPath, sectionName: 'Design Notes', newContent: 'N/A', evidence: ev });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`# Design Notes\n<!-- evidence: ${ev} -->`);
+  });
+
+  // Case 10: parseDraft parity — content parsed from a draft with evidence comments equals content from one without
+  it('case 10: parseDraft content is byte-identical whether or not evidence comment present', async () => {
+    const draftWithout = `# Title\nMy World\n\n# Background\nA rich background\n`;
+    const draftWith = `<!-- draft_mode: story_grounded -->\n# Title\n<!-- evidence: CARRY_FORWARD: test -->\nMy World\n\n# Background\n<!-- evidence: CARRY_FORWARD: test -->\nA rich background\n`;
+
+    const pathWithout = path.join(tmpDir, 'without.md');
+    const pathWith = path.join(tmpDir, 'with.md');
+    await fs.writeFile(pathWithout, draftWithout);
+    await fs.writeFile(pathWith, draftWith);
+
+    const out1 = path.join(tmpDir, 'out1.json');
+    const out2 = path.join(tmpDir, 'out2.json');
+    await compile_draft({ draftPath: pathWithout, outputPath: out1 });
+    await compile_draft({ draftPath: pathWith, outputPath: out2 });
+
+    const w1 = JSON.parse(await fs.readFile(out1, 'utf-8'));
+    const w2 = JSON.parse(await fs.readFile(out2, 'utf-8'));
+    expect(w1.title).toBe(w2.title);
+    expect(w1.background).toBe(w2.background);
+    expect(w1).toEqual(w2);
+  });
+
+  it('case 10b: parity holds with blank lines between header and evidence comment', async () => {
+    const draftPlain = `# Title\nMy World\n\n# Background\nA rich background\n`;
+    const draftBlankThenEvidence = `<!-- draft_mode: story_grounded -->\n# Title\n\n<!-- evidence: CARRY_FORWARD: tolerant parser -->\nMy World\n\n# Background\n<!-- evidence: CARRY_FORWARD: tolerant parser -->\nA rich background\n`;
+
+    const pA = path.join(tmpDir, 'plain.md');
+    const pB = path.join(tmpDir, 'blank.md');
+    await fs.writeFile(pA, draftPlain);
+    await fs.writeFile(pB, draftBlankThenEvidence);
+
+    const oA = path.join(tmpDir, 'plain.json');
+    const oB = path.join(tmpDir, 'blank.json');
+    await compile_draft({ draftPath: pA, outputPath: oA });
+    await compile_draft({ draftPath: pB, outputPath: oB });
+
+    const wA = JSON.parse(await fs.readFile(oA, 'utf-8'));
+    const wB = JSON.parse(await fs.readFile(oB, 'utf-8'));
+    expect(wA).toEqual(wB);
+  });
+
+  // Case 11: compile audit reports sections missing evidence (grounded draft)
+  it('case 11: compile_draft reports sections lacking evidence in response text for grounded draft', async () => {
+    const draft = `<!-- draft_mode: story_grounded -->\n# Title\nMy World\n\n# Background\nA background\n\n# Main Instructions\nDo stuff\n`;
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    expect(result.content[0].text).toContain('Evidence audit');
+    expect(result.content[0].text).toContain('Title');
+    expect(result.content[0].text).toContain('Background');
+  });
+
+  it('case 11b: compile_draft does NOT warn when all sections have evidence (grounded draft)', async () => {
+    const draft = `<!-- draft_mode: story_grounded -->\n# Title\n<!-- evidence: CARRY_FORWARD: everything fine -->\nMy World\n\n# Background\n<!-- evidence: CARRY_FORWARD: brought forward -->\nA background\n`;
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    expect(result.content[0].text).not.toContain('Evidence audit');
+  });
+
+  // Regression: bare story-citation prefixes must be rejected
+  it('regression: bare "From Turn #" with no content is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'From Turn #' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('regression: bare "From Story Metadata" with no content is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'From Story Metadata' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('regression: bare "From Turn Detail" with short content is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'From Turn Detail: x' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('case-sensitivity: lowercase "carry_forward:" prefix is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'carry_forward: this is a long enough explanation' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('case-sensitivity: lowercase "from turn #" prefix is rejected', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: 'from turn #5: hero defeats dragon' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('round-trip: evidence with both newline and --> is encoded on disk and decoded by parseDraft', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'From Turn #3 Outcome: line one --> arrow\nline two';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Arrow Title', evidence: ev });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('<!-- evidence: From Turn #3 Outcome: line one --&gt; arrow\\nline two -->');
+    expect(raw).not.toContain('line one --> arrow');
+
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    const auditMatch = result.content[0].text.match(/Evidence audit:[^\n]*/);
+    if (auditMatch) {
+      expect(auditMatch[0]).not.toContain('Title');
+    }
+
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.title).toBe('Arrow Title');
+    expect(world.title).not.toContain('evidence:');
+    expect(world.title).not.toContain('--&gt;');
+  });
+
+  it('case 12: USER_DIRECTED prefix with sufficient chars is accepted', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const ev = 'USER_DIRECTED: rewrite the objective to use phrase "hidden temple"';
+    const result = await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X', evidence: ev });
+    expect(result.content[0].text).toContain('Successfully updated');
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`<!-- evidence: ${ev} -->`);
+  });
+
+  it('injection: embedded evidence comment in newContent is stripped before write', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const validEv = 'From Turn #7 Outcome: hero finds the ancient artifact';
+    const injectedContent = '<!-- evidence: INJECTED: fake -->\nActual content here.';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: injectedContent, evidence: validEv });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    // The raw file must contain the validated evidence comment, not the injected one
+    expect(raw).toContain(`<!-- evidence: ${validEv} -->`);
+    expect(raw).not.toContain('<!-- evidence: INJECTED: fake -->');
+
+    // read_draft_section must return the content without the injected comment line
+    const readResult = await read_draft_section({ draftPath, sectionName: 'Title' });
+    expect(readResult.content[0].text).not.toContain('<!-- evidence: INJECTED: fake -->');
+    expect(readResult.content[0].text).toContain('Actual content here.');
+  });
+  }); // end story_grounded mode
+
+  describe('update_draft_section (unmarked mode)', () => {
+  it('succeeds without evidence — no evidence comment written', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Unmarked Title' });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('# Title\nUnmarked Title');
+    expect(raw).not.toContain('<!-- evidence:');
+  });
+
+  it('succeeds with evidence provided — evidence comment is NOT written (silently ignored)', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Unmarked Title', evidence: validEvidence });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('# Title\nUnmarked Title');
+    expect(raw).not.toContain('<!-- evidence:');
+  });
+
+  it('after enable_story_grounded_mode, calling without evidence throws', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await enable_story_grounded_mode({ draftPath });
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+  }); // end unmarked mode
 });
+
+// ---------------------------------------------------------------------------
+// hasStoryGroundedMarker (unit tests via enable_story_grounded_mode + direct effect)
+// ---------------------------------------------------------------------------
+
+describe('hasStoryGroundedMarker', () => {
+  it('marker as first line → grounded draft requires evidence', async () => {
+    await fs.writeFile(draftPath, '<!-- draft_mode: story_grounded -->\n# Title\nX\n');
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('marker after blank leading lines → still detected as grounded', async () => {
+    await fs.writeFile(draftPath, '\n\n<!-- draft_mode: story_grounded -->\n# Title\nX\n');
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('marker after # Title (not at top) → NOT detected as grounded', async () => {
+    await fs.writeFile(draftPath, '# Title\n<!-- draft_mode: story_grounded -->\nX\n');
+    // Should succeed without evidence (not grounded)
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
+    ).resolves.toBeDefined();
+  });
+
+  it('wrong casing → NOT detected as grounded', async () => {
+    await fs.writeFile(draftPath, '<!-- Draft_Mode: story_grounded -->\n# Title\nX\n');
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
+    ).resolves.toBeDefined();
+  });
+
+  it('marker with trailing whitespace → detected as grounded', async () => {
+    await fs.writeFile(draftPath, '<!-- draft_mode: story_grounded -->   \n# Title\nX\n');
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('empty string → not grounded', async () => {
+    await fs.writeFile(draftPath, '');
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
+    ).resolves.toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// enable_story_grounded_mode
+// ---------------------------------------------------------------------------
+
+describe('enable_story_grounded_mode', () => {
+  it('prepends marker to unmarked draft, content otherwise unchanged', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await enable_story_grounded_mode({ draftPath });
+    const content = await fs.readFile(draftPath, 'utf-8');
+    expect(content.startsWith('<!-- draft_mode: story_grounded -->\n')).toBe(true);
+    expect(content).toContain('# Title\nMy World');
+  });
+
+  it('is idempotent — calling twice does not duplicate marker', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await enable_story_grounded_mode({ draftPath });
+    await enable_story_grounded_mode({ draftPath });
+    const content = await fs.readFile(draftPath, 'utf-8');
+    const count = (content.match(/<!-- draft_mode: story_grounded -->/g) || []).length;
+    expect(count).toBe(1);
+  });
+
+  it('second call returns already-in-story_grounded-mode message', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const result = await enable_story_grounded_mode({ draftPath });
+    expect(result.content[0].text).toContain('already in story_grounded mode');
+  });
+
+  it('after calling it, update_draft_section without evidence throws', async () => {
+    await fs.writeFile(draftPath, simpleDraft());
+    await enable_story_grounded_mode({ draftPath });
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Title', newContent: 'X' })
+    ).rejects.toThrow(/requires an 'evidence' parameter/);
+  });
+
+  it('throws for non-existent file', async () => {
+    await expect(
+      enable_story_grounded_mode({ draftPath: path.join(tmpDir, 'missing.md') })
+    ).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// compile_draft audit scope (unmarked vs grounded)
+// ---------------------------------------------------------------------------
+
+describe('compile_draft audit scope', () => {
+  it('unmarked draft with missing evidence → NO Evidence audit warning', async () => {
+    const draft = `# Title\nMy World\n\n# Background\nA background\n`;
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    expect(result.content[0].text).not.toContain('Evidence audit');
+  });
+
+  it('grounded draft with missing evidence → Evidence audit warning', async () => {
+    const draft = `<!-- draft_mode: story_grounded -->\n# Title\nMy World\n\n# Background\nA background\n`;
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    expect(result.content[0].text).toContain('Evidence audit');
+    expect(result.content[0].text).toContain('Title');
+  });
+
+  it('unmarked draft with stray evidence comments → tamper warning', async () => {
+    const draft = `# Title\n<!-- evidence: CARRY_FORWARD: stray comment -->\nMy World\n`;
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    expect(result.content[0].text).toContain('story_grounded marker');
+  });
+
+  it('audit: Table of Contents section is not reported as missing evidence even on a grounded draft', async () => {
+    // A grounded draft that includes a # Table of Contents section (as decompile_json always produces)
+    // but has NO evidence comment on that section. All other sections DO have evidence comments.
+    const draft = [
+      '<!-- draft_mode: story_grounded -->',
+      '# Table of Contents',
+      '- [Title](#title)',
+      '- [Background](#background)',
+      '',
+      '# Title',
+      '<!-- evidence: CARRY_FORWARD: brought forward from original world -->',
+      'My World',
+      '',
+      '# Background',
+      '<!-- evidence: CARRY_FORWARD: brought forward from original world -->',
+      'A rich background',
+      '',
+      '# Main Instructions',
+      '<!-- evidence: CARRY_FORWARD: brought forward from original world -->',
+      'Do the right thing',
+      '',
+    ].join('\n');
+
+    await fs.writeFile(draftPath, draft);
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+
+    // The Table of Contents section has no evidence comment but must NOT be flagged
+    expect(result.content[0].text).not.toContain('Table of Contents');
+    // With only ToC lacking evidence (and ToC skipped), the audit section must be absent entirely
+    expect(result.content[0].text).not.toContain('Evidence audit');
+  });
+});
+
 
 // ---------------------------------------------------------------------------
 // get_diff_summary

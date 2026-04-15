@@ -48,6 +48,8 @@ Check if a `draft_world.md` file already exists in the target directory. If it d
 
 Once settled, use the `decompile_json` MCP tool to read the original world JSON file and generate the draft markdown file at the chosen path.
 
+**Immediately after `decompile_json` completes,** call `enable_story_grounded_mode` on the newly created draft file. This enables evidence enforcement for all subsequent `update_draft_section` calls. Do not skip this step.
+
 ## Update Draft Markdown
 
 Before filling in fields, you MUST read `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. Do not distribute extracted data into fields until you have read and understood the distribution strategy document.
@@ -98,6 +100,13 @@ Before proposing any field value, verify:
 
 Then, guide strictly FIELD-BY-FIELD through refining this draft.
 Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using `update_draft_section`, and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
+
+**CRITICAL: Evidence Parameter Requirement**
+Every call to `update_draft_section` MUST include the `evidence` parameter. You are strictly forbidden from writing to the draft without providing proper citation. There are four valid kinds of evidence:
+1. **Story Citation**: `From Turn #X...`, `From Story Metadata...`, `From Turn Detail...`, or `From Turn #N Tracked Item...` (Used when populating details derived from extraction data).
+2. **User Directed**: `USER_DIRECTED: <paraphrase of instruction>` (Used when the user explicitly tells you what to set the field to). Minimum 10 characters.
+3. **Carry Forward**: `CARRY_FORWARD: <reason>` (Used for fields imported from the original world without story-driven changes). Minimum 10 characters.
+4. **Gap Found**: `NO_STORY_EVIDENCE: sampled turns [list], nothing relevant found` (Used when you leave a field empty or generic because no story data supported populating it). Minimum 10 characters.
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
 

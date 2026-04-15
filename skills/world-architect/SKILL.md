@@ -96,6 +96,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `compile_draft` — Compile a Markdown draft file into a valid world JSON file.
 - `confirm_path` — Locate a file or directory and return its absolute path for confirmation.
 - `decompile_json` — Generate a human-readable Markdown draft from a world JSON file.
+- `enable_story_grounded_mode` — Prepend the `<!-- draft_mode: story_grounded -->` marker to a draft markdown file, enabling tool-level evidence enforcement for all subsequent `update_draft_section` calls on that draft. Idempotent — safe to call more than once. Used by sequel-world immediately after draft creation.
 - `get_diff_summary` — Compare original world JSON with current draft and return a summary of changes.
 - `get_character_list` — Read a world JSON file and return its NPCs as a `character_list` array (each entry: `{ name, aliases }`) ready to pass directly to `extract_story_data`. Use this before calling `extract_story_data` to populate the character index without manually parsing the world JSON.
 - `modify_character` — Modify an existing Player Character by name. Only provided fields are updated.
@@ -104,7 +105,7 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `modify_trigger_event` — Modify an existing Trigger Event by name. Only provided fields are updated.
 - `read_draft_section` — Read a specific section from a Markdown draft file.
 - `scaffold_world` — Initialize a new world JSON file with safe, token-efficient defaults.
-- `update_draft_section` — Update a specific section in a Markdown draft file.
+- `update_draft_section` — Update a specific section in a Markdown draft file. (Requires an `evidence` parameter when the draft is in story_grounded mode — see `sequel-world` and `enable_story_grounded_mode`.)
 - `validate_world` — Validate a world JSON file against the Infinite Worlds schema. Returns structured errors, warnings, and info items.
 
 ## Skill Activation Patterns
