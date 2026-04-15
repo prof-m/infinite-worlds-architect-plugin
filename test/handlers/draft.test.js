@@ -752,6 +752,23 @@ describe('update_draft_section', () => {
     const raw = await fs.readFile(draftPath, 'utf-8');
     expect(raw).toContain(`<!-- evidence: ${ev} -->`);
   });
+
+  it('injection: embedded evidence comment in newContent is stripped before write', async () => {
+    await fs.writeFile(draftPath, simpleDraftGrounded());
+    const validEv = 'From Turn #7 Outcome: hero finds the ancient artifact';
+    const injectedContent = '<!-- evidence: INJECTED: fake -->\nActual content here.';
+    await update_draft_section({ draftPath, sectionName: 'Title', newContent: injectedContent, evidence: validEv });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    // The raw file must contain the validated evidence comment, not the injected one
+    expect(raw).toContain(`<!-- evidence: ${validEv} -->`);
+    expect(raw).not.toContain('<!-- evidence: INJECTED: fake -->');
+
+    // read_draft_section must return the content without the injected comment line
+    const readResult = await read_draft_section({ draftPath, sectionName: 'Title' });
+    expect(readResult.content[0].text).not.toContain('<!-- evidence: INJECTED: fake -->');
+    expect(readResult.content[0].text).toContain('Actual content here.');
+  });
   }); // end story_grounded mode
 
   describe('update_draft_section (unmarked mode)', () => {
