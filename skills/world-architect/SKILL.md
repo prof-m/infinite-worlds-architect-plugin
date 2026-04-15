@@ -104,7 +104,8 @@ Use this to interactively update specific fields in an existing world JSON file.
 - `modify_trigger_event` — Modify an existing Trigger Event by name. Only provided fields are updated.
 - `read_draft_section` — Read a specific section from a Markdown draft file.
 - `scaffold_world` — Initialize a new world JSON file with safe, token-efficient defaults.
-- `update_draft_section` — Update a specific section in a Markdown draft file. **Requires an `evidence` parameter** documenting the source/justification for the change (story citation like `From Turn #5: ...`, or one of the prefixes `USER_DIRECTED:`, `CARRY_FORWARD:`, `NO_STORY_EVIDENCE:` followed by a brief explanation).
+- `enable_story_grounded_mode` — Prepend the `<!-- draft_mode: story_grounded -->` marker to a draft markdown file, enabling tool-level evidence enforcement for all subsequent `update_draft_section` calls on that draft. Idempotent — safe to call more than once. Used by sequel-world immediately after draft creation.
+- `update_draft_section` — Update a specific section in a Markdown draft file. (Requires an `evidence` parameter when the draft is in story_grounded mode — see `sequel-world` and `enable_story_grounded_mode`.)
 - `validate_world` — Validate a world JSON file against the Infinite Worlds schema. Returns structured errors, warnings, and info items.
 
 ## Skill Activation Patterns
@@ -207,7 +208,7 @@ When asked to extract data from `.json`, `.md`, or `.txt` files (e.g., `world.js
 
 ## Best Practices
 
-- **Draft Modification**: When iterating on a `draft_world.md` file, **try using the dedicated MCP tools** `read_draft_section` and `update_draft_section` to surgically read and rewrite specific headers first. Only fall back to other approaches if absolutely necessary to solve an edge case. Note that `update_draft_section` requires an `evidence` parameter — see the tool list above for accepted formats.
+- **Draft Modification**: When iterating on a `draft_world.md` file, **try using the dedicated MCP tools** `read_draft_section` and `update_draft_section` to surgically read and rewrite specific headers first. Only fall back to other approaches if absolutely necessary to solve an edge case.
 - **IDs**: Always generate unique 8-character hex IDs for new items.
 - **Token Efficiency**: Always check `efficiency_guide.md`. Minimize `instructions` by offloading to `instructionBlocks` (Keywords). Use `audit_world` to analyze an existing world for optimization opportunities.
 - **Summary**: Remind users that the Summary AI cannot see Tracked Items; important state must be written to `secretInfo` or the main output.

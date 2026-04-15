@@ -48,6 +48,8 @@ Check if a `draft_world.md` file already exists in the target directory. If it d
 
 Once settled, use the `decompile_json` MCP tool to read the original world JSON file and generate the draft markdown file at the chosen path.
 
+**Immediately after `decompile_json` completes,** call `enable_story_grounded_mode` on the newly created draft file. This enables evidence enforcement for all subsequent `update_draft_section` calls. Do not skip this step.
+
 ## Update Draft Markdown
 
 Before filling in fields, you MUST read `references/story_context_distribution.md` to decide which extraction data belongs in which world field type. Do not distribute extracted data into fields until you have read and understood the distribution strategy document.
