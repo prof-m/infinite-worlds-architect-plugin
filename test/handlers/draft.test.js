@@ -10,9 +10,13 @@ import path from 'path';
 import os from 'os';
 import {
   compile_draft,
+  create_sub_field,
+  delete_draft_sub_field,
   decompile_json,
   enable_story_grounded_mode,
   read_draft_section,
+  rename_sub_field,
+  splitSubFields,
   update_draft_section,
   get_diff_summary,
 } from '../../lib/handlers/draft.js';
@@ -844,6 +848,450 @@ describe('hasStoryGroundedMarker', () => {
     await expect(
       update_draft_section({ draftPath, sectionName: 'Title', newContent: 'Y' })
     ).resolves.toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// splitSubFields — unit tests
+// ---------------------------------------------------------------------------
+
+describe('splitSubFields', () => {
+  it('splits a simple body into sub-fields', () => {
+    const body = '## Alice\nHello Alice\n## Bob\nHello Bob\n';
+    const result = splitSubFields(body);
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe('Alice');
+    expect(result[0].body).toBe('Hello Alice');
+    expect(result[1].name).toBe('Bob');
+    expect(result[1].body).toBe('Hello Bob');
+  });
+
+  it('ignores ## inside a backtick fenced block', () => {
+    const body = '## Main\n```\n## fake heading\n```\nActual content\n';
+    const result = splitSubFields(body);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Main');
+    expect(result[0].body).toContain('## fake heading');
+    expect(result[0].body).toContain('Actual content');
+  });
+
+  it('ignores ## inside a tilde fenced block', () => {
+    const body = '## Entry\n~~~\n## tilde fake\n~~~\nReal content\n';
+    const result = splitSubFields(body);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Entry');
+    expect(result[0].body).toContain('## tilde fake');
+  });
+
+  it('treats ### sub-subheadings as body content, not sub-field boundaries', () => {
+    const body = '## Character\n### Appearance\nTall\n### Skills\nCombat\n';
+    const result = splitSubFields(body);
+    expect(result).toHaveLength(1);
+    expect(result[0].body).toContain('### Appearance');
+    expect(result[0].body).toContain('### Skills');
+  });
+
+  it('handles unclosed fence by treating everything remaining as fenced', () => {
+    const body = '## A\n```\n## not a boundary\nstuff\n## B\nmore\n';
+    const result = splitSubFields(body);
+    // ## B is inside an unclosed fence — should not be a new entry
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('A');
+  });
+
+  it('preserves original heading casing in headerLine', () => {
+    const body = '## Rachel McKelvey\nContent\n';
+    const result = splitSubFields(body);
+    expect(result[0].headerLine).toBe('## Rachel McKelvey');
+    expect(result[0].name).toBe('Rachel McKelvey');
+  });
+
+  it('returns empty array for empty body', () => {
+    expect(splitSubFields('')).toHaveLength(0);
+    expect(splitSubFields('\n\n')).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Container-section helpers for test drafts
+// ---------------------------------------------------------------------------
+
+const containerDraft = () => `# Title
+My World
+
+# Other Characters
+## Rachel McKelvey
+### Brief Summary
+Chief of police
+### Character Detail
+Runs the department
+### Appearance
+Tall and authoritative
+### Location
+Police HQ
+### Secret Information
+She suspects the mayor
+### Full List of Names
+Rachel, Rach
+### Image Appearance
+formal uniform
+### Image Clothing
+navy blazer
+
+## Priya Chakrabarti
+### Brief Summary
+Tech entrepreneur
+### Character Detail
+Runs a startup
+### Appearance
+Sharp and professional
+### Location
+Downtown office
+### Secret Information
+Owns the building
+### Full List of Names
+Priya
+### Image Appearance
+business casual
+### Image Clothing
+blazer
+
+# Background
+A rich background
+`;
+
+const containerDraftGrounded = () => '<!-- draft_mode: story_grounded -->\n' + containerDraft();
+
+// ---------------------------------------------------------------------------
+// update_draft_section — container sections
+// ---------------------------------------------------------------------------
+
+describe('update_draft_section — container sections', () => {
+  const ev = 'From Turn #12: Rachel detail updated';
+
+  it('throws when subField is missing on a container section', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Other Characters', newContent: 'anything' })
+    ).rejects.toThrow(/container field.*requires a 'subField'/);
+  });
+
+  it('throws when subField names an entry that does not exist', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Nobody Here', newContent: 'x' })
+    ).rejects.toThrow(/not found.*create_sub_field/i);
+  });
+
+  it('replaces only the targeted sub-field; other sub-fields byte-identical', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    const newContent = '### Brief Summary\nFormer chief of police';
+    await update_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey', newContent });
+
+    // Rachel's body is updated
+    const readRachel = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey' });
+    expect(readRachel.content[0].text).toContain('Former chief of police');
+
+    // Priya's body is unchanged
+    const readPriya = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Priya Chakrabarti' });
+    expect(readPriya.content[0].text).toContain('Tech entrepreneur');
+  });
+
+  it('case-insensitive subField match finds ## Rachel McKelvey when passed "rachel mckelvey" and preserves casing', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await update_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'rachel mckelvey', newContent: 'updated' });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('## Rachel McKelvey');   // original casing preserved
+    expect(raw).not.toContain('## rachel mckelvey');
+  });
+
+  it('stores evidence beneath ## {subField} heading on grounded draft', async () => {
+    await fs.writeFile(draftPath, containerDraftGrounded());
+    await update_draft_section({
+      draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey',
+      newContent: '### Brief Summary\nUpdated', evidence: ev
+    });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`## Rachel McKelvey\n<!-- evidence: ${ev} -->`);
+    expect(raw).not.toMatch(/# Other Characters\n<!-- evidence:/);
+  });
+
+  it('round-trip: compile_draft after sub-field update produces correct JSON', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await update_draft_section({
+      draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey',
+      newContent: '### Brief Summary\nNew summary\n### Character Detail\nNew detail\n### Appearance\nTall\n### Location\nHQ\n### Secret Information\nNone\n### Full List of Names\nRachel\n### Image Appearance\nuniform\n### Image Clothing\nblazer'
+    });
+    const result = await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    const rachel = world.NPCs.find(n => n.name === 'Rachel McKelvey');
+    expect(rachel).toBeDefined();
+    expect(rachel.one_liner).toBe('New summary');
+    expect(rachel.detail).toBe('New detail');
+    // Priya still intact
+    const priya = world.NPCs.find(n => n.name === 'Priya Chakrabarti');
+    expect(priya).toBeDefined();
+    expect(priya.one_liner).toBe('Tech entrepreneur');
+  });
+
+  it('throws on container section not found in draft', async () => {
+    await fs.writeFile(draftPath, '# Title\nHi\n');
+    await expect(
+      update_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Alice', newContent: 'x' })
+    ).rejects.toThrow(/not found in draft/i);
+  });
+
+  it('non-container section update still works (whole-section overwrite)', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await update_draft_section({ draftPath, sectionName: 'Background', newContent: 'New background' });
+    const result = await read_draft_section({ draftPath, sectionName: 'Background' });
+    expect(result.content[0].text).toBe('New background');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// read_draft_section — subField parameter
+// ---------------------------------------------------------------------------
+
+describe('read_draft_section — subField parameter', () => {
+  it('returns only the named sub-field body (without the ## heading)', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    const result = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey' });
+    expect(result.content[0].text).toContain('Chief of police');
+    expect(result.content[0].text).not.toContain('## Rachel McKelvey');
+  });
+
+  it('returns not-found message when sub-field is absent', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    const result = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Nobody' });
+    expect(result.content[0].text).toContain('not found');
+  });
+
+  it('throws when subField is used on a non-container section', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      read_draft_section({ draftPath, sectionName: 'Background', subField: 'anything' })
+    ).rejects.toThrow(/not a container field/i);
+  });
+
+  it('strips per-sub-field evidence comment from returned body', async () => {
+    await fs.writeFile(draftPath, containerDraftGrounded());
+    const ev = 'From Turn #3: Priya introduced';
+    await update_draft_section({
+      draftPath, sectionName: 'Other Characters', subField: 'Priya Chakrabarti',
+      newContent: '### Brief Summary\nTech entrepreneur', evidence: ev
+    });
+    const result = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Priya Chakrabarti' });
+    expect(result.content[0].text).not.toContain('<!-- evidence:');
+    expect(result.content[0].text).toContain('Tech entrepreneur');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// create_sub_field
+// ---------------------------------------------------------------------------
+
+describe('create_sub_field', () => {
+  it('appends a new sub-field at the end of the section', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await create_sub_field({
+      draftPath, sectionName: 'Other Characters', subField: 'New Character',
+      newContent: '### Brief Summary\nA newcomer'
+    });
+    const result = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'New Character' });
+    expect(result.content[0].text).toContain('A newcomer');
+  });
+
+  it('throws when the sub-field already exists', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      create_sub_field({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey', newContent: 'x' })
+    ).rejects.toThrow(/already exists.*update_draft_section/i);
+  });
+
+  it('throws when used on a non-container section', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      create_sub_field({ draftPath, sectionName: 'Background', subField: 'foo', newContent: 'bar' })
+    ).rejects.toThrow(/not a container field/i);
+  });
+
+  it('writes per-sub-field evidence comment on grounded draft', async () => {
+    await fs.writeFile(draftPath, containerDraftGrounded());
+    const ev = 'From Turn #10: new character appears';
+    await create_sub_field({
+      draftPath, sectionName: 'Other Characters', subField: 'New Char',
+      newContent: 'Some content', evidence: ev
+    });
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain(`## New Char\n<!-- evidence: ${ev} -->`);
+  });
+
+  it('preserves existing sub-fields when appending', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await create_sub_field({ draftPath, sectionName: 'Other Characters', subField: 'Third', newContent: 'Content' });
+    const rachel = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey' });
+    expect(rachel.content[0].text).toContain('Chief of police');
+    const priya = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Priya Chakrabarti' });
+    expect(priya.content[0].text).toContain('Tech entrepreneur');
+  });
+
+  it('throws when section is not found', async () => {
+    await fs.writeFile(draftPath, '# Title\nHi\n');
+    await expect(
+      create_sub_field({ draftPath, sectionName: 'Other Characters', subField: 'X', newContent: 'y' })
+    ).rejects.toThrow(/not found/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rename_sub_field
+// ---------------------------------------------------------------------------
+
+describe('rename_sub_field', () => {
+  it('changes only the ## heading; body and evidence preserved verbatim', async () => {
+    await fs.writeFile(draftPath, containerDraftGrounded());
+    const ev = 'From Turn #5: Rachel introduced';
+    await update_draft_section({
+      draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey',
+      newContent: '### Brief Summary\nChief', evidence: ev
+    });
+    await rename_sub_field({ draftPath, sectionName: 'Other Characters', oldSubField: 'Rachel McKelvey', newSubField: 'Rachel M. McKelvey' });
+
+    const raw = await fs.readFile(draftPath, 'utf-8');
+    expect(raw).toContain('## Rachel M. McKelvey');
+    expect(raw).not.toContain('## Rachel McKelvey');
+    // Body and evidence are preserved
+    expect(raw).toContain('Chief');
+    expect(raw).toContain(`<!-- evidence: ${ev} -->`);
+  });
+
+  it('throws when oldSubField is not found', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      rename_sub_field({ draftPath, sectionName: 'Other Characters', oldSubField: 'Ghost', newSubField: 'Ghost2' })
+    ).rejects.toThrow(/not found/i);
+  });
+
+  it('throws when newSubField conflicts with an existing sub-field', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      rename_sub_field({ draftPath, sectionName: 'Other Characters', oldSubField: 'Rachel McKelvey', newSubField: 'Priya Chakrabarti' })
+    ).rejects.toThrow(/already exists/i);
+  });
+
+  it('throws on non-container section', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      rename_sub_field({ draftPath, sectionName: 'Background', oldSubField: 'a', newSubField: 'b' })
+    ).rejects.toThrow(/not a container field/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// delete_draft_sub_field
+// ---------------------------------------------------------------------------
+
+describe('delete_draft_sub_field', () => {
+  it('removes only the targeted sub-field', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await delete_draft_sub_field({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey' });
+
+    const result = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Rachel McKelvey' });
+    expect(result.content[0].text).toContain('not found');
+
+    // Priya should still be there
+    const priya = await read_draft_section({ draftPath, sectionName: 'Other Characters', subField: 'Priya Chakrabarti' });
+    expect(priya.content[0].text).toContain('Tech entrepreneur');
+  });
+
+  it('is idempotent — returns informational message when sub-field not found', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    const result = await delete_draft_sub_field({ draftPath, sectionName: 'Other Characters', subField: 'Nobody' });
+    expect(result.content[0].text).toContain('not found');
+  });
+
+  it('throws on non-container section', async () => {
+    await fs.writeFile(draftPath, containerDraft());
+    await expect(
+      delete_draft_sub_field({ draftPath, sectionName: 'Background', subField: 'foo' })
+    ).rejects.toThrow(/not a container field/i);
+  });
+
+  it('throws when section is not found', async () => {
+    await fs.writeFile(draftPath, '# Title\nHi\n');
+    await expect(
+      delete_draft_sub_field({ draftPath, sectionName: 'Other Characters', subField: 'X' })
+    ).rejects.toThrow(/not found/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseDraft — per-sub-field evidence in _evidenceMap
+// ---------------------------------------------------------------------------
+
+describe('parseDraft — per-sub-field evidence', () => {
+  it('records per-sub-field evidence under composite keys', async () => {
+    const draft = `<!-- draft_mode: story_grounded -->
+# Other Characters
+## Rachel McKelvey
+<!-- evidence: From Turn #5: Rachel introduced -->
+### Brief Summary
+Chief of police
+## Priya Chakrabarti
+<!-- evidence: From Turn #8: Priya introduced -->
+### Brief Summary
+Tech entrepreneur
+`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    // Compile should succeed (section-level audit won't fire because per-sub-field evidence exists)
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.NPCs.find(n => n.name === 'Rachel McKelvey')).toBeDefined();
+  });
+
+  it('section-level evidence comment on container is still stripped (pre-v2 compatibility)', async () => {
+    const draft = `<!-- draft_mode: story_grounded -->
+# Other Characters
+<!-- evidence: CARRY_FORWARD: imported from prior session -->
+## Alice
+### Brief Summary
+A person
+`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.NPCs[0].name).toBe('Alice');
+    expect(world.NPCs[0].one_liner).toBe('A person');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fence-aware round-trip: compile_draft preserves sub-field with ## inside fence
+// ---------------------------------------------------------------------------
+
+describe('compile_draft round-trip — fence-aware sub-field parsing', () => {
+  it('compile produces correct JSON when a sub-field body contains ## inside a code fence', async () => {
+    const draft = `# Title
+My World
+
+# Extra Instruction Blocks
+## Combat Rules
+### Content
+
+\`\`\`text
+## This is inside a fence
+Strike fast
+\`\`\`
+
+`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.instructionBlocks).toHaveLength(1);
+    expect(world.instructionBlocks[0].name).toBe('Combat Rules');
+    expect(world.instructionBlocks[0].content).toContain('Strike fast');
   });
 });
 

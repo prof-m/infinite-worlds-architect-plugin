@@ -99,16 +99,29 @@ Before proposing any field value, verify:
 - **If no citation exists, should I propose this field at all?**
 
 Then, guide strictly FIELD-BY-FIELD through refining this draft.
-Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using `update_draft_section`, and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
+Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using the appropriate tool (see Sub-field rule below), and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
 
 **CRITICAL: Evidence Parameter Requirement**
-Every call to `update_draft_section` MUST include the `evidence` parameter. You are strictly forbidden from writing to the draft without providing proper citation. There are four valid kinds of evidence:
+Every call to `update_draft_section` or `create_sub_field` MUST include the `evidence` parameter. You are strictly forbidden from writing to the draft without providing proper citation. There are four valid kinds of evidence:
 1. **Story Citation**: `From Turn #X...`, `From Story Metadata...`, `From Turn Detail...`, or `From Turn #N Tracked Item...` (Used when populating details derived from extraction data).
 2. **User Directed**: `USER_DIRECTED: <paraphrase of instruction>` (Used when the user explicitly tells you what to set the field to). Minimum 10 characters.
 3. **Carry Forward**: `CARRY_FORWARD: <reason>` (Used for fields imported from the original world without story-driven changes). Minimum 10 characters.
 4. **Gap Found**: `NO_STORY_EVIDENCE: sampled turns [list], nothing relevant found` (Used when you leave a field empty or generic because no story data supported populating it). Minimum 10 characters.
 
-For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
+**Sub-field rule for container fields.** The fields *Possible Characters*, *Other Characters*, *Extra Instruction Blocks*, *Keyword Instruction Blocks*, *Tracked Items*, and *Trigger Events* are **containers**. You must update them one sub-field at a time using the dedicated handlers:
+
+- `update_draft_section` with `subField` set to the entry's name (e.g. `"Rachel McKelvey"`) and `newContent` set to only that entry's body (do not include the `## ` header — the tool writes it) **to edit an existing sub-field**.
+- `create_sub_field` **to add a new sub-field**. `update_draft_section` will reject calls naming a sub-field that doesn't exist yet.
+- `rename_sub_field` **to change a sub-field's name in place** (structural-only, no evidence required).
+- `delete_draft_sub_field` **to remove a sub-field**.
+
+The tools preserve every other sub-field automatically. Do not attempt to batch multiple sub-fields in one call. `subField` matching is case-insensitive and trimmed.
+
+*Skills* is a flat bulleted list and is **not** a container — update it as a whole section with `update_draft_section` (no `subField`).
+
+**After session resume or `/compact`:** before your next write to any container field, explicitly re-confirm with the user which sub-field you are about to work on. Use `read_draft_section` with `subField` to verify the current content of that sub-field first.
+
+For container fields, write each sub-field in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.
 
 ## Tracked Items — Sequel Defaults
 
