@@ -30,6 +30,6 @@ Once the target directory and file name are confirmed, ask me for the Title, Gen
 | Trigger Events | `skills/world-architect/references/sections/trigger-events.md` |
 | Description Request, Summary Request | `skills/world-architect/references/sections/misc-advanced-features.md` |
 
-Once I answer, use the scaffold_world MCP tool to create the world JSON file with the requested name in that directory with token-efficient defaults. Then use `add_character`, `add_npc`, `add_tracked_item`, and `add_trigger` to populate entities directly into the scaffolded world JSON.
+Once I answer, use the scaffold_world MCP tool to create the world JSON file with the requested name in that directory with token-efficient defaults. Then use `add_character`, `add_npc`, `add_tracked_item`, and `add_trigger` to populate entities directly into the scaffolded world JSON. **When populating multiple entities, issue these MCP calls in parallel** — emit multiple `tool_use` blocks in a single response rather than waiting for each call's result before issuing the next. Each round-trip costs several seconds of model latency regardless of payload size, so a dozen serial `add_*` calls take minutes that parallel dispatch finishes in roughly the time of one.
 
 After the world JSON file is generated, run `validate_world` on the output file. Present any errors or warnings to the user before considering the command complete.

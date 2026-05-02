@@ -62,6 +62,7 @@ Then, enter an interactive modification loop:
    - For other changes, analyze the current `draft_world.md`, identify all relevant sections that need changing based on my instruction, and propose the updates.
    - Present the proposed changes to me clearly.
    - Ask: "Would you like to approve these changes, or make additional modifications?"
+   - **Once approved**, if the change covers multiple entities or sub-fields (e.g. several new tracked items, several new triggers, multiple NPC edits), issue the corresponding MCP calls in parallel — emit multiple `tool_use` blocks in a single response rather than one round-trip per call. Each round-trip costs several seconds of model latency, so serial dispatch turns a one-screen change into minutes of waiting.
    - Once I approve, ask: "What would you like to do next?" with options: "Give another generic instruction", "Select specific fields", "Present a summary of changes", or "Finalize Changes".
 
 4. If I choose "Select specific fields":
@@ -88,6 +89,7 @@ Then, enter an interactive modification loop:
 
    - Present the current value and ask me what I want to change.
    - Wait for my answer. Suggest modifications based on my input, update the specific section in the markdown file using `update_draft_section`, and wait for my approval.
+   - **For container fields** (Possible Characters, Other Characters, Extra Instruction Blocks, Keyword Instruction Blocks, Tracked Items, Trigger Events): once I have approved a multi-item plan (e.g. "add these 6 tracked items"), the per-sub-field MCP calls (`create_sub_field`, `update_draft_section` with `subField`, `delete_draft_sub_field`, `rename_sub_field`) for that approved batch must be issued in parallel — emit multiple `tool_use` blocks in a single response. This is parallelism *across* calls; each individual call still operates on exactly one sub-field per the container-field rule.
    - Once I say the field looks good and approve it, ask: "What would you like to do next?" with options: "Modify another specific field", "Give a generic instruction", "Present a summary of changes", or "Finalize Changes".
 
 If I choose "Finalize Changes":
