@@ -81,8 +81,26 @@ Use this to interactively update specific fields in an existing world JSON file.
 
 - **[schema.md](references/schema.md)**: Formal JSON keys and structures.
 - **[draft_schema.md](references/draft_schema.md)**: Human-readable Markdown draft formatting.
-- **[design_guide.md](references/design_guide.md)**: High-level overview of world sections.
+- **[design_guide.md](references/design_guide.md)**: High-level overview of world sections with links to detailed field guides.
 - **[ai_mechanics.md](references/ai_mechanics.md)**: Technical details on time-tracking and evaluation overrides.
+- **[references/sections/](references/sections/)**: Per-field guides with platform-specific mechanics and authoring constraints. Load the relevant file before drafting content for any field group (see Field Reference Lookup below).
+
+## Field Reference Lookup
+
+Before drafting or modifying content for any field, load the corresponding reference file using the Read tool:
+
+| Fields | Reference file |
+|---|---|
+| Title, Description, Background, First Action, Objective | `references/sections/introducing-the-story.md` |
+| Main Instructions, Extra Instruction Blocks, Author Style, Design Notes, NSFW, Content Warnings | `references/sections/main-instructions.md` |
+| Image Model, Image Style, all Image Style wrapper fields | `references/sections/image-style.md` |
+| Skills, Possible Characters, Player Permissions | `references/sections/player-characters.md` |
+| Victory Condition, Victory Text, Defeat Condition, Defeat Text | `references/sections/victory-defeat.md` |
+| Other Characters (NPCs) | `references/sections/other-characters.md` |
+| Keyword Instruction Blocks | `references/sections/keyword-instruction-blocks.md` |
+| Tracked Items | `references/sections/tracked-items.md` |
+| Trigger Events | `references/sections/trigger-events.md` |
+| Description Request, Summary Request | `references/sections/misc-advanced-features.md` |
 
 ## MCP Tools
 

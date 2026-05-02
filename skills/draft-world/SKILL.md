@@ -49,6 +49,22 @@ Once the target directory and file name are confirmed, check if a `draft_world.m
 # Trigger Events
 
 Then, guide me strictly FIELD-BY-FIELD through filling out this draft.
+
+**Field Reference Lookup**: Before suggesting content for any field, read the corresponding reference file from `skills/world-architect/references/sections/` using the Read tool. Do not draft content for a field until you have read its reference file.
+
+| Fields | Reference file |
+|---|---|
+| Title, Description, Background, First Action, Objective | `skills/world-architect/references/sections/introducing-the-story.md` |
+| Main Instructions, Extra Instruction Blocks, Author Style, Design Notes, NSFW, Content Warnings | `skills/world-architect/references/sections/main-instructions.md` |
+| Image Model, Image Style, all Image Style wrapper fields | `skills/world-architect/references/sections/image-style.md` |
+| Skills, Possible Characters, Player Permissions | `skills/world-architect/references/sections/player-characters.md` |
+| Victory Condition, Victory Text, Defeat Condition, Defeat Text | `skills/world-architect/references/sections/victory-defeat.md` |
+| Other Characters (NPCs) | `skills/world-architect/references/sections/other-characters.md` |
+| Keyword Instruction Blocks | `skills/world-architect/references/sections/keyword-instruction-blocks.md` |
+| Tracked Items | `skills/world-architect/references/sections/tracked-items.md` |
+| Trigger Events | `skills/world-architect/references/sections/trigger-events.md` |
+| Description Request, Summary Request | `skills/world-architect/references/sections/misc-advanced-features.md` |
+
 Start by asking me what I want for the Title. Once I answer, suggest text for the field, use the `update_draft_section` tool to surgically update the section in the markdown file, and wait for my approval. Only once I approve should you move on to ask about the Description, and so on. Do not group fields together unless I explicitly ask you to. Try using the MCP server commands/tools (`update_draft_section`) first to update the markdown draft, and only fall back to other approaches if absolutely necessary.
 
 For complex fields (like Skills, Possible Characters, Other Characters, Instruction Blocks, Tracked Items, and Trigger Events), write them in the markdown draft using clear, human-readable formatting (like lists and sub-headings). Do NOT write raw JSON in the markdown file. Keep the draft entirely human-readable.

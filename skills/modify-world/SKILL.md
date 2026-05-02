@@ -71,7 +71,22 @@ Then, enter an interactive modification loop:
       - Mechanics & Characters (Skills, Characters, Triggers, Items...)
       - Back to Main Menu
    - When I select a category, present the fields in that category until I select a specific field.
-   - If I select a field, read the current values of that field from the markdown draft using `read_draft_section`, present them, and ask me what I want to change.
+   - If I select a field, read the current values of that field from the markdown draft using `read_draft_section`, then load the corresponding field reference file before suggesting modifications:
+
+     | Fields | Reference file |
+     |---|---|
+     | Title, Description, Background, First Action, Objective | `skills/world-architect/references/sections/introducing-the-story.md` |
+     | Main Instructions, Extra Instruction Blocks, Author Style, Design Notes, NSFW, Content Warnings | `skills/world-architect/references/sections/main-instructions.md` |
+     | Image Model, Image Style, all Image Style wrapper fields | `skills/world-architect/references/sections/image-style.md` |
+     | Skills, Possible Characters, Player Permissions | `skills/world-architect/references/sections/player-characters.md` |
+     | Victory Condition, Victory Text, Defeat Condition, Defeat Text | `skills/world-architect/references/sections/victory-defeat.md` |
+     | Other Characters (NPCs) | `skills/world-architect/references/sections/other-characters.md` |
+     | Keyword Instruction Blocks | `skills/world-architect/references/sections/keyword-instruction-blocks.md` |
+     | Tracked Items | `skills/world-architect/references/sections/tracked-items.md` |
+     | Trigger Events | `skills/world-architect/references/sections/trigger-events.md` |
+     | Description Request, Summary Request | `skills/world-architect/references/sections/misc-advanced-features.md` |
+
+   - Present the current value and ask me what I want to change.
    - Wait for my answer. Suggest modifications based on my input, update the specific section in the markdown file using `update_draft_section`, and wait for my approval.
    - Once I say the field looks good and approve it, ask: "What would you like to do next?" with options: "Modify another specific field", "Give a generic instruction", "Present a summary of changes", or "Finalize Changes".
 
