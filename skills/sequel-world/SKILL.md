@@ -98,6 +98,21 @@ Before proposing any field value, verify:
 - **Can I cite this from extraction data?** (metadata, turn_detail, turn_index, or tracked_state)
 - **If no citation exists, should I propose this field at all?**
 
+**Field Reference Lookup**: Before proposing content for any field, load the corresponding reference file from `skills/world-architect/references/sections/` using the Read tool. Do not propose content for a field until you have read its reference file.
+
+| Fields | Reference file |
+|---|---|
+| Title, Description, Background, First Action, Objective | `skills/world-architect/references/sections/introducing-the-story.md` |
+| Main Instructions, Extra Instruction Blocks, Author Style, Design Notes, NSFW, Content Warnings | `skills/world-architect/references/sections/main-instructions.md` |
+| Image Model, Image Style, all Image Style wrapper fields | `skills/world-architect/references/sections/image-style.md` |
+| Skills, Possible Characters, Player Permissions | `skills/world-architect/references/sections/player-characters.md` |
+| Victory Condition, Victory Text, Defeat Condition, Defeat Text | `skills/world-architect/references/sections/victory-defeat.md` |
+| Other Characters (NPCs) | `skills/world-architect/references/sections/other-characters.md` |
+| Keyword Instruction Blocks | `skills/world-architect/references/sections/keyword-instruction-blocks.md` |
+| Tracked Items | `skills/world-architect/references/sections/tracked-items.md` |
+| Trigger Events | `skills/world-architect/references/sections/trigger-events.md` |
+| Description Request, Summary Request | `skills/world-architect/references/sections/misc-advanced-features.md` |
+
 Then, guide strictly FIELD-BY-FIELD through refining this draft.
 Start with the Title. Present the proposed data for that field (incorporating developments from the story from your extracted data) and ask how to modify it. Once answered, update the markdown file using the appropriate tool (see Sub-field rule below), and wait for approval before moving to the next field. Do not group fields together unless explicitly asked.
 
