@@ -71,7 +71,7 @@ Reference materials are in `skills/world-architect/references/`.
 
 1. Clone the repository and install dependencies:
    ```bash
-   git clone <repo-url> infinite-worlds-architect-plugin
+   git clone https://github.com/prof-m/infinite-worlds-architect-plugin.git infinite-worlds-architect-plugin
    cd infinite-worlds-architect-plugin
    npm install
    ```
@@ -97,16 +97,20 @@ After restarting, type `/infinite-worlds-architect:` and you should see the avai
 
 ### Steps
 
-1. Clone the repository and install dependencies:
+1. Clone the repository and install Node.js dependencies:
    ```bash
-   git clone <repo-url> infinite-worlds-architect-plugin
+   git clone https://github.com/prof-m/infinite-worlds-architect-plugin.git infinite-worlds-architect-plugin
    cd infinite-worlds-architect-plugin
    npm install
    ```
 
-2. Register the plugin as a marketplace source:
+2. Register the plugin with Claude Code:
    ```bash
    claude plugin marketplace add /path/to/infinite-worlds-architect-plugin
+   ```
+   Or directly from GitHub (requires a subsequent `npm install` in the installed plugin directory, since Claude Code does not run this automatically):
+   ```bash
+   claude plugin marketplace add github:prof-m/infinite-worlds-architect-plugin
    ```
 
 3. Install the plugin:

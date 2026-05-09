@@ -1,5 +1,9 @@
 {
   "name": "infinite-worlds-architect",
   "version": "1.3.0",
-  "description": "Infinite Worlds extension for World Architects"
+  "description": "Infinite Worlds extension for World Architects",
+  "author": {
+    "name": "prof-m",
+    "email": "65079055+prof-m@users.noreply.github.com"
+  }
 }
