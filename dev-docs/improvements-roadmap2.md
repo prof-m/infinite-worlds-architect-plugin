@@ -36,6 +36,7 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 | I5 | Medium   | Pending | Medium | Medium | Batch entity import tools |
 | I6 | Low      | Pending | High | High | World comparison analytics dashboard |
 | I7 | Low      | Pending | High | Medium | Git-based world versioning |
+| I11 | Low     | Pending | Medium | Medium | Wiki reference refresh — on-demand re-crawl of wiki section pages into local reference files |
 
 ---
 
@@ -893,3 +894,72 @@ Add **git integration skill** for version control of world.json files.
 - All new tools should have unit tests (I2)
 - All user-facing features should be documented in SKILL.md and trigger phrases in TRIGGER_PHRASES.md (I4)
 - Plugin version should increment as features are added (1.3.0 → 1.4.0 for major features, 1.3.1 for bug fixes)
+
+---
+
+## I11: Wiki Reference Refresh (Cached-Fetch with Manual Review)
+
+**Status:** Pending
+**Effort:** Medium
+**Impact:** Medium (Keeps field reference docs current with the living wiki)
+
+### Problem
+
+The 10 section reference files in `skills/world-architect/references/sections/` were populated from a one-time wiki crawl. The Infinite Worlds wiki is a living document — field descriptions, mechanics, and limits change over time. The reference files will drift out of date silently.
+
+A naive alternative — fetching wiki pages live on every agent request — introduces network latency, offline failures, and no review gate between wiki edits and agent behaviour. It also surfaced during research that the wiki already contained incorrect JSON field names, which were caught precisely because there was a human review step before the content reached agents.
+
+### Proposed Solution
+
+A **cached-fetch with manual review** pattern: a script (or MCP tool) that re-crawls the relevant wiki pages on demand and regenerates the local reference files, followed by a `git diff` review before the changes are committed.
+
+This gives the benefits of a living document (you can pull fresh content when the wiki is updated) while preserving the safety guarantees of the static approach (a human reviews the diff and can catch errors before they reach agents).
+
+### Implementation
+
+**Option A: npm script (`npm run refresh-field-refs`)**
+
+A Node.js script (`scripts/refresh-field-references.js`) that:
+1. Fetches each of the 10 wiki section pages via the MediaWiki REST API (`/api.php?action=parse&page=X&prop=text&format=json`)
+2. Strips HTML boilerplate (navigation, edit links, categories) using a lightweight HTML parser
+3. Converts the cleaned content back to Markdown (via `turndown` or equivalent)
+4. Overwrites the corresponding file in `skills/world-architect/references/sections/`
+5. Prints a summary of which files changed
+
+The developer then runs `git diff skills/world-architect/references/sections/` to review changes before committing.
+
+**Page mapping table (stored in the script):**
+```javascript
+const WIKI_PAGE_MAP = {
+  'introducing-the-story.md': 'World_editing#Standard_World_Sections',
+  'main-instructions.md': 'Main_instructions',
+  'image-style.md': 'Image_Style',
+  'player-characters.md': 'Player_Character_Options',
+  'victory-defeat.md': 'Victory_%26_Defeat',
+  'other-characters.md': 'Other_Characters',
+  'keyword-instruction-blocks.md': 'Keyword_Instruction_Blocks',
+  'tracked-items.md': 'Tracked_Items',
+  'trigger-events.md': 'Trigger_Events',
+  'misc-advanced-features.md': 'World_editing#Advanced_World_Sections',
+};
+```
+
+**Option B: MCP tool `refresh_field_reference(section)`**
+
+Useful if the author wants to refresh a single section mid-session without leaving Claude Code. Accepts a section name, fetches the corresponding wiki page, and updates just that file.
+
+### Important caveats for the refresh script
+
+- **The wiki can contain errors.** The original crawl found two incorrect JSON field names. After every refresh, diff the output against `lib/helpers.js` `VALID_EFFECT_TYPES` / `VALID_CONDITION_TYPES` to check for mismatches before committing.
+- **Curated content will be overwritten.** The current reference files contain non-obvious insights (e.g. "victory/defeat conditions are engine-evaluated — the AI cannot see them during play") that were added by hand during the initial crawl. A naive overwrite loses this. The refresh script should append a `## Notes` section preserved from the prior version, or prompt the developer to re-verify any hand-written additions.
+- **The wiki structure may change.** If a page is renamed or restructured, the page mapping table must be updated manually before the script will work again.
+
+### Acceptance Criteria
+
+- [ ] `scripts/refresh-field-references.js` created with full page mapping table
+- [ ] Script strips HTML boilerplate cleanly (no `[edit]` links, navigation lists, or category tags in output)
+- [ ] Output is valid Markdown readable by the Read tool
+- [ ] Script prints per-file change summary on completion
+- [ ] `package.json` `scripts` includes `"refresh-field-refs": "node scripts/refresh-field-references.js"`
+- [ ] README documents the refresh workflow and the diff-review step
+- [ ] (Optional) MCP tool `refresh_field_reference` added to `index.js` for single-section refresh
