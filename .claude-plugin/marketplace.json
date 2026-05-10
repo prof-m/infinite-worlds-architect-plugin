@@ -40,7 +40,6 @@
         "mcp",
         "creative-writing"
       ],
-      "skills": "./skills/",
       "strict": false
     }
   ]
