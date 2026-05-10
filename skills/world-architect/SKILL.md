@@ -123,6 +123,7 @@ Before drafting or modifying content for any field, load the corresponding refer
 - `modify_trigger_event` — Modify an existing Trigger Event by name. Only provided fields are updated.
 - `read_draft_section` — Read a specific section from a Markdown draft file.
 - `scaffold_world` — Initialize a new world JSON file with safe, token-efficient defaults.
+- `update_draft_field` — Patch a single labeled field within a draft sub-field (e.g. the `Keywords` line of a KIB, the `Appearance` of an NPC, the `Data Type` of a Tracked Item) without rewriting the entire sub-field body. ~94% smaller tool args than `update_draft_section` for leaf edits. Inserts the field if absent. Requires `sectionName` (H1 container), `subField` (H2 item), `fieldName` (H3 or Key:Value label), and `newValue`.
 - `update_draft_section` — Update a specific section in a Markdown draft file. (Requires an `evidence` parameter when the draft is in story_grounded mode — see `sequel-world` and `enable_story_grounded_mode`.)
 - `validate_world` — Validate a world JSON file against the Infinite Worlds schema. Returns structured errors, warnings, and info items.
 
@@ -226,7 +227,10 @@ When asked to extract data from `.json`, `.md`, or `.txt` files (e.g., `world.js
 
 ## Best Practices
 
-- **Draft Modification**: When iterating on a `draft_world.md` file, **try using the dedicated MCP tools** `read_draft_section` and `update_draft_section` to surgically read and rewrite specific headers first. Only fall back to other approaches if absolutely necessary to solve an edge case.
+- **Draft Modification**: When iterating on a `draft_world.md` file, prefer the most targeted tool for the job:
+  - **Changing one labeled line** (e.g. updating the `Keywords` of a KIB, the `Appearance` or `Location` of an NPC, the `Data Type` or `Initial Value` of a Tracked Item): use `update_draft_field`. It patches only the targeted line and passes ~94% fewer bytes to the tool than `update_draft_section`, dramatically reducing streaming time for batches. Example: `update_draft_field({ sectionName: "Keyword Instruction Blocks", subField: "Honeyveil Blossom", fieldName: "Keywords", newValue: "honeyveil, blossom, fragrant" })`.
+  - **Rewriting an entire sub-field body** (prose rewrites, structural changes): use `update_draft_section` as before.
+  - Only fall back to other approaches if absolutely necessary to solve an edge case.
 - **Parallel MCP Calls**: When the user has already approved a batch of related edits (e.g. "implement those 6 tracked items and 4 triggers"), issue the corresponding entity or sub-field MCP calls **as parallel tool calls in a single response** — emit multiple `tool_use` blocks at once rather than one round-trip per call. Each round-trip costs several seconds of model latency regardless of payload size, so a dozen sequential `create_sub_field`, `add_tracked_item`, or `add_trigger` calls take minutes; the same dozen dispatched in parallel finish in roughly the time of one. This is distinct from the per-call payload rule (each `create_sub_field` / `update_draft_section` call still operates on exactly one sub-field — see container-field rules in `sequel-world`). Do **not** parallelize calls whose inputs depend on a previous call's output (e.g. a `read_draft_section` that feeds the next `update_draft_section`), and do **not** use parallel batching to bypass the stop-and-wait approval protocol of any field-by-field workflow — only parallelize work the user has *already* approved as a unit.
 - **IDs**: Always generate unique 8-character hex IDs for new items.
 - **Token Efficiency**: Always check `efficiency_guide.md`. Minimize `instructions` by offloading to `instructionBlocks` (Keywords). Use `audit_world` to analyze an existing world for optimization opportunities.
