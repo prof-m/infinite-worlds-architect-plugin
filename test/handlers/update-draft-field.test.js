@@ -214,7 +214,7 @@ describe('insert-on-missing', () => {
 // ── Fence-protected H3 not matched ─────────────────────────────────────────
 
 describe('fence tracking', () => {
-    it('does not match ### fieldName inside a fenced code block', async () => {
+    it('does not match ### fieldName inside a fenced code block (H3 path)', async () => {
         await writeDraft(
             '# Keyword Instruction Blocks\n## Block\n### Keywords\nreal keywords\n### Content\n```text\n### Keywords\nfake inside fence\n```\n'
         );
@@ -228,10 +228,58 @@ describe('fence tracking', () => {
         });
 
         const result = await readDraft();
-        // The real ### Keywords should be patched
         expect(result).toContain('### Keywords\npatched');
-        // The one inside the fence should be unchanged
         expect(result).toContain('```text\n### Keywords\nfake inside fence\n```');
+    });
+
+    it('does not match Key:Value inside a fenced code block (KV path)', async () => {
+        // Sub-field has no H3 headers — so KV matching is used.
+        // The real "Visibility: everyone" is outside the fence; a fake one inside should not be matched.
+        await writeDraft(
+            '# Tracked Items\n## Score\nData Type: number\nVisibility: everyone\n### Content\n```text\nVisibility: fake_inside_fence\n```\n'
+        );
+
+        // Wait — that draft has a ### Content header, so it IS H3 format. Let me use a KV-only body.
+        // Rewrite with a truly KV-only sub-field body that contains a fenced block:
+        await writeDraft(
+            '# Tracked Items\n## Score\nData Type: number\n```\nVisibility: fake_inside_fence\n```\nVisibility: real_value\n'
+        );
+
+        await update_draft_field({
+            draftPath,
+            sectionName: 'Tracked Items',
+            subField: 'Score',
+            fieldName: 'Visibility',
+            newValue: 'ai_only',
+        });
+
+        const result = await readDraft();
+        // The REAL Visibility line should be patched
+        expect(result).toContain('Visibility: ai_only');
+        // The fake one inside the fence should be unchanged
+        expect(result).toContain('Visibility: fake_inside_fence');
+    });
+
+    it('insert-format detection ignores ### inside a fenced code block', async () => {
+        // Body has only a fenced ### — this should NOT trigger H3 format insertion.
+        // Without fence-aware detection, hasRealH3 would be true and insert-format uses H3.
+        // With fence-aware detection, hasRealH3 stays false and insert-format uses KV.
+        await writeDraft(
+            '# Tracked Items\n## Item\nData Type: number\n```text\n### FakeH3\nsome content\n```\n'
+        );
+
+        await update_draft_field({
+            draftPath,
+            sectionName: 'Tracked Items',
+            subField: 'Item',
+            fieldName: 'Visibility',
+            newValue: 'everyone',
+        });
+
+        const result = await readDraft();
+        // Should use Key:Value format for the insert (no real H3 outside fence)
+        expect(result).toContain('Visibility: everyone');
+        expect(result).not.toContain('### Visibility');
     });
 });
 
