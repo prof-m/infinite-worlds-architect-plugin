@@ -8,7 +8,7 @@ Focus: Code Quality, UX, and Advanced Features
 
 ## Overview
 
-This roadmap captures 9 key improvements identified through plugin analysis:
+This roadmap captures 12 key improvements identified through plugin analysis:
 
 1. **Trigger Phrase Documentation** — Explicit documentation of skill activation patterns
 2. **Unit Tests** — Test coverage for handler modules
@@ -19,6 +19,9 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 7. **Batch Entity Tools** — Import multiple entities at once (characters, NPCs, items)
 8. **World Comparison Analytics** — Enhanced comparison dashboard with metrics
 9. **Git-Based World Versioning** — Version control integration for world.json files
+10. **Generic Patch Tool (`update_draft_field`)** — Patch a single labeled field within a sub-field without rewriting the entire sub-field body (~7–9× wall-clock speedup on leaf-edit batches)
+11. **Per-draftPath Async Mutex** — Prevent TOCTOU lost-update races when multiple MCP handlers write the same draft file in parallel
+12. **Sonnet Executor Subagent (`world-mcp-executor`)** — Delegate approved bulk MCP edits to a Sonnet subagent for faster execution and context preservation in long modify-world sessions
 
 ---
 
@@ -37,6 +40,9 @@ This roadmap captures 9 key improvements identified through plugin analysis:
 | I6 | Low      | Pending | High | High | World comparison analytics dashboard |
 | I7 | Low      | Pending | High | Medium | Git-based world versioning |
 | I11 | Low     | Pending | Medium | Medium | Wiki reference refresh — on-demand re-crawl of wiki section pages into local reference files |
+| I12 | Highest | Pending | Medium | Highest | Generic patch tool — patch a single labeled field in a sub-field; ~7–9× wall-clock speedup on leaf-edit batches |
+| I13 | High    | ✅ Implemented | Low | High | Per-draftPath async mutex — fixes TOCTOU lost-update race introduced by parallel MCP handler dispatch |
+| I14 | High    | Pending | Medium | High | Sonnet executor subagent — post-approval bulk edit delegation for faster execution and context preservation |
 
 ---
 
@@ -836,6 +842,277 @@ Add **git integration skill** for version control of world.json files.
 
 ---
 
+## I12: Generic Patch Tool (`update_draft_field`)
+
+**Status:** Pending
+**Effort:** Medium
+**Impact:** Highest (performance — ~7–9× wall-clock reduction on leaf-edit batches)
+
+### Current State
+
+`update_draft_section` rewrites the entire sub-field body even when only one labeled line changes
+(e.g. the `Keywords:` line of a KIB). For a typical 6-KIB keyword batch under Opus, this
+generates ~16 KB of tool-arg JSON and takes ~107 s of streaming.
+
+### Proposed Solution
+
+Add `update_draft_field`: a tool whose argument is the *change* only, not the full body.
+
+```javascript
+/**
+ * Patch a single labeled field within a draft sub-field.
+ * @param {Object} args
+ * @param {string} args.draftPath  - Absolute path to the draft .md file
+ * @param {string} args.sectionName - Top-level section header (e.g. "Honeyveil Blossom")
+ * @param {string} args.subField   - Sub-field name within the section (e.g. "Keywords")
+ * @param {string} args.fieldName  - Labeled line to patch (e.g. "Keywords")
+ * @param {string} args.newValue   - Replacement value for that line
+ * @param {string} [args.evidence] - Story-grounded evidence for the change
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function update_draft_field(args) { ... }
+```
+
+**Why it's the load-bearing improvement:** for a 6-KIB keyword batch, total tool args drop from
+~16 KB to ~900 B — a ~94% reduction. At Opus output rates that cuts streaming from ~107 s to
+~12–15 s (7–9×). The win scales with `1 - (patch_size / body_size)` and is large whenever the
+change is a single line in a multi-line body.
+
+### Implementation
+
+**`lib/handlers/draft.js`**
+- Factor the `readFile → splitSubFields → mutate-one → reassemble → writeFile` loop out of
+  `update_draft_section` into a shared helper.
+- Add a patch handler that receives a sub-field body and returns a new body with the targeted
+  labeled line replaced (or inserted if absent — see design decisions below).
+- The labeled-line parser must handle both H3-subheader format (`### Keywords` followed by
+  content) and `Key: Value` pairs; detect the existing format per-field and preserve it.
+- Fence tracking: reuse the existing `splitSubFields` fence logic (line 28) so fenced code
+  blocks containing literal `### Keywords` text are not treated as headers.
+
+**`lib/tools.js`**
+- Register `update_draft_field` alphabetically (between `update_draft` and
+  `update_draft_section`).
+- Schema: `{ draftPath: string, sectionName: string, subField: string, fieldName: string,
+  newValue: string, evidence?: string }`, `required: ["draftPath", "sectionName", "subField",
+  "fieldName", "newValue"]`.
+
+**`index.js`**
+- Add `update_draft_field` to `toolHandlers` and import it.
+
+**`skills/world-architect/SKILL.md`**
+- Add `update_draft_field` to the tool reference list (lines 105–127).
+- Add a "Best Practices" note: use the patch tool when changing one labeled line within a
+  sub-field. Include a worked example for KIB keywords.
+
+**`skills/world-architect/references/draft_schema.md`**
+- Add an explicit list of legal `fieldName` values per container type (currently enumerated
+  implicitly in lines 71–96) so the tool can validate inputs and produce useful error messages.
+
+**`skills/modify-world/SKILL.md`**
+- Note that `update_draft_field` is preferred over `update_draft_section` for single-line
+  leaf edits; update the parallelism guidance accordingly.
+
+**`test-files/`**
+- Tests for each container type's known H3 subheaders.
+- Negative tests: unknown `fieldName`, non-container section target, field absent before
+  insert.
+- Round-trip preservation of unrelated sub-fields (format-drift check).
+- Concurrency test (6 parallel patch calls on different fields of same draft — requires I13).
+
+### Design Decisions (resolved)
+
+| Decision | Chosen |
+|----------|--------|
+| Generic vs domain-specific tools | Generic `update_draft_field` only — no `update_kib_keywords` etc. |
+| `fieldName` absent in sub-field | **Insert** the field (do not fail) |
+| Format preservation | **Yes** — detect H3 vs `Key: Value` per-field and preserve it |
+
+### Generalisation Notes
+
+The patch tool helps maximally for:
+- KIB `Keywords` (the analyzed slow batch)
+- Tracked Item `Data Type` / `Visibility` / `Initial Value`
+- NPC `Location` / `Appearance` (single-line changes)
+
+It helps minimally for prose rewrites (where change ≈ body size) and not at all for list
+mutations (add/remove one condition from `### Conditions`). Realistic adoption: ~30–50% of leaf
+edits, not 100%. The model will still fall back to `update_draft_section` for full-body
+rewrites; SKILL.md guidance must steer the choice.
+
+### Acceptance Criteria
+
+- [ ] `update_draft_field` implemented in `lib/handlers/draft.js`
+- [ ] Registered in `lib/tools.js` (alphabetical) and `index.js`
+- [ ] Format preservation: H3 and `Key: Value` formats both round-trip cleanly
+- [ ] Insert-on-missing: absent `fieldName` is appended to the sub-field body
+- [ ] Error messages include item index and field name for debuggability
+- [ ] `draft_schema.md` documents legal `fieldName` values per container type
+- [ ] SKILL.md updated with worked example
+- [ ] Round-trip and concurrency tests in `test-files/`
+- [ ] Alphabetical ordering maintained in tool registry
+
+---
+
+## I13: Per-draftPath Async Mutex
+
+**Status:** ✅ Implemented (2026-05-09) — PR #52
+**Effort:** Low (~75 LOC including tests)
+**Impact:** High (correctness — fixes TOCTOU lost-update race)
+
+### Implementation Summary
+
+**Completed:**
+- ✅ `lib/locks.js` — promise-chain mutex keyed on `path.resolve(draftPath)`
+- ✅ Lock applied to all 5 draft-mutating handlers: `update_draft_section`, `create_sub_field`, `rename_sub_field`, `delete_draft_sub_field`, `enable_story_grounded_mode`
+- ✅ 30 s diagnostic timeout with safe chain-unblocking on timeout (adversarial review finding — without this, timed-out waiters would permanently deadlock all subsequent callers for that path)
+- ✅ Idempotent release closure (`let released = false` guard) — safe against double-calls
+- ✅ Map entry pruned on last release — no unbounded growth
+- ✅ `test/handlers/draft-concurrency.test.js` — 6 tests covering: 6 parallel sub-field updates without lost writes, 6 parallel `create_sub_field` calls, serialisation order, map GC, independent-path non-blocking, and timeout path end-to-end (using Jest fake timers)
+- ✅ All 505 tests passing
+
+### Design
+
+`lib/locks.js` uses a **promise-chain mutex** (FIFO ordering, pure JS Promises):
+
+```javascript
+const prev = locks.get(key) ?? Promise.resolve();
+let release;
+const acquired = new Promise(r => { release = r; });
+const chain = prev.then(() => acquired);
+locks.set(key, chain);
+await prev; // wait for previous holder
+return () => { release(); if (locks.get(key) === chain) locks.delete(key); };
+```
+
+Each new waiter appends to the tail of the chain. When the last holder calls `release()`, the map entry is deleted. Independent draft paths are fully parallel; serialisation only applies within a single `draftPath`.
+
+### Adversarial Review Findings (addressed in PR #52, commit 2)
+
+An adversarial code review found three issues before merge:
+
+1. **CRITICAL (fixed):** The original timeout path threw before returning the release closure. Since `release` was never assigned, the handler's outer `finally` never called it, leaving `acquired` unresolved and all subsequent waiters permanently deadlocked. Fix: catch the rejection inside `acquireDraftLock`, call `release()` to unblock the chain, then re-throw.
+2. **HIGH (fixed):** After fix #1, `release()` could be called twice (once in the catch, potentially again by user code). Fix: idempotency guard added to the returned closure.
+3. **HIGH (fixed):** The `create_sub_field` concurrency test used `for...await` (sequential), not `Promise.all` (concurrent) — it never exercised the mutex. Fixed.
+
+### Limitations (documented)
+
+- Does not protect against external writes (out-of-process edits to the same draft file).
+- Ordering for two calls targeting the **same** sub-field depends on lock acquisition order, not the array order the model emitted. The deferred bulk tool (I12) would sidestep this for array-shaped batches.
+- In-process only; single-process stdio transport (sufficient for current architecture).
+
+### Acceptance Criteria
+
+- [x] `lib/locks.js` created with `acquireDraftLock` helper
+- [x] Lock applied to 5 mutating handlers (4 specified + `enable_story_grounded_mode`)
+- [x] 30 s diagnostic timeout implemented with safe chain-unblocking on timeout
+- [x] Map entry pruned on last release (no memory leak)
+- [x] Idempotent release closure
+- [x] 6-test concurrency suite in `test/handlers/draft-concurrency.test.js`
+- [x] No latency regression (serialisation overhead <300 ms for 6 calls)
+
+---
+
+## I14: Sonnet Executor Subagent (`world-mcp-executor`)
+
+**Status:** Pending
+**Effort:** Medium
+**Impact:** High (performance + context preservation in long modify-world sessions)
+
+### Current State
+
+After the user approves a bulk change in `modify-world`, the parent agent (Opus) issues each
+MCP call itself — generating large tool-arg blobs at Opus token rates and accumulating results
+in the parent's context. Over a long session, this bloats the parent context and slows execution
+for each subsequent batch.
+
+### Proposed Solution
+
+Define a plugin-local agent `world-mcp-executor` pinned to Sonnet. After user approval, the
+`modify-world` skill hands the approved values to the subagent, which dispatches the MCP calls
+and returns confirmations. The parent never generates the large tool-arg JSON and the results
+stay inside the subagent's context.
+
+**Why Sonnet:** Sonnet 4.6 outputs ~80 tok/s vs. Opus's observed ~37 tok/s — approximately 2×
+faster for JSON generation. For execution turns (transcription, not design), there is no quality
+regression. The primary benefit is context preservation: the tool-arg blobs and results never
+bloat the parent's context window.
+
+### Implementation
+
+**`agents/world-mcp-executor.md`** (new file — `agents/` directory does not currently exist)
+
+```markdown
+---
+name: world-mcp-executor
+model: sonnet
+description: Executor subagent for approved modify-world bulk MCP edits
+tools:
+  - update_draft_section
+  - update_draft_field
+  - create_sub_field
+  - delete_draft_sub_field
+  - rename_sub_field
+  - add_npc
+  - add_character
+  - add_tracked_item
+---
+
+You are a pure executor. The parent agent has already obtained user approval for a set of
+changes. Your only job is to translate the approved values into MCP tool calls in a single
+parallel batch and return a confirmation summary. Do not propose new content, do not deviate
+from the approved values, and do not ask for clarification.
+```
+
+**`skills/modify-world/SKILL.md`**
+- Add a "post-approval routing" step: once the user approves a bulk change, dispatch
+  `world-mcp-executor` rather than issuing MCP calls directly.
+- The dispatch prompt must include all approved values verbatim to prevent context drift.
+- Explicitly include "user has approved the following changes" in the dispatch prompt to
+  prevent accidental pre-approval execution.
+
+**`dev-docs/subagent-prompt-requirements.md`**
+- Document the executor's required prompt block per the project's subagent prompt conventions.
+
+**`test-files/`**
+- Smoke test verifying the agent file's frontmatter parses correctly.
+- Contract test checking the agent's tool whitelist matches the set of draft-mutating handlers.
+- Note: full dispatch path testing depends on Claude Code's agent runtime; mark as manual-only.
+
+**Verify plugin.json:** confirm whether `.claude-plugin/plugin.json` needs an explicit `agents`
+field for auto-discovery, or whether placing the file in `agents/` is sufficient.
+
+### Failure Mode Mitigations
+
+| Risk | Mitigation |
+|------|-----------|
+| Context drift (subagent invents details) | Parent must include all approved values verbatim in dispatch prompt |
+| Pre-approval execution | Subagent system prompt hard-refuses to propose new content; parent prompt must assert approval explicitly |
+| Parallel subagent writes race (TOCTOU) | Resolved by I13 mutex — independent and required |
+| Agent discovery in clean session | Verify in a test session; document in CLAUDE.md if `agents` field is needed |
+
+### When the Subagent Adds Value
+
+Once I12 (patch tool) exists, the subagent's raw perf benefit on leaf-edit batches is small
+(~5 s). The primary value is **context preservation**: for long modify-world sessions with many
+approved batches, keeping tool-arg blobs and result payloads out of the parent context
+meaningfully extends effective session length. Build for context, not just speed.
+
+### Acceptance Criteria
+
+- [ ] `agents/` directory created at plugin root
+- [ ] `agents/world-mcp-executor.md` created with correct frontmatter (`model: sonnet`)
+- [ ] Tool whitelist in frontmatter matches all draft-mutating handlers
+- [ ] System prompt hard-refuses to propose new content
+- [ ] `skills/modify-world/SKILL.md` updated with post-approval routing step
+- [ ] Dispatch prompt template documented (includes "user has approved" assertion + verbatim values)
+- [ ] `dev-docs/subagent-prompt-requirements.md` updated with executor prompt block
+- [ ] Plugin manifest verified (does `plugin.json` need an `agents` field?)
+- [ ] Frontmatter parse test in `test-files/`
+- [ ] Manual smoke test in a clean session
+
+---
+
 ## Implementation Roadmap
 
 ### Phase 1: Highest Priority
@@ -850,6 +1127,11 @@ Add **git integration skill** for version control of world.json files.
 - I9: Pre-Merge GitHub Checks (enforces CI before merging — requires I2 + I8)
 - I3: Incremental Draft Validation (UX improvement)
 - I5: Batch Entity Import Tools (moderate effort, useful feature)
+
+### Phase 3b: Performance & Correctness (from PR #48 deep dive — implement in order)
+- ✅ **I13: Per-draftPath Mutex** — implemented in PR #52 (2026-05-09)
+- **I12: Generic Patch Tool** (highest single-item perf win; depends on I13 for concurrency safety — I13 now done)
+- **I14: Sonnet Executor Subagent** (context preservation; perf benefit compounds with I12; implement after I12 + I13)
 
 ### Phase 4: Low Priority
 - I6: World Comparison Analytics (high impact for world evolution)
@@ -870,6 +1152,9 @@ Add **git integration skill** for version control of world.json files.
 | I5 (Batch Tools) | None | Can add to index.js alphabetically |
 | I6 (Analytics) | `compare_worlds`, `audit_world` | Already exist; build on top |
 | I7 (Git) | None | Optional, can add anytime |
+| I12 (Patch Tool) | I13 (Mutex) | Concurrent patch calls on same draft need the lock first |
+| I13 (Mutex) | None | Cheap prerequisite; ship before or with I12 |
+| I14 (Subagent) | I12 + I13 | Full benefit requires patch tool for small args and mutex for concurrent writes |
 
 ---
 
@@ -884,6 +1169,9 @@ Add **git integration skill** for version control of world.json files.
 - **I7 (Git):** 4 git actions working, integration tested with real worlds
 - **I8 (Pre-Commit):** Tests run automatically before commits, blocking broken code
 - **I9 (Pre-Merge):** GitHub Actions workflow passes on all PRs, branch protection enforced
+- **I12 (Patch Tool):** 6-KIB keyword batch wall-clock ≤15 s (down from ~107 s); round-trip format preserved; concurrency test passes
+- **I13 (Mutex):** ✅ 6-test concurrency suite passing; 6 parallel writes all land without lost updates; timeout path verified with fake timers; no latency regression
+- **I14 (Subagent):** Manual smoke test confirms subagent dispatches approved edits correctly; parent context growth per batch drops to near zero
 
 ---
 
