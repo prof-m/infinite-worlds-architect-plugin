@@ -9,6 +9,8 @@
 - **Core skill** in `skills/world-architect/SKILL.md` with `references/` and `scripts/`
 - **MCP Server**: `index.js` using `@modelcontextprotocol/sdk` (stdio transport)
 - **Manifest**: `.claude-plugin/plugin.json`; config in `.mcp.json`
+- **Marketplace**: `.claude-plugin/marketplace.json` — required for `claude plugin marketplace add github:...`
+- **Version sync**: When bumping version in `plugin.json`, update the matching `version` field in `marketplace.json` to keep them identical
 - Use `${CLAUDE_PLUGIN_ROOT}` in `.mcp.json` and hook scripts for intra-plugin paths
 
 ## Testing
