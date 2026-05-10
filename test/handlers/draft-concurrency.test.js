@@ -7,7 +7,7 @@
  * writes — these tests intermittently (but reliably over many runs) detect that.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -91,18 +91,19 @@ describe('draft mutex — concurrent update_draft_section', () => {
 
         const newSubFields = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];
 
-        // Sequentially create sub-fields first so they exist (create_sub_field
-        // requires the sub-field to be absent — parallel creation of the *same*
-        // sub-field is a user error, not a race).  What we're testing here is
-        // that 6 concurrent creates of *different* sub-fields all land.
-        for (const name of newSubFields) {
-            await create_sub_field({
+        // Each call targets a different sub-field (parallel creation of the
+        // *same* sub-field is a user error, not a race). Without the mutex,
+        // concurrent reads of the same initial draft state would cause every
+        // handler to see an empty KIB section and write only its own sub-field,
+        // leaving 5 of 6 creates lost.
+        await Promise.all(newSubFields.map(name =>
+            create_sub_field({
                 draftPath,
                 sectionName: 'Keyword Instruction Blocks',
                 subField: name,
                 newContent: `Content for ${name}.`,
-            });
-        }
+            })
+        ));
 
         const finalDraft = await fs.readFile(draftPath, 'utf-8');
 
@@ -172,5 +173,38 @@ describe('acquireDraftLock — unit', () => {
 
         release1();
         release2();
+    });
+
+    it('timeout rejects the waiting caller and leaves subsequent waiters unblocked', async () => {
+        // This test exercises the CRITICAL path: if the timeout fires before we
+        // acquire, the internal promise chain must still resolve so that callers
+        // who queue up after us are not permanently deadlocked.
+        jest.useFakeTimers();
+        try {
+            const lockPath = path.join(tmpDir, 'timeout-test.md');
+
+            // Holder 1 acquires and never releases (simulates a hung handler).
+            const _release1 = await acquireDraftLock(lockPath);
+
+            // Waiter 2 starts acquiring — will time out because holder 1 never releases.
+            // Attach the rejection assertion BEFORE advancing the clock so the
+            // rejection is always "handled" from Node's perspective; asserting
+            // after the await would create an unhandled-rejection window.
+            const waiter2 = acquireDraftLock(lockPath);
+            const waiter2Assertion = expect(waiter2).rejects.toThrow('Draft lock timeout');
+
+            // Advance fake clock past the 30 s threshold, flushing microtasks between ticks.
+            await jest.advanceTimersByTimeAsync(31_000);
+
+            await waiter2Assertion;
+
+            // After the timeout handler ran, the internal chain was unblocked.
+            // Waiter 3 should acquire immediately (prev is a fresh resolved promise).
+            const release3 = await acquireDraftLock(lockPath);
+            expect(typeof release3).toBe('function');
+            release3();
+        } finally {
+            jest.useRealTimers();
+        }
     });
 });
