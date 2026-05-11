@@ -241,7 +241,8 @@ describe('compile_draft', () => {
     await compile_draft({ draftPath, outputPath: worldPath });
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
     expect(world.imageModel).toBe('manticore');
-    expect(world.defeatText).toBe('Your adventure ends here. Game over.');
+    expect(world.defeatCondition.text).toBe('Your adventure ends here. Game over.');
+    expect(world).not.toHaveProperty('defeatText');
   });
 
   it('throws for non-existent draft path', async () => {
@@ -266,10 +267,10 @@ describe('compile_draft', () => {
     await fs.writeFile(draftPath, draft);
     await compile_draft({ draftPath, outputPath: worldPath });
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    expect(world.victoryCondition).toBe('Defeat the dragon');
-    expect(world.victoryText).toBe('You win!');
-    expect(world.defeatCondition).toBe('HP reaches zero');
-    expect(world.defeatText).toBe('You lose!');
+    expect(world.victoryCondition).toEqual({ condition: 'Defeat the dragon', text: 'You win!', alreadyFired: false });
+    expect(world.defeatCondition).toEqual({ condition: 'HP reaches zero', text: 'You lose!', alreadyFired: false });
+    expect(world).not.toHaveProperty('victoryText');
+    expect(world).not.toHaveProperty('defeatText');
   });
 });
 

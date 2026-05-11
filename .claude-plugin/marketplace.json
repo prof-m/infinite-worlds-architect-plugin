@@ -14,7 +14,7 @@
       "name": "infinite-worlds-architect",
       "source": "./",
       "description": "MCP-powered world-building plugin for Claude Code — compile/decompile structured world JSON, manage entities, validate canon consistency, and draft rich fiction worlds with 20+ tools",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "author": {
         "name": "prof-m",
         "email": "65079055+prof-m@users.noreply.github.com"
