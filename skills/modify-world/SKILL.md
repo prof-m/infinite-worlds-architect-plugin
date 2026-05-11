@@ -88,8 +88,10 @@ Then, enter an interactive modification loop:
      | Description Request, Summary Request | `skills/world-architect/references/sections/misc-advanced-features.md` |
 
    - Present the current value and ask me what I want to change.
-   - Wait for my answer. Suggest modifications based on my input, update the specific section in the markdown file using `update_draft_section`, and wait for my approval.
-   - **For container fields** (Possible Characters, Other Characters, Extra Instruction Blocks, Keyword Instruction Blocks, Tracked Items, Trigger Events): once I have approved a multi-item plan (e.g. "add these 6 tracked items"), the per-sub-field MCP calls (`create_sub_field`, `update_draft_section` with `subField`, `delete_draft_sub_field`, `rename_sub_field`) for that approved batch must be issued in parallel — emit multiple `tool_use` blocks in a single response. This is parallelism *across* calls; each individual call still operates on exactly one sub-field per the container-field rule.
+   - Wait for my answer. Suggest modifications based on my input, update the specific section in the markdown file, and wait for my approval. **Choose the most targeted write tool:**
+     - **Changing one labeled line within a sub-field** (e.g. updating `Keywords` for a KIB, `Appearance` or `Location` for an NPC, `Data Type` or `Initial Value` for a Tracked Item): use `update_draft_field`. This passes ~94% fewer bytes than `update_draft_section` and is significantly faster for batches of leaf edits.
+     - **Rewriting the entire sub-field body** (prose rewrites, structural changes, adding/removing multiple fields): use `update_draft_section` as before.
+   - **For container fields** (Possible Characters, Other Characters, Extra Instruction Blocks, Keyword Instruction Blocks, Tracked Items, Trigger Events): once I have approved a multi-item plan (e.g. "update Keywords for these 6 KIBs"), the per-sub-field MCP calls (`update_draft_field`, `create_sub_field`, `update_draft_section` with `subField`, `delete_draft_sub_field`, `rename_sub_field`) for that approved batch must be issued in parallel — emit multiple `tool_use` blocks in a single response. This is parallelism *across* calls; each individual call still operates on exactly one sub-field per the container-field rule.
    - Once I say the field looks good and approve it, ask: "What would you like to do next?" with options: "Modify another specific field", "Give a generic instruction", "Present a summary of changes", or "Finalize Changes".
 
 If I choose "Finalize Changes":

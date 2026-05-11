@@ -97,6 +97,26 @@ Non-player characters.
 
 ---
 
+## `update_draft_field` — Valid `fieldName` Values per Container Type
+
+Use these exact names (case-insensitive) as the `fieldName` parameter for `update_draft_field`.
+
+| Container section | Valid `fieldName` values |
+| :--- | :--- |
+| `Possible Characters` | `Description`, `Portrait`, `Skills` |
+| `Other Characters` | `Brief Summary`, `Character Detail`, `Appearance`, `Location`, `Secret Information`, `Full List of Names`, `Image Appearance`, `Image Clothing` |
+| `Extra Instruction Blocks` | `Content` |
+| `Keyword Instruction Blocks` | `Keywords`, `Content` |
+| `Tracked Items` | `Data Type`, `Visibility`, `Description`, `Update Instructions`, `Initial Value` |
+| `Trigger Events` | `Conditions`, `Effects`, `Can Trigger More Than Once`, `Prerequisites`, `Blockers` |
+
+**Notes:**
+- If the `fieldName` does not exist in the sub-field body, it is **inserted** at the end.
+- Most efficient for small values (e.g. `Keywords`, `Data Type`, `Visibility`). For large prose fields (`Character Detail`, `Content`), `update_draft_section` is comparably sized.
+- `Conditions` and `Effects` in Trigger Events are structured lists — `update_draft_field` replaces the whole value. Use `update_draft_section` to add/remove individual conditions.
+
+---
+
 ## `# Player Permissions` Format
 
 The `# Player Permissions` section uses a simple `Key: Value` format where each line maps to a boolean field:
