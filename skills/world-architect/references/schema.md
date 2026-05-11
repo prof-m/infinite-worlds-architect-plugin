@@ -25,10 +25,8 @@ The `world.json` file is the ultimate source of truth for world definitions. Bel
 | `imageStyleCharacterPost` | string | Suffix for character image prompts (contains LoRAs like `IWUpscaleFaceSmooth`). |
 | `imageStyleNonCharacterPre`| string | Prefix for setting image prompts. |
 | `imageStyleNonCharacterPost`| string | Suffix for setting image prompts. |
-| `victoryCondition` | string | Free-text condition for winning. |
-| `victoryText` | string | Display message on victory. |
-| `defeatCondition` | string | Free-text condition for losing. |
-| `defeatText` | string | Display message on defeat. Default: "Your adventure ends here. Game over." |
+| `victoryCondition` | object `{ condition, text, alreadyFired }` | Win condition. `condition`: logic expression string; `text`: display message on victory; `alreadyFired`: boolean (runtime state, not author-editable). |
+| `defeatCondition` | object `{ condition, text, alreadyFired }` | Defeat condition. Same shape as `victoryCondition`. Default `text`: "Your adventure ends here. Game over." |
 | `designNotes` | string | Personal notes field, NOT sent to AI. For author reference only. |
 | `canChangeCharacterName` | boolean | Allow player to change character name. Default: `true`. |
 | `canChangeCharacterDescription` | boolean | Allow player to change character description. Default: `true`. |
