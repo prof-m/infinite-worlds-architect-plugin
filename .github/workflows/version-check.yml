@@ -17,7 +17,7 @@ jobs:
       - name: Compare versions against master
         run: |
           PLUGIN_VERSION=$(jq -r '.version' .claude-plugin/plugin.json)
-          MARKETPLACE_VERSION=$(jq -r '.version' .claude-plugin/marketplace.json)
+          MARKETPLACE_VERSION=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
           MASTER_VERSION=$(git show origin/master:.claude-plugin/plugin.json | jq -r '.version')
 
           echo "master version:      $MASTER_VERSION"
