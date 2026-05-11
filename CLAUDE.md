@@ -10,7 +10,10 @@
 - **MCP Server**: `index.js` using `@modelcontextprotocol/sdk` (stdio transport)
 - **Manifest**: `.claude-plugin/plugin.json`; config in `.mcp.json`
 - **Marketplace**: `.claude-plugin/marketplace.json` — required for `claude plugin marketplace add github:...`
-- **Version sync**: When bumping version in `plugin.json`, update the matching `version` field in `marketplace.json` to keep them identical
+- **Version bump required on every PR**: Every PR merged to master must increment the version in **both** `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (CI gate enforces this). Use semver:
+  - `patch` (x.x.**N**) — bug fixes, doc updates, refactors with no behaviour change
+  - `minor` (x.**N**.0) — new MCP tools, new skills, new commands, backwards-compatible features
+  - `major` (**N**.0.0) — breaking schema changes, removed tools, incompatible world-format changes
 - Use `${CLAUDE_PLUGIN_ROOT}` in `.mcp.json` and hook scripts for intra-plugin paths
 
 ## Testing
