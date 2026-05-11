@@ -233,14 +233,7 @@ describe('fence tracking', () => {
     });
 
     it('does not match Key:Value inside a fenced code block (KV path)', async () => {
-        // Sub-field has no H3 headers — so KV matching is used.
-        // The real "Visibility: everyone" is outside the fence; a fake one inside should not be matched.
-        await writeDraft(
-            '# Tracked Items\n## Score\nData Type: number\nVisibility: everyone\n### Content\n```text\nVisibility: fake_inside_fence\n```\n'
-        );
-
-        // Wait — that draft has a ### Content header, so it IS H3 format. Let me use a KV-only body.
-        // Rewrite with a truly KV-only sub-field body that contains a fenced block:
+        // Sub-field has no H3 headers — KV matching is used. The real Visibility is outside the fence.
         await writeDraft(
             '# Tracked Items\n## Score\nData Type: number\n```\nVisibility: fake_inside_fence\n```\nVisibility: real_value\n'
         );
