@@ -34,10 +34,10 @@ The following headers must appear at the start of a line. Content for each field
 | `# Image Style Character Post` | `imageStyleCharacterPost` | Prompt suffix for characters. | |
 | `# Image Style Non Character Pre` | `imageStyleNonCharacterPre` | Prompt prefix for settings. | |
 | `# Image Style Non Character Post`| `imageStyleNonCharacterPost`| Prompt suffix for settings. | |
-| `# Victory Condition` | `victoryCondition` | Free-text condition for winning. | |
-| `# Victory Text` | `victoryText` | Display message on victory. | |
-| `# Defeat Condition` | `defeatCondition` | Free-text condition for losing. | |
-| `# Defeat Text` | `defeatText` | Display message on defeat. | Default: "Your adventure ends here. Game over." |
+| `# Victory Condition` | `victoryCondition.condition` | Logic expression for winning. | These four sections compile into two nested objects: `victoryCondition: { condition, text, alreadyFired }` and `defeatCondition: { condition, text, alreadyFired }`. `alreadyFired` is runtime state preserved from the original world — not authored in the draft. |
+| `# Victory Text` | `victoryCondition.text` | Display message on victory. | |
+| `# Defeat Condition` | `defeatCondition.condition` | Logic expression for losing. | |
+| `# Defeat Text` | `defeatCondition.text` | Display message on defeat. | Default: "Your adventure ends here. Game over." |
 | `# Design Notes` | `designNotes` | Personal notes, NOT sent to AI. | |
 | `# Player Permissions` | *(multiple boolean keys)* | Player customization permissions. | Key: Value pairs (see below) |
 | `# Enable AI Specific Instruction Blocks` | `enableAISpecificInstructionBlocks` | Restrict EIBs to specific AI models. | `true` or `false` |

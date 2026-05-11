@@ -272,6 +272,26 @@ describe('compile_draft', () => {
     expect(world).not.toHaveProperty('victoryText');
     expect(world).not.toHaveProperty('defeatText');
   });
+
+  it('preserves alreadyFired from original world on round-trip', async () => {
+    const original = minimalWorld({
+      victoryCondition: { condition: 'Score >= 100', text: 'You win!', alreadyFired: true },
+      defeatCondition: { condition: 'Lives <= 0', text: 'You lose.', alreadyFired: false },
+    });
+    await writeWorld(worldPath, original);
+
+    const draftResult = await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    expect(draftResult.content[0].text).toContain('decompiled');
+
+    const recompiledPath = path.join(tmpDir, 'recompiled.json');
+    await compile_draft({ draftPath, outputPath: recompiledPath, originalPath: worldPath });
+    const recompiled = JSON.parse(await fs.readFile(recompiledPath, 'utf-8'));
+
+    expect(recompiled.victoryCondition.alreadyFired).toBe(true);
+    expect(recompiled.defeatCondition.alreadyFired).toBe(false);
+    expect(recompiled.victoryCondition.condition).toBe('Score >= 100');
+    expect(recompiled.victoryCondition.text).toBe('You win!');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1473,6 +1493,21 @@ describe('get_diff_summary', () => {
 
     const result = await get_diff_summary({ originalPath: worldPath, draftPath });
     expect(result.content[0].text).toContain('skills');
+  });
+
+  it('detects changed victory and defeat conditions', async () => {
+    const world = minimalWorld({
+      victoryCondition: { condition: 'Score >= 100', text: 'You win!', alreadyFired: false },
+      defeatCondition: { condition: 'Lives <= 0', text: 'You lose.', alreadyFired: false },
+    });
+    await writeWorld(worldPath, world);
+
+    const draft = `# Title\nBase World\n# Background\nBase background\n# Main Instructions\nBase instructions\n# Victory Condition\nScore >= 200\n# Victory Text\nYou win!\n# Defeat Condition\nLives <= 0\n# Defeat Text\nYou lose.\n`;
+    await fs.writeFile(draftPath, draft);
+
+    const result = await get_diff_summary({ originalPath: worldPath, draftPath });
+    expect(result.content[0].text).toContain('[victoryCondition.condition]');
+    expect(result.content[0].text).not.toContain('[defeatCondition');
   });
 
   it('throws for non-existent original file', async () => {
