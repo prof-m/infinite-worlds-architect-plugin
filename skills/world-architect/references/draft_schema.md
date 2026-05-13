@@ -67,6 +67,7 @@ Non-player characters.
 - **H3 `Full List of Names`**: `names` (JSON array of strings)
 - **H3 `Image Appearance`**: `img_appearance`
 - **H3 `Image Clothing`**: `img_clothing`
+- **Internal** (compiler-injected): `positionInList` set to the NPC's 0-based index; preserved from existing world JSON if present.
 
 ### `# Extra Instruction Blocks` (Maps to `instructionBlocks`)
 - **H2**: Block Name (`name`)
@@ -84,8 +85,7 @@ Non-player characters.
 - **H3 `Description`**: `description`
 - **H3 `Update Instructions`**: `updateInstructions`
 - **H3 `Initial Value`**: `initialValue`
-- **Internal**: `initialValueBasedOnPC` (defaults to `"same"`)
-- **Internal**: `autoUpdate` (defaults to `true`)
+- **Internal** (compiler-injected, not in draft format): `initialValueBasedOnPC` defaults to `"same"`; `autoUpdate` defaults to `true`; `positionInList` is set to the item's 0-based index in the array. All three are preserved from an existing world JSON if present.
 
 ### `# Trigger Events` (Maps to `triggerEvents`)
 - **H2**: Trigger Name (`name`)
