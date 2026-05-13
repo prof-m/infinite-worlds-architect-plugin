@@ -206,6 +206,88 @@ describe('compile_draft', () => {
     expect(world.trackedItems[0].initialValue).toBe('100');
   });
 
+  it('injects autoUpdate and initialValueBasedOnPC defaults on tracked items', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Tracked Items\n## Gold\nData Type: number\nInitial Value: 0\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.trackedItems[0].autoUpdate).toBe(true);
+    expect(world.trackedItems[0].initialValueBasedOnPC).toBe('same');
+  });
+
+  it('preserves autoUpdate from original when re-compiling', async () => {
+    const original = minimalWorld({
+      trackedItems: [{ id: 'ti1', name: 'Gold', dataType: 'number', autoUpdate: false, initialValueBasedOnPC: 'same', initialValue: '0' }],
+    });
+    await writeWorld(worldPath, original);
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Tracked Items\n## Gold\nData Type: number\nInitial Value: 0\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath, originalPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.trackedItems[0].autoUpdate).toBe(false);
+  });
+
+  it('injects positionInList on tracked items from array index', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Tracked Items\n## Alpha\nData Type: text\nInitial Value: a\n## Beta\nData Type: text\nInitial Value: b\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.trackedItems[0].positionInList).toBe(0);
+    expect(world.trackedItems[1].positionInList).toBe(1);
+  });
+
+  it('preserves positionInList from original tracked items when present', async () => {
+    const original = minimalWorld({
+      trackedItems: [{ id: 'ti1', name: 'Gold', dataType: 'number', positionInList: 5, initialValue: '0' }],
+    });
+    await writeWorld(worldPath, original);
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Tracked Items\n## Gold\nData Type: number\nInitial Value: 0\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath, originalPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.trackedItems[0].positionInList).toBe(5);
+  });
+
+  it('injects positionInList on NPCs from array index', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Other Characters\n## Alice\n### Brief Summary\nFirst NPC\n## Bob\n### Brief Summary\nSecond NPC\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.NPCs[0].positionInList).toBe(0);
+    expect(world.NPCs[1].positionInList).toBe(1);
+  });
+
+  it('parses canTriggerMoreThanOnce: true from trigger event draft', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Daily Tick\n### Conditions\n- triggerOnTurn:\n\`\`\`\n1\n\`\`\`\n### Effects\n- scriptedText:\n\`\`\`\nA day passes.\n\`\`\`\n### Can Trigger More Than Once\ntrue\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.triggerEvents[0].canTriggerMoreThanOnce).toBe(true);
+  });
+
+  it('does not set canTriggerMoreThanOnce when field is false or absent', async () => {
+    const draftFalse = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Once Only\n### Conditions\n- triggerOnTurn:\n\`\`\`\n1\n\`\`\`\n### Effects\n- scriptedText:\n\`\`\`\nDone.\n\`\`\`\n### Can Trigger More Than Once\nfalse\n`;
+    await fs.writeFile(draftPath, draftFalse);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.triggerEvents[0].canTriggerMoreThanOnce).toBeUndefined();
+
+    const draftAbsent = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Once Only\n### Conditions\n- triggerOnTurn:\n\`\`\`\n1\n\`\`\`\n### Effects\n- scriptedText:\n\`\`\`\nDone.\n\`\`\`\n`;
+    await fs.writeFile(draftPath, draftAbsent);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world2 = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world2.triggerEvents[0].canTriggerMoreThanOnce).toBeUndefined();
+  });
+
+  it('parses prerequisites and blockers from trigger event draft', async () => {
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Gated Event\n### Conditions\n- triggerOnTurn:\n\`\`\`\n5\n\`\`\`\n### Effects\n- scriptedText:\n\`\`\`\nGated.\n\`\`\`\n### Prerequisites\ntrigger-a, trigger-b\n### Blockers\ntrigger-c\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.triggerEvents[0].prerequisites).toEqual(['trigger-a', 'trigger-b']);
+    expect(world.triggerEvents[0].blockers).toEqual(['trigger-c']);
+  });
+
   it('merges with existing world JSON when originalPath is provided', async () => {
     const original = minimalWorld({ title: 'Original Title', designNotes: 'Keep this' });
     await writeWorld(worldPath, original);
@@ -391,6 +473,94 @@ describe('decompile_json', () => {
     expect(md).toContain('## Game Start');
     expect(md).toContain('triggerOnStartOfGame');
     expect(md).toContain('scriptedText');
+  });
+
+  it('emits Can Trigger More Than Once when true in decompile', async () => {
+    const world = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Repeatable', canTriggerMoreThanOnce: true,
+        triggerConditions: [{ id: 'c1', type: 'triggerOnStartOfGame', data: true, category: 'condition' }],
+        triggerEffects: [{ id: 'e1', type: 'scriptedText', data: 'Again!' }],
+      }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('### Can Trigger More Than Once');
+    expect(md).toContain('true');
+  });
+
+  it('does not emit Can Trigger More Than Once when false or absent in decompile', async () => {
+    const world = minimalWorld({
+      triggerEvents: [
+        {
+          id: 't1', name: 'Once Only', canTriggerMoreThanOnce: false,
+          triggerConditions: [], triggerEffects: [],
+        },
+        {
+          id: 't2', name: 'Default',
+          triggerConditions: [], triggerEffects: [],
+        },
+      ],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).not.toContain('Can Trigger More Than Once');
+  });
+
+  it('emits Prerequisites and Blockers in decompile', async () => {
+    const world = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Gated',
+        prerequisites: ['trigger-a', 'trigger-b'],
+        blockers: ['trigger-c'],
+        triggerConditions: [],
+        triggerEffects: [],
+      }],
+    });
+    await writeWorld(worldPath, world);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const md = await fs.readFile(draftPath, 'utf-8');
+    expect(md).toContain('### Prerequisites');
+    expect(md).toContain('trigger-a, trigger-b');
+    expect(md).toContain('### Blockers');
+    expect(md).toContain('trigger-c');
+  });
+
+  it('round-trips canTriggerMoreThanOnce through decompile → compile', async () => {
+    const original = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Recurring', canTriggerMoreThanOnce: true,
+        triggerConditions: [{ id: 'c1', type: 'triggerOnStartOfGame', data: true, category: 'condition' }],
+        triggerEffects: [{ id: 'e1', type: 'scriptedText', data: 'Repeating!' }],
+      }],
+    });
+    await writeWorld(worldPath, original);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const recompiledPath = path.join(tmpDir, 'recompiled.json');
+    await compile_draft({ draftPath, outputPath: recompiledPath });
+    const recompiled = JSON.parse(await fs.readFile(recompiledPath, 'utf-8'));
+    expect(recompiled.triggerEvents[0].canTriggerMoreThanOnce).toBe(true);
+  });
+
+  it('round-trips prerequisites and blockers through decompile → compile', async () => {
+    const original = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Gated',
+        prerequisites: ['trigger-a'],
+        blockers: ['trigger-b'],
+        triggerConditions: [],
+        triggerEffects: [],
+      }],
+    });
+    await writeWorld(worldPath, original);
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    const recompiledPath = path.join(tmpDir, 'recompiled.json');
+    await compile_draft({ draftPath, outputPath: recompiledPath });
+    const recompiled = JSON.parse(await fs.readFile(recompiledPath, 'utf-8'));
+    expect(recompiled.triggerEvents[0].prerequisites).toEqual(['trigger-a']);
+    expect(recompiled.triggerEvents[0].blockers).toEqual(['trigger-b']);
   });
 
   it('includes instruction blocks and keyword blocks', async () => {

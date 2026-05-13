@@ -65,6 +65,7 @@ Each object in `NPCs` contains:
 - `names` (string[], Full List of Names)
 - `img_appearance` (string, Image generation appearance text)
 - `img_clothing` (string, Image generation clothing text)
+- `positionInList` (integer, 0-based display order — compiler assigns from array index)
 
 ## Player Customization Permissions
 
@@ -89,8 +90,9 @@ Each object in `trackedItems` contains:
 - `description` (string)
 - `updateInstructions` (string)
 - `initialValue` (string)
-- `initialValueBasedOnPC` (string: defaults to "same")
-- `autoUpdate` (boolean: defaults to true)
+- `initialValueBasedOnPC` (string: defaults to `"same"` — compiler-injected, not author-editable via draft)
+- `autoUpdate` (boolean: defaults to `true` — compiler-injected, not author-editable via draft)
+- `positionInList` (integer, 0-based display order — compiler assigns from array index)
 
 ## triggerEvents
 
