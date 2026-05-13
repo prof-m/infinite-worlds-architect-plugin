@@ -265,18 +265,70 @@ describe('compile_draft', () => {
     expect(world.triggerEvents[0].canTriggerMoreThanOnce).toBe(true);
   });
 
-  it('does not set canTriggerMoreThanOnce when field is false or absent', async () => {
+  it('sets canTriggerMoreThanOnce false when explicitly false in draft; leaves undefined when absent', async () => {
     const draftFalse = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Once Only\n### Conditions\n- triggerOnTurn:\n\`\`\`\n1\n\`\`\`\n### Effects\n- scriptedText:\n\`\`\`\nDone.\n\`\`\`\n### Can Trigger More Than Once\nfalse\n`;
     await fs.writeFile(draftPath, draftFalse);
     await compile_draft({ draftPath, outputPath: worldPath });
     const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
-    expect(world.triggerEvents[0].canTriggerMoreThanOnce).toBeUndefined();
+    // Explicit false in draft must set the field so re-compile can clear an inherited true
+    expect(world.triggerEvents[0].canTriggerMoreThanOnce).toBe(false);
 
     const draftAbsent = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Once Only\n### Conditions\n- triggerOnTurn:\n\`\`\`\n1\n\`\`\`\n### Effects\n- scriptedText:\n\`\`\`\nDone.\n\`\`\`\n`;
     await fs.writeFile(draftPath, draftAbsent);
     await compile_draft({ draftPath, outputPath: worldPath });
     const world2 = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    // Absent header leaves field unset so mergeArray can preserve the value from originalPath
     expect(world2.triggerEvents[0].canTriggerMoreThanOnce).toBeUndefined();
+  });
+
+  it('clears canTriggerMoreThanOnce when re-compiling with explicit false over an existing true', async () => {
+    const original = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Was Repeatable', canTriggerMoreThanOnce: true,
+        triggerConditions: [{ id: 'c1', type: 'triggerOnStartOfGame', data: true, category: 'condition' }],
+        triggerEffects: [{ id: 'e1', type: 'scriptedText', data: 'Again!' }],
+      }],
+    });
+    await writeWorld(worldPath, original);
+    // Decompile produces ### Can Trigger More Than Once\ntrue; author changes to false
+    await decompile_json({ inputPath: worldPath, outputPath: draftPath });
+    let md = await fs.readFile(draftPath, 'utf-8');
+    md = md.replace('### Can Trigger More Than Once\ntrue', '### Can Trigger More Than Once\nfalse');
+    await fs.writeFile(draftPath, md);
+    const recompiledPath = path.join(tmpDir, 'recompiled.json');
+    await compile_draft({ draftPath, outputPath: recompiledPath, originalPath: worldPath });
+    const recompiled = JSON.parse(await fs.readFile(recompiledPath, 'utf-8'));
+    expect(recompiled.triggerEvents[0].canTriggerMoreThanOnce).toBe(false);
+  });
+
+  it('clears prerequisites when re-compiling with an empty Prerequisites section', async () => {
+    const original = minimalWorld({
+      triggerEvents: [{
+        id: 't1', name: 'Gated',
+        prerequisites: ['trigger-a'],
+        triggerConditions: [],
+        triggerEffects: [],
+      }],
+    });
+    await writeWorld(worldPath, original);
+    const draftWithEmptyPrereqs = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Trigger Events\n## Gated\n### Conditions\n### Effects\n### Prerequisites\n\n`;
+    await fs.writeFile(draftPath, draftWithEmptyPrereqs);
+    const recompiledPath = path.join(tmpDir, 'recompiled.json');
+    await compile_draft({ draftPath, outputPath: recompiledPath, originalPath: worldPath });
+    const recompiled = JSON.parse(await fs.readFile(recompiledPath, 'utf-8'));
+    expect(recompiled.triggerEvents[0].prerequisites).toEqual([]);
+  });
+
+  it('preserves positionInList from original NPCs when present', async () => {
+    const original = minimalWorld({
+      NPCs: [{ id: 'n1', name: 'Alice', one_liner: 'First NPC', positionInList: 7 }],
+    });
+    await writeWorld(worldPath, original);
+    const draft = `# Title\nW\n# Background\nB\n# Main Instructions\nI\n# Other Characters\n## Alice\n### Brief Summary\nFirst NPC\n`;
+    await fs.writeFile(draftPath, draft);
+    await compile_draft({ draftPath, outputPath: worldPath, originalPath: worldPath });
+    const world = JSON.parse(await fs.readFile(worldPath, 'utf-8'));
+    expect(world.NPCs[0].positionInList).toBe(7);
   });
 
   it('parses prerequisites and blockers from trigger event draft', async () => {
